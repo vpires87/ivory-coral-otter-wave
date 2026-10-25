@@ -1,9 +1,14 @@
 import { cents, eachMonth } from "@/lib/ledger/money";
+import { PLATFORM_KINDS } from "@/lib/ledger/types";
 import type {
+  ExpenseEntry,
+  ExpenseMonth,
+  ExpenseType,
   MonthEntry,
   MonthPoint,
   Platform,
   PlatformSnapshot,
+  ShareSlice,
   Totals,
   YearRollup,
 } from "@/lib/ledger/types";
@@ -143,4 +148,63 @@ export function yearlyRollup(series: MonthPoint[]): YearRollup[] {
 
 export function entryFor(entries: MonthEntry[], platformId: string, month: string): MonthEntry | null {
   return entries.find((entry) => entry.platformId === platformId && entry.month === month) ?? null;
+}
+
+export function valueShares(platforms: Platform[], entries: MonthEntry[]): ShareSlice[] {
+  const rows = platforms
+    .map((platform) => ({
+      id: platform.id,
+      label: platform.name,
+      value: platformSnapshot(platform, entries).value ?? 0,
+    }))
+    .filter((row) => row.value > 0)
+    .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt"));
+  return withShares(rows);
+}
+
+export function kindShares(platforms: Platform[], entries: MonthEntry[]): ShareSlice[] {
+  const totalsByKind = new Map<string, number>();
+  for (const platform of platforms) {
+    const value = platformSnapshot(platform, entries).value ?? 0;
+    if (value <= 0) continue;
+    totalsByKind.set(platform.kind, cents((totalsByKind.get(platform.kind) ?? 0) + value));
+  }
+  const rows = [...totalsByKind.entries()].map(([id, value]) => ({
+    id,
+    label: PLATFORM_KINDS.find((kind) => kind.id === id)?.label ?? id,
+    value,
+  }));
+  rows.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt"));
+  return withShares(rows);
+}
+
+function withShares(rows: { id: string; label: string; value: number }[]): ShareSlice[] {
+  const total = rows.reduce((sum, row) => cents(sum + row.value), 0);
+  if (total <= 0) return [];
+  return rows.map((row) => ({ ...row, share: row.value / total }));
+}
+
+export function expenseFor(expenses: ExpenseEntry[], typeId: string, month: string): ExpenseEntry | null {
+  return expenses.find((entry) => entry.typeId === typeId && entry.month === month) ?? null;
+}
+
+export function expenseSeries(types: ExpenseType[], expenses: ExpenseEntry[]): ExpenseMonth[] {
+  if (expenses.length === 0) return [];
+  const sorted = [...expenses].sort(byMonth);
+  const months = eachMonth(sorted[0].month, sorted[sorted.length - 1].month);
+  return months.map((month) => {
+    const byType: Record<string, number> = {};
+    let total = 0;
+    for (const type of types) {
+      const entry = expenseFor(expenses, type.id, month);
+      if (!entry) continue;
+      byType[type.id] = entry.amount;
+      total = cents(total + entry.amount);
+    }
+    return { month, total, byType };
+  });
+}
+
+export function expenseTotal(expenses: ExpenseEntry[], month: string): number {
+  return expenses.reduce((sum, entry) => (entry.month === month ? cents(sum + entry.amount) : sum), 0);
 }

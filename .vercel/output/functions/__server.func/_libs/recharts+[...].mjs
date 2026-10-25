@@ -13067,12 +13067,7 @@ var getCartesianAxisSize = function getCartesianAxisSize(axisObj, axisName) {
 	if (axisName === "xAxis") return axisObj[axisName].width;
 	if (axisName === "yAxis") return axisObj[axisName].height;
 };
-//#endregion
-//#region node_modules/recharts/es6/chart/ComposedChart.js
-/**
-* @fileOverview Composed Chart
-*/
-var ComposedChart = function generateCategoricalChart(_ref6) {
+var generateCategoricalChart = function generateCategoricalChart(_ref6) {
 	var chartName = _ref6.chartName, GraphicalChild = _ref6.GraphicalChild, _ref6$defaultTooltipE = _ref6.defaultTooltipEventType, defaultTooltipEventType = _ref6$defaultTooltipE === void 0 ? "axis" : _ref6$defaultTooltipE, _ref6$validateTooltip = _ref6.validateTooltipEventTypes, validateTooltipEventTypes = _ref6$validateTooltip === void 0 ? ["axis"] : _ref6$validateTooltip, axisComponents = _ref6.axisComponents, legendContent = _ref6.legendContent, formatAxisMap = _ref6.formatAxisMap, defaultProps = _ref6.defaultProps;
 	var getFormatItems = function getFormatItems(props, currentState) {
 		var graphicalItems = currentState.graphicalItems, stackGroups = currentState.stackGroups, offset = currentState.offset, updateId = currentState.updateId, dataStartIndex = currentState.dataStartIndex, dataEndIndex = currentState.dataEndIndex;
@@ -14117,7 +14112,32 @@ var ComposedChart = function generateCategoricalChart(_ref6) {
 	});
 	CategoricalChart.displayName = CategoricalChartWrapper.displayName;
 	return CategoricalChart;
-}({
+};
+//#endregion
+//#region node_modules/recharts/es6/chart/BarChart.js
+/**
+* @fileOverview Bar Chart
+*/
+var BarChart = generateCategoricalChart({
+	chartName: "BarChart",
+	GraphicalChild: Bar,
+	defaultTooltipEventType: "axis",
+	validateTooltipEventTypes: ["axis", "item"],
+	axisComponents: [{
+		axisType: "xAxis",
+		AxisComp: XAxis
+	}, {
+		axisType: "yAxis",
+		AxisComp: YAxis
+	}],
+	formatAxisMap
+});
+//#endregion
+//#region node_modules/recharts/es6/chart/ComposedChart.js
+/**
+* @fileOverview Composed Chart
+*/
+var ComposedChart = generateCategoricalChart({
 	chartName: "ComposedChart",
 	GraphicalChild: [
 		Line,
@@ -14142,4 +14162,4 @@ var ComposedChart = function generateCategoricalChart(_ref6) {
 	formatAxisMap
 });
 //#endregion
-export { Line as a, Tooltip as c, Area as i, YAxis as n, CartesianGrid as o, XAxis as r, ResponsiveContainer as s, ComposedChart as t };
+export { Area as a, Bar as c, XAxis as i, ResponsiveContainer as l, BarChart as n, Line as o, YAxis as r, CartesianGrid as s, ComposedChart as t, Tooltip as u };

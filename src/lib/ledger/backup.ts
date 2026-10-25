@@ -1,5 +1,13 @@
-import { cents, isMonth } from "@/lib/ledger/money";
-import { CURRENCIES, PLATFORM_KINDS, type CurrencyCode, type LedgerData, type PlatformKind } from "@/lib/ledger/types";
+import { cents, clampClosingDay, isMonth } from "@/lib/ledger/money";
+import {
+  CURRENCIES,
+  PLATFORM_KINDS,
+  type CurrencyCode,
+  type ExpenseEntry,
+  type ExpenseType,
+  type LedgerData,
+  type PlatformKind,
+} from "@/lib/ledger/types";
 
 const kinds = new Set<string>(PLATFORM_KINDS.map((kind) => kind.id));
 const currencies = new Set<string>(CURRENCIES.map((currency) => currency.id));
@@ -81,10 +89,72 @@ export function parseBackup(raw: unknown): LedgerData | string {
     });
   }
 
+  let monthlyGoal: number | null = null;
+  if (data.monthlyGoal != null) {
+    const goal = asMoney(data.monthlyGoal);
+    if (goal == null || goal < 0) return "A meta mensal é inválida.";
+    monthlyGoal = goal > 0 ? goal : null;
+  }
+
+  let closingDay = 1;
+  if (data.closingDay != null) {
+    if (typeof data.closingDay !== "number" || !Number.isInteger(data.closingDay)) {
+      return "O dia de fecho é inválido.";
+    }
+    closingDay = clampClosingDay(data.closingDay);
+    if (data.closingDay < 1 || data.closingDay > 31) return "O dia de fecho é inválido.";
+  }
+
+  const expenseTypes: ExpenseType[] = [];
+  const seenTypes = new Set<string>();
+  const typeRows = data.expenseTypes == null ? [] : data.expenseTypes;
+  if (!Array.isArray(typeRows)) return "Os tipos de despesa do ficheiro são inválidos.";
+  if (typeRows.length > 40) return "Há tipos de despesa a mais.";
+  for (const item of typeRows) {
+    const row = asRecord(item);
+    if (!row) return "Há um tipo de despesa inválido.";
+    if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) {
+      return "Há um tipo de despesa sem identificador válido.";
+    }
+    if (seenTypes.has(row.id)) return "Há tipos de despesa repetidos.";
+    seenTypes.add(row.id);
+    if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) {
+      return "Há um tipo de despesa com nome inválido.";
+    }
+    expenseTypes.push({ id: row.id, name: row.name.trim() });
+  }
+
+  const expenses: ExpenseEntry[] = [];
+  const seenExpenses = new Set<string>();
+  const expenseRows = data.expenses == null ? [] : data.expenses;
+  if (!Array.isArray(expenseRows)) return "As despesas do ficheiro são inválidas.";
+  if (expenseRows.length > 8000) return "O ficheiro é demasiado grande.";
+  for (const item of expenseRows) {
+    const row = asRecord(item);
+    if (!row) return "Há uma despesa inválida.";
+    if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) {
+      return "Há uma despesa sem identificador válido.";
+    }
+    if (typeof row.typeId !== "string" || !seenTypes.has(row.typeId)) {
+      return "Há uma despesa ligada a um tipo que não existe.";
+    }
+    if (typeof row.month !== "string" || !isMonth(row.month)) return "Há uma despesa com mês inválido.";
+    const key = `${row.typeId}|${row.month}`;
+    if (seenExpenses.has(key)) return "Há duas despesas do mesmo tipo no mesmo mês.";
+    seenExpenses.add(key);
+    const amount = asMoney(row.amount);
+    if (amount == null || amount < 0) return "Há um valor de despesa inválido.";
+    expenses.push({ id: row.id, typeId: row.typeId, month: row.month, amount });
+  }
+
   return {
     currency: data.currency as CurrencyCode,
     platforms,
     entries,
+    expenseTypes,
+    expenses,
+    monthlyGoal,
+    closingDay,
     demo: false,
   };
 }
@@ -95,7 +165,11 @@ export function toBackup(data: LedgerData) {
     app: "lastro",
     exportedAt: new Date().toISOString(),
     currency: data.currency,
+    monthlyGoal: data.monthlyGoal,
+    closingDay: data.closingDay,
     platforms: data.platforms,
     entries: data.entries,
+    expenseTypes: data.expenseTypes,
+    expenses: data.expenses,
   };
 }

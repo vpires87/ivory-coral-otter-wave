@@ -1,9 +1,8 @@
 import { Bitcoin, ChevronLeft, ChevronRight, Landmark, LineChart, PiggyBank, Shapes, Wallet } from "lucide-react";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { currentMonth, formatMonth, shiftMonth } from "@/lib/ledger/money";
-import type { CurrencyCode, PlatformKind } from "@/lib/ledger/types";
-import { formatMoney } from "@/lib/ledger/money";
+import { currentMonth, formatMoney, formatMonth, formatShare, shiftMonth } from "@/lib/ledger/money";
+import type { CurrencyCode, PlatformKind, ShareSlice } from "@/lib/ledger/types";
 
 const ICONS: Record<PlatformKind, typeof Landmark> = {
   corretora: LineChart,
@@ -184,6 +183,93 @@ function Bar({
           style={{ width: `${width}%` }}
         />
       </div>
+    </div>
+  );
+}
+
+export function GoalMeter({
+  contributed,
+  goal,
+  currency,
+  recorded,
+}: {
+  contributed: number;
+  goal: number | null;
+  currency: CurrencyCode;
+  recorded: boolean;
+}) {
+  if (goal == null || goal <= 0) return null;
+  const width = Math.max(0, Math.min(100, (Math.max(contributed, 0) / goal) * 100));
+  const line = goalLine(contributed, goal, currency, recorded);
+  return (
+    <div className="mt-4">
+      <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+        <span>Meta de aporte</span>
+        <span className="font-medium tabular-nums">
+          {formatMoney(Math.max(contributed, 0), currency)} / {formatMoney(goal, currency)}
+        </span>
+      </div>
+      <div
+        className="h-2 overflow-hidden rounded-full bg-chip"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(width)}
+        aria-label="Progresso da meta de aporte"
+      >
+        <div className="h-full rounded-full bg-forest" style={{ width: `${width}%` }} />
+      </div>
+      <p className="mt-2 text-sm text-muted">{line}</p>
+    </div>
+  );
+}
+
+function goalLine(contributed: number, goal: number, currency: CurrencyCode, recorded: boolean) {
+  if (!recorded) {
+    return `A meta deste mês é ${formatMoney(goal, currency)}. Ainda não há aportes registados.`;
+  }
+  if (contributed < 0) {
+    return `Saíram ${formatMoney(Math.abs(contributed), currency)}. A meta de aporte é ${formatMoney(goal, currency)}.`;
+  }
+  if (contributed >= goal) {
+    return `Meta cumprida. Entraram ${formatMoney(contributed, currency)}.`;
+  }
+  return `Entraram ${formatMoney(contributed, currency)} de ${formatMoney(goal, currency)}.`;
+}
+
+export function ShareList({
+  title,
+  slices,
+  currency,
+}: {
+  title: string;
+  slices: ShareSlice[];
+  currency: CurrencyCode;
+}) {
+  if (slices.length === 0) return null;
+  const max = slices[0]?.value ?? 0;
+  return (
+    <div>
+      <h3 className="mb-3 font-serif text-xl">{title}</h3>
+      <ul className="space-y-3">
+        {slices.map((slice) => {
+          const width = max <= 0 ? 0 : Math.min(100, (slice.value / max) * 100);
+          return (
+            <li key={slice.id}>
+              <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate">{slice.label}</span>
+                <span className="shrink-0 tabular-nums">
+                  {formatShare(slice.share)}
+                  <span className="text-muted"> · {formatMoney(slice.value, currency)}</span>
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-chip">
+                <div className="h-full rounded-full bg-forest" style={{ width: `${width}%` }} />
+              </div>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

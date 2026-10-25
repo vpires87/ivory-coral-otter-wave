@@ -1,29 +1,43 @@
 import type { ReactNode } from "react";
-import { buildSeries, platformSnapshot, pointFor, totals, yearlyRollup } from "@/lib/ledger/calc";
-import { formatMoney, formatMonth, formatPercent } from "@/lib/ledger/money";
+import { buildSeries, entryFor, expenseFor, expenseTotal, kindShares, platformSnapshot, pointFor, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
+import { cents, formatMoney, formatMonth, formatPercent } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { PLATFORM_KINDS, type CurrencyCode } from "@/lib/ledger/types";
 import { ValueChart } from "@/components/ledger/chart";
-import { Button, CompareBars, KindMark, MonthSwitcher, SignedMoney } from "@/components/ledger/ui";
+import { Button, CompareBars, GoalMeter, KindMark, MonthSwitcher, ShareList, SignedMoney } from "@/components/ledger/ui";
 
 export function SummaryView({
   month,
   onMonth,
   onRegister,
+  onExpenses,
   onOpenPlatform,
 }: {
   month: string;
   onMonth: (month: string) => void;
   onRegister: () => void;
+  onExpenses: () => void;
   onOpenPlatform: (id: string) => void;
 }) {
   const platforms = useLedger((state) => state.platforms);
   const entries = useLedger((state) => state.entries);
+  const expenseTypes = useLedger((state) => state.expenseTypes);
+  const expenses = useLedger((state) => state.expenses);
   const currency = useLedger((state) => state.currency);
+  const monthlyGoal = useLedger((state) => state.monthlyGoal);
   const series = buildSeries(platforms, entries);
   const snapshot = totals(platforms, entries);
   const focus = pointFor(series, month);
   const years = yearlyRollup(series);
+  const shares = valueShares(platforms, entries);
+  const kinds = kindShares(platforms, entries);
+  const pending = platforms.filter((platform) => !entryFor(entries, platform.id, month));
+  const pendingExpenses = expenseTypes.filter((type) => !expenseFor(expenses, type.id, month));
+  const spent = expenseTotal(expenses, month);
+  const monthContributed = entries.reduce(
+    (sum, entry) => (entry.month === month ? cents(sum + entry.contributed) : sum),
+    0,
+  );
   const ranked = platforms
     .map((platform) => ({ platform, snap: platformSnapshot(platform, entries) }))
     .sort((a, b) => (b.snap.value ?? -1) - (a.snap.value ?? -1));
@@ -76,12 +90,54 @@ export function SummaryView({
             value={focus && focus.recorded > 0 ? `${focus.recorded} de ${platforms.length}` : "por registar"}
           />
         </div>
+        <GoalMeter
+          contributed={monthContributed}
+          goal={monthlyGoal}
+          currency={currency}
+          recorded={Boolean(focus && focus.recorded > 0)}
+        />
+        {pending.length > 0 ? (
+          <p className="mt-4 text-sm text-muted">
+            Falta registar {pending.map((platform) => platform.name).join(", ")}.
+          </p>
+        ) : null}
         <Button className="mt-4 w-full sm:w-auto" onClick={onRegister}>
           Registar este mês
         </Button>
       </section>
 
+      {expenseTypes.length > 0 ? (
+        <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+          <p className="text-sm text-muted">Despesas do mês</p>
+          <p className="mt-2 font-serif text-3xl tabular-nums">
+            {pendingExpenses.length === expenseTypes.length && spent === 0
+              ? "Ainda por registar"
+              : formatMoney(spent, currency)}
+          </p>
+          {pendingExpenses.length > 0 ? (
+            <p className="mt-2 text-sm text-muted">
+              Falta {pendingExpenses.map((type) => type.name).join(", ")}.
+            </p>
+          ) : null}
+          <Button className="mt-4" variant="soft" onClick={onExpenses}>
+            Registar despesas
+          </Button>
+        </section>
+      ) : null}
+
       <ValueChart points={series} currency={currency} />
+
+      {shares.length > 1 ? (
+        <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+          <h2 className="mb-4 font-serif text-2xl">Onde está o dinheiro</h2>
+          <ShareList title="Por plataforma" slices={shares} currency={currency} />
+          {kinds.length > 1 ? (
+            <div className="mt-6">
+              <ShareList title="Por tipo" slices={kinds} currency={currency} />
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       {years.length > 0 ? (
         <section className="rounded-lg border border-line bg-card px-4 py-2 sm:px-5">

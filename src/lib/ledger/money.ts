@@ -12,6 +12,35 @@ export function currentMonth(now = new Date()): string {
   return `${year}-${month}`;
 }
 
+export function clampClosingDay(day: number): number {
+  if (!Number.isInteger(day) || day < 1 || day > 31) return 1;
+  return day;
+}
+
+export function daysInMonth(ym: string): number {
+  const [year, month] = ym.split("-").map(Number);
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+export function dueMonth(closingDay: number, now = new Date()): string {
+  const month = currentMonth(now);
+  const day = Math.min(clampClosingDay(closingDay), daysInMonth(month));
+  return now.getDate() >= day ? month : shiftMonth(month, -1);
+}
+
+export function isClosingToday(closingDay: number, now = new Date()): boolean {
+  const month = currentMonth(now);
+  const day = Math.min(clampClosingDay(closingDay), daysInMonth(month));
+  return now.getDate() === day;
+}
+
+export function formatCloseDay(ym: string, closingDay: number): string {
+  const [year, month] = ym.split("-").map(Number);
+  const day = Math.min(clampClosingDay(closingDay), daysInMonth(ym));
+  const date = new Date(year, month - 1, day);
+  return format(date, "d 'de' LLLL", { locale: pt });
+}
+
 export function shiftMonth(ym: string, delta: number): string {
   const [y, m] = ym.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1 + delta, 1));
@@ -68,6 +97,13 @@ export function formatPercent(ratio: number): string {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
     signDisplay: "exceptZero",
+  }).format(ratio);
+}
+
+export function formatShare(ratio: number): string {
+  return new Intl.NumberFormat("pt-PT", {
+    style: "percent",
+    maximumFractionDigits: 0,
   }).format(ratio);
 }
 

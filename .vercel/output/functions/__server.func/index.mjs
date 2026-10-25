@@ -13,7 +13,10 @@ var install_page_default = "<!DOCTYPE html>\n<html lang=\"en\" class=\"device-de
 //#region \0virtual:grok-og-identity
 var grokOgIdentity = { "site": {
 	"title": "Lastro",
-	"color": "1E5C40"
+	"card": "custom",
+	"color": "1E5C40",
+	"image": "/og.jpg",
+	"banner": "/x-banner.jpg"
 } };
 //#endregion
 //#region scripts/grok-pwa-shared.mjs

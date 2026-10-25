@@ -1,4 +1,4 @@
-import type { LedgerData, MonthEntry, Platform } from "@/lib/ledger/types";
+import type { ExpenseEntry, ExpenseType, LedgerData, MonthEntry, Platform } from "@/lib/ledger/types";
 
 const platforms: Platform[] = [
   { id: "demo-xtb", name: "XTB", kind: "corretora", openingInvested: 4200 },
@@ -42,11 +42,41 @@ const entries: MonthEntry[] = [
   row("demo-binance", "2026-09", 100, 1180),
 ];
 
+const expenseTypes: ExpenseType[] = [
+  { id: "demo-renda", name: "Renda" },
+  { id: "demo-comida", name: "Alimentação" },
+  { id: "demo-transp", name: "Transportes" },
+  { id: "demo-lazer", name: "Lazer" },
+];
+
+function spent(typeId: string, month: string, amount: number): ExpenseEntry {
+  return { id: `demo-${typeId}-${month}`, typeId, month, amount };
+}
+
+const food = [260, 280, 310, 290, 300, 270, 295];
+const transit = [65, 70, 80, 60, 90, 55, 70];
+const leisure = [40, 120, 35, 80, 45, 150, 60];
+
+const expenses: ExpenseEntry[] = [];
+for (let index = 0; index < 7; index += 1) {
+  const month = `2026-${String(index + 3).padStart(2, "0")}`;
+  expenses.push(
+    spent("demo-renda", month, 780),
+    spent("demo-comida", month, food[index]),
+    spent("demo-transp", month, transit[index]),
+    spent("demo-lazer", month, leisure[index]),
+  );
+}
+
 export function demoLedger(): LedgerData {
   return {
     platforms: platforms.map((platform) => ({ ...platform })),
     entries: entries.map((entry) => ({ ...entry })),
+    expenseTypes: expenseTypes.map((type) => ({ ...type })),
+    expenses: expenses.map((entry) => ({ ...entry })),
     currency: "EUR",
+    monthlyGoal: 650,
+    closingDay: 25,
     demo: true,
   };
 }

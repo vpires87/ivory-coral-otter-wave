@@ -4,8 +4,8 @@ import { _ as createFileRoute, d as Scripts, f as HeadContent, g as lazyRouteCom
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
 import { r as TriangleAlert } from "../_libs/lucide-react.mjs";
 import { a as union, i as string, n as number, r as object, t as literal } from "../_libs/zod.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-BzXfh0-9.js
-var router_BzXfh0_9_exports = /* @__PURE__ */ __exportAll({ getRouter: () => getRouter });
+//#region node_modules/.nitro/vite/services/ssr/assets/router-CKMDTmRv.js
+var router_CKMDTmRv_exports = /* @__PURE__ */ __exportAll({ getRouter: () => getRouter });
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
@@ -333,8 +333,17 @@ function PreviewHostBridge() {
 	}, [router]);
 	return null;
 }
-var styles_default = "/assets/styles-B6FNfudB.css";
+var styles_default = "/assets/styles-Cy9iZMCe.css";
 var APP_NAME = "Lastro";
+function shareHost(raw) {
+	const host = String(raw ?? "").split(",")[0].trim().split(":")[0].toLowerCase();
+	if (!host || !/^[a-z0-9.-]+$/.test(host) || !host.includes(".")) return "";
+	if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return "";
+	if (host === "vercel.app" || host.endsWith(".vercel.app") || host === "vercel.com" || host.endsWith(".vercel.com")) return "";
+	return host;
+}
+var host = shareHost(void 0);
+var xBanner = host ? `https://${host}/x-banner.jpg` : "";
 var Route$1 = createRootRoute({
 	head: () => ({
 		meta: [
@@ -351,7 +360,11 @@ var Route$1 = createRootRoute({
 			{
 				name: "theme-color",
 				content: "#f3eee6"
-			}
+			},
+			...xBanner ? [{
+				property: "x:game:image",
+				content: xBanner
+			}] : []
 		],
 		links: [
 			{
@@ -396,7 +409,7 @@ var Route$1 = createRootRoute({
 		] })]
 	})
 });
-var $$splitComponentImporter = () => import("./routes-BcVfxkp5.mjs");
+var $$splitComponentImporter = () => import("./routes-CztxCznG.mjs");
 var rootRouteChildren = { IndexRoute: createFileRoute("/")({ component: lazyRouteComponent($$splitComponentImporter, "component") }).update({
 	id: "/",
 	path: "/",
@@ -411,4 +424,4 @@ function getRouter() {
 	});
 }
 //#endregion
-export { getRouter, router_BzXfh0_9_exports as t };
+export { getRouter, router_CKMDTmRv_exports as t };

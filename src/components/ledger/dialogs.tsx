@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { toBackup } from "@/lib/ledger/backup";
-import { parseAmount, formatPlain } from "@/lib/ledger/money";
+import { clampClosingDay, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { selectData, useLedger } from "@/lib/ledger/store";
 import { CURRENCIES, PLATFORM_KINDS, type CurrencyCode, type Platform, type PlatformKind } from "@/lib/ledger/types";
 import { Button, Field, inputClassName } from "@/components/ledger/ui";
@@ -170,7 +170,13 @@ export function SettingsDialog({
   const importData = useLedger((state) => state.importData);
   const reset = useLedger((state) => state.reset);
   const loadDemo = useLedger((state) => state.loadDemo);
-  const hasData = useLedger((state) => state.platforms.length > 0 || state.entries.length > 0);
+  const hasData = useLedger(
+    (state) =>
+      state.platforms.length > 0 ||
+      state.entries.length > 0 ||
+      state.expenseTypes.length > 0 ||
+      state.expenses.length > 0,
+  );
   const fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
   const [confirmWipe, setConfirmWipe] = useState(false);
@@ -234,6 +240,8 @@ export function SettingsDialog({
             ))}
           </div>
         </div>
+        {open ? <GoalEditor /> : null}
+        {open ? <ClosingDayEditor /> : null}
         <div className="grid gap-2 sm:grid-cols-2">
           <Button variant="soft" onClick={exportFile}>
             Exportar
@@ -312,5 +320,99 @@ export function SettingsDialog({
         {message ? <p className="text-sm text-muted">{message}</p> : null}
       </div>
     </Sheet>
+  );
+}
+
+function GoalEditor() {
+  const monthlyGoal = useLedger((state) => state.monthlyGoal);
+  const setMonthlyGoal = useLedger((state) => state.setMonthlyGoal);
+  const [value, setValue] = useState(monthlyGoal == null ? "" : formatPlain(monthlyGoal));
+  const [error, setError] = useState("");
+
+  function save() {
+    if (value.trim() === "") {
+      setMonthlyGoal(null);
+      setError("");
+      return;
+    }
+    const parsed = parseAmount(value);
+    if (parsed == null || parsed <= 0) {
+      setError("A meta tem de ser um valor positivo. Deixa vazio para a tirar.");
+      return;
+    }
+    setMonthlyGoal(parsed);
+    setValue(formatPlain(parsed));
+    setError("");
+  }
+
+  return (
+    <form
+      className="space-y-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
+    >
+      <Field
+        label="Meta de aporte por mês"
+        hint="O total que queres meter, somando todas as plataformas. Vazio se não quiseres meta."
+      >
+        <input
+          inputMode="decimal"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="0,00"
+          className={cn(inputClassName(), "tabular-nums")}
+        />
+      </Field>
+      {error ? <p className="text-sm text-loss">{error}</p> : null}
+      <Button type="submit" variant="soft">
+        Guardar meta
+      </Button>
+    </form>
+  );
+}
+
+function ClosingDayEditor() {
+  const closingDay = useLedger((state) => state.closingDay);
+  const setClosingDay = useLedger((state) => state.setClosingDay);
+  const [value, setValue] = useState(String(closingDay));
+  const [error, setError] = useState("");
+
+  function save() {
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > 31) {
+      setError("Escolhe um dia entre 1 e 31.");
+      return;
+    }
+    setClosingDay(clampClosingDay(parsed));
+    setValue(String(parsed));
+    setError("");
+  }
+
+  return (
+    <form
+      className="space-y-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
+    >
+      <Field
+        label="Dia de fecho"
+        hint="O dia em que atualizas a caderneta, todos os meses. Se o mês for mais curto, fecha no último dia."
+      >
+        <input
+          inputMode="numeric"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          className={cn(inputClassName(), "tabular-nums")}
+        />
+      </Field>
+      {error ? <p className="text-sm text-loss">{error}</p> : null}
+      <Button type="submit" variant="soft">
+        Guardar dia
+      </Button>
+    </form>
   );
 }

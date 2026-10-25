@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Area, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatCompact, formatMoney, formatMonth } from "@/lib/ledger/money";
-import type { CurrencyCode, MonthPoint } from "@/lib/ledger/types";
+import type { CurrencyCode, ExpenseMonth, ExpenseType, MonthPoint } from "@/lib/ledger/types";
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -145,5 +145,99 @@ function Legend({ swatch, label }: { swatch: string; label: string }) {
       <span className={`h-2 w-6 rounded-full ${swatch}`} />
       {label}
     </span>
+  );
+}
+
+const SERIES = [
+  { fill: "var(--color-forest)", swatch: "bg-forest" },
+  { fill: "var(--color-brass)", swatch: "bg-brass" },
+  { fill: "var(--color-ink)", swatch: "bg-ink" },
+  { fill: "var(--color-muted)", swatch: "bg-muted" },
+  { fill: "var(--color-loss)", swatch: "bg-loss" },
+];
+
+export function ExpenseChart({
+  series,
+  types,
+  currency,
+}: {
+  series: ExpenseMonth[];
+  types: ExpenseType[];
+  currency: CurrencyCode;
+}) {
+  const reduced = useReducedMotion();
+  const visible = series.filter((point) => point.total > 0);
+  if (visible.length === 0 || types.length === 0) return null;
+  const data = visible.map((point) => ({
+    ...point.byType,
+    month: point.month,
+    label: formatMonth(point.month, "short"),
+    total: point.total,
+  }));
+
+  return (
+    <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+      <h2 className="font-serif text-2xl">Despesas</h2>
+      <p className="mt-1 text-sm text-muted">O que saiu, mês a mês, por tipo.</p>
+      <div className="mt-4 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="var(--color-line)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              minTickGap={28}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              width={48}
+              tickFormatter={(value: number) => formatCompact(value)}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                const point = payload?.[0]?.payload as
+                  | ({ month: string; total: number } & Record<string, number | string>)
+                  | undefined;
+                if (!active || !point) return null;
+                return (
+                  <div className="rounded-md border border-line bg-card px-3 py-2 text-sm">
+                    <p className="font-medium">{formatMonth(point.month)}</p>
+                    <p className="mt-1 tabular-nums">Total {formatMoney(point.total, currency)}</p>
+                    {types.map((type) => {
+                      const amount = point[type.id];
+                      if (typeof amount !== "number" || amount === 0) return null;
+                      return (
+                        <p key={type.id} className="tabular-nums">
+                          {type.name} {formatMoney(amount, currency)}
+                        </p>
+                      );
+                    })}
+                  </div>
+                );
+              }}
+            />
+            {types.map((type, index) => (
+              <Bar
+                key={type.id}
+                dataKey={type.id}
+                stackId="despesas"
+                fill={SERIES[index % SERIES.length].fill}
+                isAnimationActive={!reduced}
+                maxBarSize={28}
+              />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        {types.map((type, index) => (
+          <Legend key={type.id} swatch={SERIES[index % SERIES.length].swatch} label={type.name} />
+        ))}
+      </div>
+    </section>
   );
 }

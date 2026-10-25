@@ -1,39 +1,58 @@
 import { Settings } from "lucide-react";
-import { useEffect, useState } from "react";
-import { currentMonth } from "@/lib/ledger/money";
+import { useEffect, useRef, useState } from "react";
+import { dueMonth, formatCloseDay, isClosingToday } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { cn } from "@/lib/utils";
 import { PlatformDialog, SettingsDialog } from "@/components/ledger/dialogs";
+import { ExpensesPanel } from "@/components/ledger/expenses-panel";
 import { MonthPanel } from "@/components/ledger/month-panel";
 import { PlatformsPanel } from "@/components/ledger/platforms-panel";
 import { SummaryView } from "@/components/ledger/summary";
 import { Button } from "@/components/ledger/ui";
 
-type Tab = "resumo" | "mes" | "plataformas";
+type Tab = "resumo" | "mes" | "despesas" | "plataformas";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "resumo", label: "Resumo" },
   { id: "mes", label: "Mês" },
+  { id: "despesas", label: "Despesas" },
   { id: "plataformas", label: "Plataformas" },
 ];
 
 export function LastroApp() {
   usePersist();
   const platforms = useLedger((state) => state.platforms);
+  const expenseTypes = useLedger((state) => state.expenseTypes);
   const demo = useLedger((state) => state.demo);
   const currency = useLedger((state) => state.currency);
+  const closingDay = useLedger((state) => state.closingDay);
+  const addExpenseType = useLedger((state) => state.addExpenseType);
   const keepDemo = useLedger((state) => state.keepDemo);
   const reset = useLedger((state) => state.reset);
   const loadDemo = useLedger((state) => state.loadDemo);
   const [tab, setTab] = useState<Tab>("resumo");
-  const [month, setMonth] = useState(currentMonth);
+  const [month, setMonth] = useState(() => dueMonth(useLedger.getState().closingDay));
+  const monthTouched = useRef(false);
   const [platformId, setPlatformId] = useState<string | null>(null);
   const [platformOpen, setPlatformOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const editing = platforms.find((platform) => platform.id === editingId) ?? null;
-  const empty = platforms.length === 0;
+  const empty = platforms.length === 0 && expenseTypes.length === 0;
+
+  useEffect(() => {
+    const apply = () => {
+      if (!monthTouched.current) setMonth(dueMonth(useLedger.getState().closingDay));
+    };
+    const unsub = useLedger.persist.onFinishHydration(apply);
+    return unsub;
+  }, []);
+
+  function changeMonth(next: string) {
+    monthTouched.current = true;
+    setMonth(next);
+  }
 
   function openCreate() {
     setEditingId(null);
@@ -55,7 +74,7 @@ export function LastroApp() {
             </div>
             <div className="min-w-0">
               <h1 className="font-serif text-2xl leading-none">Lastro</h1>
-              <p className="mt-1 text-sm text-muted">O que investes e o que fica</p>
+              <p className="mt-1 text-sm text-muted">O que investes, o que fica e o que gastas</p>
             </div>
           </div>
           <button
@@ -89,11 +108,17 @@ export function LastroApp() {
             onDemo={() => {
               loadDemo();
               setTab("resumo");
+              monthTouched.current = false;
+              setMonth(dueMonth(25));
+            }}
+            onCreateType={(label) => {
+              addExpenseType(label);
+              setTab("despesas");
             }}
           />
         ) : (
           <>
-            <div role="tablist" aria-label="Secções" className="mt-6 grid grid-cols-3 gap-1 rounded-md bg-paper-2 p-1">
+            <div role="tablist" aria-label="Secções" className="mt-6 grid grid-cols-4 gap-1 rounded-md bg-paper-2 p-1">
               {TABS.map((item) => (
                 <button
                   key={item.id}
@@ -105,7 +130,7 @@ export function LastroApp() {
                     if (item.id !== "plataformas") setPlatformId(null);
                   }}
                   className={cn(
-                    "h-11 rounded-md text-sm font-medium",
+                    "h-11 truncate rounded-md px-1 text-xs font-medium sm:text-sm",
                     tab === item.id ? "bg-card text-ink" : "text-muted",
                   )}
                 >
@@ -113,12 +138,19 @@ export function LastroApp() {
                 </button>
               ))}
             </div>
+            <p className="mt-3 text-sm text-muted">
+              {isClosingToday(closingDay)
+                ? `Hoje é o dia de atualizar.`
+                : `Atualizas sempre no dia ${closingDay}.`}{" "}
+              Este fecho é {formatCloseDay(month, closingDay)}.
+            </p>
             <div className="mt-4">
               {tab === "resumo" ? (
                 <SummaryView
                   month={month}
-                  onMonth={setMonth}
+                  onMonth={changeMonth}
                   onRegister={() => setTab("mes")}
+                  onExpenses={() => setTab("despesas")}
                   onOpenPlatform={(id) => {
                     setPlatformId(id);
                     setTab("plataformas");
@@ -126,8 +158,9 @@ export function LastroApp() {
                 />
               ) : null}
               {tab === "mes" ? (
-                <MonthPanel month={month} onMonth={setMonth} onAddPlatform={openCreate} />
+                <MonthPanel month={month} onMonth={changeMonth} onAddPlatform={openCreate} />
               ) : null}
+              {tab === "despesas" ? <ExpensesPanel month={month} onMonth={changeMonth} /> : null}
               {tab === "plataformas" ? (
                 <PlatformsPanel
                   selectedId={platformId}
@@ -136,7 +169,7 @@ export function LastroApp() {
                   onAdd={openCreate}
                   onEdit={openEdit}
                   onGoMonth={(next) => {
-                    setMonth(next);
+                    changeMonth(next);
                     setTab("mes");
                   }}
                 />
@@ -163,31 +196,66 @@ export function LastroApp() {
   );
 }
 
-function EmptyLedger({ onAdd, onDemo }: { onAdd: () => void; onDemo: () => void }) {
+function EmptyLedger({
+  onAdd,
+  onDemo,
+  onCreateType,
+}: {
+  onAdd: () => void;
+  onDemo: () => void;
+  onCreateType: (name: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+
   return (
     <section className="mt-8 rounded-lg border border-line bg-card px-5 py-8 sm:px-8">
-      <h2 className="font-serif text-3xl sm:text-4xl">Cada mês, duas perguntas.</h2>
+      <h2 className="font-serif text-3xl sm:text-4xl">O mesmo dia, todos os meses.</h2>
       <p className="mt-3 max-w-xl text-base leading-relaxed text-muted">
-        Quanto meteste em cada plataforma — e quanto é que lá ficou no fim do mês. O ganho, a perda e o que
-        foi mercado calculam-se sozinhos.
+        Escolhes o dia de fecho. Nesse dia apontas o que investiste, o que ficou em cada plataforma e o que
+        gastaste em cada tipo.
       </p>
       <ol className="mt-6 max-w-xl space-y-3 text-sm">
         <li className="flex gap-3">
           <span className="font-serif text-forest">01</span>
-          <span>Crias as plataformas: corretora, banco, PPR, cripto.</span>
+          <span>Crias as plataformas e os tipos de despesa.</span>
         </li>
         <li className="flex gap-3">
           <span className="font-serif text-forest">02</span>
-          <span>No fim do mês, apontas o aporte e o valor que ficou.</span>
+          <span>No dia de fecho, registas aportes, valores e gastos.</span>
         </li>
         <li className="flex gap-3">
           <span className="font-serif text-forest">03</span>
-          <span>Vês o que investiste ao lado do que a carteira vale.</span>
+          <span>Vês a carteira e o gráfico das despesas.</span>
         </li>
       </ol>
-      <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <Button onClick={onAdd}>Adicionar plataforma</Button>
-        <Button variant="soft" onClick={onDemo}>
+      <form
+        className="mt-8 flex max-w-xl flex-col gap-2 sm:flex-row"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const trimmed = name.trim();
+          if (trimmed.length < 1) {
+            setError("Dá um nome ao primeiro tipo, por exemplo Renda.");
+            return;
+          }
+          onCreateType(trimmed);
+        }}
+      >
+        <input
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          placeholder="Primeiro tipo de despesa"
+          maxLength={40}
+          className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+        />
+        <Button type="submit">Criar tipo</Button>
+      </form>
+      {error ? <p className="mt-2 text-sm text-loss">{error}</p> : null}
+      <div className="mt-3 flex flex-col gap-3 sm:flex-row">
+        <Button variant="soft" onClick={onAdd}>
+          Adicionar plataforma
+        </Button>
+        <Button variant="ghost" onClick={onDemo}>
           Ver um exemplo
         </Button>
       </div>

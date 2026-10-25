@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { entryFor, previousEntry } from "@/lib/ledger/calc";
 import { cents, formatMoney, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
-import { PLATFORM_KINDS } from "@/lib/ledger/types";
-import { Button, KindMark, MonthSwitcher, SignedMoney } from "@/components/ledger/ui";
+import { PLATFORM_KINDS, type MonthEntry } from "@/lib/ledger/types";
+import { Button, GoalMeter, KindMark, MonthSwitcher, SignedMoney } from "@/components/ledger/ui";
 
 type Draft = { contributed: string; endValue: string };
 
@@ -30,6 +30,27 @@ function initialDrafts(
   return drafts;
 }
 
+function parsedDraft(draft: Draft): { contributed: number; endValue: number } | string {
+  if (draft.contributed.trim() === "" || parseAmount(draft.contributed) == null) {
+    return "Indica o aporte. Se não meteste dinheiro, escreve 0.";
+  }
+  const contributed = parseAmount(draft.contributed);
+  if (draft.endValue.trim() === "" || parseAmount(draft.endValue) == null) {
+    return "Indica o valor que ficou no fim do mês.";
+  }
+  const endValue = parseAmount(draft.endValue);
+  if (contributed == null || endValue == null) return "Indica o valor que ficou no fim do mês.";
+  if (endValue < 0) return "O valor no fim do mês não pode ser negativo.";
+  return { contributed, endValue };
+}
+
+function isDirty(draft: Draft, saved: MonthEntry | null) {
+  if (!saved) return draft.contributed.trim() !== "" || draft.endValue.trim() !== "";
+  const contributed = parseAmount(draft.contributed);
+  const endValue = parseAmount(draft.endValue);
+  return contributed !== saved.contributed || endValue !== saved.endValue;
+}
+
 export function MonthPanel({
   month,
   onMonth,
@@ -44,6 +65,7 @@ export function MonthPanel({
   const currency = useLedger((state) => state.currency);
   const upsertEntry = useLedger((state) => state.upsertEntry);
   const deleteEntry = useLedger((state) => state.deleteEntry);
+  const monthlyGoal = useLedger((state) => state.monthlyGoal);
   const [drafts, setDrafts] = useState(() => initialDrafts(platforms, entries, month));
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [confirmId, setConfirmId] = useState<string | null>(null);
@@ -89,6 +111,48 @@ export function MonthPanel({
     return a.name.localeCompare(b.name, "pt");
   });
   const recorded = platforms.filter((platform) => entryFor(entries, platform.id, month)).length;
+  const monthContributed = entries.reduce(
+    (sum, entry) => (entry.month === month ? cents(sum + entry.contributed) : sum),
+    0,
+  );
+  const dirtyCount = platforms.filter((platform) =>
+    isDirty(drafts[platform.id] ?? { contributed: "", endValue: "" }, entryFor(entries, platform.id, month)),
+  ).length;
+
+  function commit(platformId: string, contributed: number, endValue: number) {
+    upsertEntry({ platformId, month, contributed, endValue });
+    setDrafts((current) => ({
+      ...current,
+      [platformId]: {
+        contributed: formatPlain(contributed),
+        endValue: formatPlain(endValue),
+      },
+    }));
+    setErrors((current) => ({ ...current, [platformId]: "" }));
+  }
+
+  function saveAll() {
+    const updates: Record<string, Draft> = {};
+    const nextErrors: Record<string, string> = {};
+    for (const platform of platforms) {
+      const draft = drafts[platform.id] ?? { contributed: "", endValue: "" };
+      const saved = entryFor(entries, platform.id, month);
+      if (!isDirty(draft, saved)) continue;
+      const parsed = parsedDraft(draft);
+      if (typeof parsed === "string") {
+        nextErrors[platform.id] = parsed;
+        continue;
+      }
+      upsertEntry({ platformId: platform.id, month, ...parsed });
+      updates[platform.id] = {
+        contributed: formatPlain(parsed.contributed),
+        endValue: formatPlain(parsed.endValue),
+      };
+      nextErrors[platform.id] = "";
+    }
+    setDrafts((current) => ({ ...current, ...updates }));
+    setErrors((current) => ({ ...current, ...nextErrors }));
+  }
 
   return (
     <div className="space-y-4">
@@ -98,6 +162,17 @@ export function MonthPanel({
           {recorded} de {platforms.length} plataformas neste mês. O aporte é o que entrou ou saiu. O valor é o
           que a plataforma mostrava no fim do mês.
         </p>
+        <GoalMeter
+          contributed={monthContributed}
+          goal={monthlyGoal}
+          currency={currency}
+          recorded={recorded > 0}
+        />
+        {dirtyCount >= 2 ? (
+          <Button className="mt-4" onClick={saveAll}>
+            Guardar este mês
+          </Button>
+        ) : null}
       </section>
       <ul className="grid gap-3 lg:grid-cols-2">
         {ordered.map((platform) => {
@@ -125,41 +200,12 @@ export function MonthPanel({
           }
 
           function save() {
-            if (draft.contributed.trim() === "" || contributed == null) {
-              setErrors((current) => ({
-                ...current,
-                [platform.id]: "Indica o aporte. Se não meteste dinheiro, escreve 0.",
-              }));
+            const parsed = parsedDraft(draft);
+            if (typeof parsed === "string") {
+              setErrors((current) => ({ ...current, [platform.id]: parsed }));
               return;
             }
-            if (draft.endValue.trim() === "" || endValue == null) {
-              setErrors((current) => ({
-                ...current,
-                [platform.id]: "Indica o valor que ficou no fim do mês.",
-              }));
-              return;
-            }
-            if (endValue < 0) {
-              setErrors((current) => ({
-                ...current,
-                [platform.id]: "O valor no fim do mês não pode ser negativo.",
-              }));
-              return;
-            }
-            upsertEntry({
-              platformId: platform.id,
-              month,
-              contributed,
-              endValue,
-            });
-            setDrafts((current) => ({
-              ...current,
-              [platform.id]: {
-                contributed: formatPlain(contributed),
-                endValue: formatPlain(endValue),
-              },
-            }));
-            setErrors((current) => ({ ...current, [platform.id]: "" }));
+            commit(platform.id, parsed.contributed, parsed.endValue);
           }
 
           return (

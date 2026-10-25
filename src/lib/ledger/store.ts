@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { parseBackup } from "@/lib/ledger/backup";
-import { cents } from "@/lib/ledger/money";
+import { cents, clampClosingDay } from "@/lib/ledger/money";
 import { demoLedger } from "@/lib/ledger/demo";
 import type { CurrencyCode, LedgerData, Platform, PlatformKind } from "@/lib/ledger/types";
 
@@ -21,11 +21,17 @@ type EntryInput = {
 type Store = LedgerData & {
   hydrated: boolean;
   setCurrency: (currency: CurrencyCode) => void;
+  setMonthlyGoal: (goal: number | null) => void;
+  setClosingDay: (day: number) => void;
   addPlatform: (draft: DraftPlatform) => string;
   updatePlatform: (id: string, draft: DraftPlatform) => void;
   deletePlatform: (id: string) => void;
   upsertEntry: (input: EntryInput) => void;
   deleteEntry: (id: string) => void;
+  addExpenseType: (name: string) => string;
+  renameExpenseType: (id: string, name: string) => void;
+  deleteExpenseType: (id: string) => void;
+  upsertExpense: (input: { typeId: string; month: string; amount: number }) => void;
   loadDemo: () => void;
   keepDemo: () => void;
   reset: () => void;
@@ -35,7 +41,11 @@ type Store = LedgerData & {
 const empty: LedgerData = {
   platforms: [],
   entries: [],
+  expenseTypes: [],
+  expenses: [],
   currency: "EUR",
+  monthlyGoal: null,
+  closingDay: 1,
   demo: false,
 };
 
@@ -63,6 +73,8 @@ export const useLedger = create<Store>()(
       ...empty,
       hydrated: false,
       setCurrency: (currency) => set({ currency }),
+      setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
+      setClosingDay: (day) => set({ closingDay: clampClosingDay(day) }),
       addPlatform: (draft) => {
         const id = crypto.randomUUID();
         set((state) => ({
@@ -126,6 +138,42 @@ export const useLedger = create<Store>()(
         set((state) => ({
           entries: state.entries.filter((entry) => entry.id !== id),
         })),
+      addExpenseType: (name) => {
+        const id = crypto.randomUUID();
+        set((state) => ({
+          expenseTypes: [...state.expenseTypes, { id, name: name.trim() }],
+        }));
+        return id;
+      },
+      renameExpenseType: (id, name) =>
+        set((state) => ({
+          expenseTypes: state.expenseTypes.map((type) =>
+            type.id === id ? { ...type, name: name.trim() } : type,
+          ),
+        })),
+      deleteExpenseType: (id) =>
+        set((state) => ({
+          expenseTypes: state.expenseTypes.filter((type) => type.id !== id),
+          expenses: state.expenses.filter((entry) => entry.typeId !== id),
+        })),
+      upsertExpense: (input) =>
+        set((state) => {
+          const index = state.expenses.findIndex(
+            (entry) => entry.typeId === input.typeId && entry.month === input.month,
+          );
+          const amount = cents(input.amount);
+          if (index >= 0) {
+            const expenses = state.expenses.slice();
+            expenses[index] = { ...expenses[index], amount };
+            return { expenses };
+          }
+          return {
+            expenses: [
+              ...state.expenses,
+              { id: crypto.randomUUID(), typeId: input.typeId, month: input.month, amount },
+            ],
+          };
+        }),
       loadDemo: () => set(demoLedger()),
       keepDemo: () => set({ demo: false }),
       reset: () => set(empty),
@@ -145,7 +193,11 @@ export const useLedger = create<Store>()(
       partialize: (state) => ({
         platforms: state.platforms,
         entries: state.entries,
+        expenseTypes: state.expenseTypes,
+        expenses: state.expenses,
         currency: state.currency,
+        monthlyGoal: state.monthlyGoal,
+        closingDay: state.closingDay,
         demo: state.demo,
       }),
     },
@@ -156,7 +208,11 @@ export function selectData(state: Store): LedgerData {
   return {
     platforms: state.platforms,
     entries: state.entries,
+    expenseTypes: state.expenseTypes,
+    expenses: state.expenses,
     currency: state.currency,
+    monthlyGoal: state.monthlyGoal,
+    closingDay: state.closingDay,
     demo: state.demo,
   };
 }

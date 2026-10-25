@@ -34,10 +34,26 @@ export type MonthEntry = {
   endValue: number;
 };
 
+export type ExpenseType = {
+  id: string;
+  name: string;
+};
+
+export type ExpenseEntry = {
+  id: string;
+  typeId: string;
+  month: string;
+  amount: number;
+};
+
 export type LedgerData = {
   platforms: Platform[];
   entries: MonthEntry[];
+  expenseTypes: ExpenseType[];
+  expenses: ExpenseEntry[];
   currency: CurrencyCode;
+  monthlyGoal: number | null;
+  closingDay: number;
   demo: boolean;
 };
 
@@ -73,4 +89,17 @@ export type YearRollup = {
   contributed: number;
   market: number;
   endValue: number;
+};
+
+export type ShareSlice = {
+  id: string;
+  label: string;
+  value: number;
+  share: number;
+};
+
+export type ExpenseMonth = {
+  month: string;
+  total: number;
+  byType: Record<string, number>;
 };
