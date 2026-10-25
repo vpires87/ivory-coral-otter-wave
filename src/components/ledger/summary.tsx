@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { buildSeries, cashbackFor, cashbackRows, cashbackTotal, entryFor, expenseFor, expenseTotal, kindShares, platformSnapshot, pointFor, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
+import { buildSeries, cashbackFor, cashbackRows, cashbackTotal, contributedIn, entryFor, expenseFor, expenseTotal, incomeFor, incomeTotal, kindShares, platformSnapshot, pointFor, savingsRate, savingsSeries, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
 import { cents, formatMoney, formatMonth, formatPercent, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { PLATFORM_KINDS, type CurrencyCode } from "@/lib/ledger/types";
@@ -12,6 +12,7 @@ export function SummaryView({
   onRegister,
   onExpenses,
   onCashback,
+  onIncome,
   onOpenPlatform,
 }: {
   month: string;
@@ -19,6 +20,7 @@ export function SummaryView({
   onRegister: () => void;
   onExpenses: () => void;
   onCashback: () => void;
+  onIncome: () => void;
   onOpenPlatform: (id: string) => void;
 }) {
   const platforms = useLedger((state) => state.platforms);
@@ -27,6 +29,8 @@ export function SummaryView({
   const expenses = useLedger((state) => state.expenses);
   const cashbackCards = useLedger((state) => state.cashbackCards);
   const cashbacks = useLedger((state) => state.cashbacks);
+  const incomeSources = useLedger((state) => state.incomeSources);
+  const incomes = useLedger((state) => state.incomes);
   const currency = useLedger((state) => state.currency);
   const monthlyGoal = useLedger((state) => state.monthlyGoal);
   const series = buildSeries(platforms, entries);
@@ -42,10 +46,14 @@ export function SummaryView({
   const cashTotal = cashbackTotal(cashbacks, month);
   const cashLeaders = cashRows.filter((row) => row.amount > 0 && row.amount === cashRows[0]?.amount);
   const pendingCash = cashbackCards.filter((card) => !cashbackFor(cashbacks, card.id, month));
-  const monthContributed = entries.reduce(
-    (sum, entry) => (entry.month === month ? cents(sum + entry.contributed) : sum),
-    0,
-  );
+  const monthContributed = contributedIn(entries, month);
+  const earned = incomeTotal(incomes, month);
+  const saveRate = savingsRate(monthContributed, earned);
+  const pendingIncome = incomeSources.filter((source) => !incomeFor(incomes, source.id, month));
+  const period = savingsSeries(entries, incomes);
+  const earnedAll = period.reduce((sum, point) => sum + point.earned, 0);
+  const investedAll = period.reduce((sum, point) => sum + point.invested, 0);
+  const rateAll = savingsRate(investedAll, earnedAll);
   const ranked = platforms
     .map((platform) => ({ platform, snap: platformSnapshot(platform, entries) }))
     .sort((a, b) => (b.snap.value ?? -1) - (a.snap.value ?? -1));
@@ -115,6 +123,29 @@ export function SummaryView({
           Registar este mês
         </Button>
       </section>
+
+      {incomeSources.length > 0 ? (
+        <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+          <p className="text-sm text-muted">Poupança investida</p>
+          <p className="mt-2 font-serif text-4xl tabular-nums">{saveRate == null ? "—" : formatShare(saveRate)}</p>
+          <p className="mt-2 text-sm text-muted">
+            {earned <= 0
+              ? "Ainda sem ganhos neste mês."
+              : `Ganhaste ${formatMoney(earned, currency)} e investiste ${formatMoney(monthContributed, currency)}.`}
+          </p>
+          {pendingIncome.length > 0 && earned > 0 ? (
+            <p className="mt-2 text-sm text-muted">Falta {pendingIncome.map((source) => source.name).join(", ")}.</p>
+          ) : null}
+          {rateAll != null ? (
+            <p className="mt-2 text-sm text-muted">
+              No período, {formatShare(rateAll)} de {formatMoney(earnedAll, currency)}.
+            </p>
+          ) : null}
+          <Button className="mt-4" variant="soft" onClick={onIncome}>
+            Registar ganhos
+          </Button>
+        </section>
+      ) : null}
 
       {expenseTypes.length > 0 ? (
         <section className="rounded-lg border border-line bg-card p-4 sm:p-5">

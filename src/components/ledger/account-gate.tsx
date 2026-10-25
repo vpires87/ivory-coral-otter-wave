@@ -1,6 +1,27 @@
+import { useState } from "react";
 import { GROK_PROVIDERS, signIn } from "@/lib/auth/client";
 
 export function AccountGate() {
+  const [pending, setPending] = useState<string | null>(null);
+  const [error, setError] = useState("");
+
+  async function start(providerId: string) {
+    setError("");
+    setPending(providerId);
+    try {
+      await signIn(providerId, { callbackURL: "/" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setError(
+        message.includes("Pop-up")
+          ? "O telemóvel bloqueou a janela. Permite pop-ups e tenta outra vez."
+          : "Não consegui concluir a entrada. Tenta outra vez e acaba a escolha da conta na janela que abrir.",
+      );
+    } finally {
+      setPending(null);
+    }
+  }
+
   return (
     <main className="grid min-h-dvh place-items-center px-4 py-10">
       <div className="w-full max-w-sm">
@@ -16,13 +37,15 @@ export function AccountGate() {
             <button
               key={provider.providerId}
               type="button"
-              onClick={() => signIn(provider.providerId, { callbackURL: "/" })}
-              className="h-12 w-full rounded-md bg-forest px-4 text-sm font-medium text-card"
+              disabled={pending !== null}
+              onClick={() => void start(provider.providerId)}
+              className="h-12 w-full rounded-md bg-forest px-4 text-sm font-medium text-card disabled:opacity-40"
             >
-              Continuar com {provider.label}
+              {pending === provider.providerId ? "A abrir…" : `Continuar com ${provider.label}`}
             </button>
           ))}
         </div>
+        {error ? <p className="mt-3 text-sm text-loss">{error}</p> : null}
       </div>
     </main>
   );

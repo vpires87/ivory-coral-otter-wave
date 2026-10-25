@@ -7,6 +7,9 @@ import {
   type ExpenseType,
   type CashbackCard,
   type CashbackEntry,
+  type IncomeEntry,
+  type IncomeKind,
+  type IncomeSource,
   type LedgerData,
   type PlatformKind,
 } from "@/lib/ledger/types";
@@ -198,6 +201,50 @@ export function parseBackup(raw: unknown): LedgerData | string {
     cashbacks.push({ id: row.id, cardId: row.cardId, month: row.month, amount });
   }
 
+  const incomeKinds = new Set<string>(["ordenado", "extra"]);
+  const incomeSources: IncomeSource[] = [];
+  const seenSources = new Set<string>();
+  const sourceRows = data.incomeSources == null ? [] : data.incomeSources;
+  if (!Array.isArray(sourceRows)) return "Os ganhos do ficheiro são inválidos.";
+  if (sourceRows.length > 40) return "Há fontes de rendimento a mais.";
+  for (const item of sourceRows) {
+    const row = asRecord(item);
+    if (!row) return "Há um rendimento inválido.";
+    if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) {
+      return "Há um rendimento sem identificador válido.";
+    }
+    if (seenSources.has(row.id)) return "Há rendimentos repetidos.";
+    seenSources.add(row.id);
+    if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) {
+      return "Há um rendimento com nome inválido.";
+    }
+    if (typeof row.kind !== "string" || !incomeKinds.has(row.kind)) return "Há um tipo de rendimento inválido.";
+    incomeSources.push({ id: row.id, name: row.name.trim(), kind: row.kind as IncomeKind });
+  }
+
+  const incomes: IncomeEntry[] = [];
+  const seenIncome = new Set<string>();
+  const incomeRows = data.incomes == null ? [] : data.incomes;
+  if (!Array.isArray(incomeRows)) return "Os valores ganhos do ficheiro são inválidos.";
+  if (incomeRows.length > 8000) return "O ficheiro é demasiado grande.";
+  for (const item of incomeRows) {
+    const row = asRecord(item);
+    if (!row) return "Há um ganho inválido.";
+    if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) {
+      return "Há um ganho sem identificador válido.";
+    }
+    if (typeof row.sourceId !== "string" || !seenSources.has(row.sourceId)) {
+      return "Há um ganho ligado a uma fonte que não existe.";
+    }
+    if (typeof row.month !== "string" || !isMonth(row.month)) return "Há um ganho com mês inválido.";
+    const key = `${row.sourceId}|${row.month}`;
+    if (seenIncome.has(key)) return "Há dois ganhos da mesma fonte no mesmo mês.";
+    seenIncome.add(key);
+    const amount = asMoney(row.amount);
+    if (amount == null || amount < 0) return "Há um valor de ganho inválido.";
+    incomes.push({ id: row.id, sourceId: row.sourceId, month: row.month, amount });
+  }
+
   return {
     currency: data.currency as CurrencyCode,
     platforms,
@@ -206,6 +253,8 @@ export function parseBackup(raw: unknown): LedgerData | string {
     expenses,
     cashbackCards,
     cashbacks,
+    incomeSources,
+    incomes,
     monthlyGoal,
     fireGoal,
     closingDay,
@@ -228,6 +277,8 @@ export function toBackup(data: LedgerData) {
     expenses: data.expenses,
     cashbackCards: data.cashbackCards,
     cashbacks: data.cashbacks,
+    incomeSources: data.incomeSources,
+    incomes: data.incomes,
     demo: data.demo,
   };
 }

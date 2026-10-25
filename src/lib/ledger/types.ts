@@ -58,6 +58,26 @@ export type CashbackEntry = {
   amount: number;
 };
 
+export const INCOME_KINDS = [
+  { id: "ordenado", label: "Ordenado" },
+  { id: "extra", label: "Extra" },
+] as const;
+
+export type IncomeKind = (typeof INCOME_KINDS)[number]["id"];
+
+export type IncomeSource = {
+  id: string;
+  name: string;
+  kind: IncomeKind;
+};
+
+export type IncomeEntry = {
+  id: string;
+  sourceId: string;
+  month: string;
+  amount: number;
+};
+
 export type LedgerData = {
   platforms: Platform[];
   entries: MonthEntry[];
@@ -65,6 +85,8 @@ export type LedgerData = {
   expenses: ExpenseEntry[];
   cashbackCards: CashbackCard[];
   cashbacks: CashbackEntry[];
+  incomeSources: IncomeSource[];
+  incomes: IncomeEntry[];
   currency: CurrencyCode;
   monthlyGoal: number | null;
   fireGoal: number | null;
@@ -117,4 +139,11 @@ export type ExpenseMonth = {
   month: string;
   total: number;
   byType: Record<string, number>;
+};
+
+export type SavingsPoint = {
+  month: string;
+  earned: number;
+  invested: number;
+  rate: number | null;
 };

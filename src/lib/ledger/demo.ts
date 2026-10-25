@@ -3,6 +3,8 @@ import type {
   CashbackEntry,
   ExpenseEntry,
   ExpenseType,
+  IncomeEntry,
+  IncomeSource,
   LedgerData,
   MonthEntry,
   Platform,
@@ -100,6 +102,24 @@ for (let index = 0; index < 7; index += 1) {
   );
 }
 
+const incomeSources: IncomeSource[] = [
+  { id: "demo-ordenado", name: "Empresa", kind: "ordenado" },
+  { id: "demo-extra", name: "Freelance", kind: "extra" },
+];
+
+const extras = [0, 150, 0, 400, 0, 200, 0];
+
+function earned(sourceId: string, month: string, amount: number): IncomeEntry {
+  return { id: `demo-${sourceId}-${month}`, sourceId, month, amount };
+}
+
+const incomes: IncomeEntry[] = [];
+for (let index = 0; index < 7; index += 1) {
+  const month = `2026-${String(index + 3).padStart(2, "0")}`;
+  incomes.push(earned("demo-ordenado", month, 2100));
+  if (extras[index] > 0) incomes.push(earned("demo-extra", month, extras[index]));
+}
+
 export function demoLedger(): LedgerData {
   return {
     platforms: platforms.map((platform) => ({ ...platform })),
@@ -108,6 +128,8 @@ export function demoLedger(): LedgerData {
     expenses: expenses.map((entry) => ({ ...entry })),
     cashbackCards: cashbackCards.map((card) => ({ ...card })),
     cashbacks: cashbacks.map((entry) => ({ ...entry })),
+    incomeSources: incomeSources.map((source) => ({ ...source })),
+    incomes: incomes.map((entry) => ({ ...entry })),
     currency: "EUR",
     monthlyGoal: 650,
     fireGoal: 50000,

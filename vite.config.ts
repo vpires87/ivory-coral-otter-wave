@@ -51,6 +51,18 @@ function pgliteBootstrapPlugin(): Plugin {
   };
 }
 
+function oauthBounceTarget(status: number, location: string | null): string | null {
+  if (status < 300 || status >= 400 || !location) return null;
+  try {
+    const url = new URL(location);
+    const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    if (url.protocol === "https:" || (url.protocol === "http:" && local)) return url.toString();
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 /**
  * Live-preview OAuth popup — handled HERE so the agent never has to create a
  * `/auth/popup` route (and cannot break it by scaffolding a React page that
@@ -114,18 +126,42 @@ function authPopupPlugin(): Plugin {
           };
           const response = await mod.handleAuthPopupRequest(request);
 
-          res.statusCode = response.status;
-          // Preserve multiple Set-Cookie headers (OAuth state + session).
+          // A 302 to Google drops the OAuth state cookie on iOS (Set-Cookie on a
+          // cross-site redirect is discarded). Deliver the cookie on a 200 page,
+          // then continue. The callback can then prove this same browser started it.
+          const bounce = oauthBounceTarget(response.status, response.headers.get("location"));
+          res.statusCode = bounce ? 200 : response.status;
           const setCookies =
             typeof response.headers.getSetCookie === "function"
               ? response.headers.getSetCookie()
               : [];
           response.headers.forEach((value, key) => {
-            if (key.toLowerCase() === "set-cookie") return;
+            const lower = key.toLowerCase();
+            if (lower === "set-cookie") return;
+            if (bounce && (lower === "location" || lower === "content-length")) return;
             res.setHeader(key, value);
           });
           for (const cookie of setCookies) {
             res.appendHeader("set-cookie", cookie);
+          }
+          if (bounce) {
+            res.setHeader("content-type", "text/html; charset=utf-8");
+            res.setHeader("cache-control", "no-store");
+            const href = JSON.stringify(bounce).replace(/</g, "\\u003c");
+            res.end(`<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>A entrar…</title>
+</head>
+<body>
+<p>A abrir o início de sessão…</p>
+<p><a href=${href}>Continuar</a></p>
+<script>location.replace(${href});</script>
+</body>
+</html>`);
+            return;
           }
           const body = Buffer.from(await response.arrayBuffer());
           res.end(body);

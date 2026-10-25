@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { parseBackup } from "@/lib/ledger/backup";
 import { cents, clampClosingDay } from "@/lib/ledger/money";
 import { demoLedger } from "@/lib/ledger/demo";
-import type { CurrencyCode, LedgerData, Platform, PlatformKind } from "@/lib/ledger/types";
+import type { CurrencyCode, IncomeKind, LedgerData, Platform, PlatformKind } from "@/lib/ledger/types";
 
 type DraftPlatform = {
   name: string;
@@ -39,6 +39,11 @@ type Store = LedgerData & {
   renameCashbackCard: (id: string, name: string) => void;
   deleteCashbackCard: (id: string) => void;
   upsertCashback: (input: { cardId: string; month: string; amount: number }) => void;
+  addIncomeSource: (name: string, kind: IncomeKind) => string;
+  renameIncomeSource: (id: string, name: string) => void;
+  setIncomeKind: (id: string, kind: IncomeKind) => void;
+  deleteIncomeSource: (id: string) => void;
+  upsertIncome: (input: { sourceId: string; month: string; amount: number }) => void;
   loadDemo: () => void;
   keepDemo: () => void;
   reset: () => void;
@@ -56,6 +61,8 @@ const empty: LedgerData = {
   expenses: [],
   cashbackCards: [],
   cashbacks: [],
+  incomeSources: [],
+  incomes: [],
   currency: "EUR",
   monthlyGoal: null,
   fireGoal: null,
@@ -208,6 +215,46 @@ export const useLedger = create<Store>()((set) => ({
         ],
       };
     }),
+  addIncomeSource: (name, kind) => {
+    const id = crypto.randomUUID();
+    set((state) => ({
+      incomeSources: [...state.incomeSources, { id, name: name.trim(), kind }],
+    }));
+    return id;
+  },
+  renameIncomeSource: (id, name) =>
+    set((state) => ({
+      incomeSources: state.incomeSources.map((source) =>
+        source.id === id ? { ...source, name: name.trim() } : source,
+      ),
+    })),
+  setIncomeKind: (id, kind) =>
+    set((state) => ({
+      incomeSources: state.incomeSources.map((source) => (source.id === id ? { ...source, kind } : source)),
+    })),
+  deleteIncomeSource: (id) =>
+    set((state) => ({
+      incomeSources: state.incomeSources.filter((source) => source.id !== id),
+      incomes: state.incomes.filter((entry) => entry.sourceId !== id),
+    })),
+  upsertIncome: (input) =>
+    set((state) => {
+      const index = state.incomes.findIndex(
+        (entry) => entry.sourceId === input.sourceId && entry.month === input.month,
+      );
+      const amount = cents(input.amount);
+      if (index >= 0) {
+        const incomes = state.incomes.slice();
+        incomes[index] = { ...incomes[index], amount };
+        return { incomes };
+      }
+      return {
+        incomes: [
+          ...state.incomes,
+          { id: crypto.randomUUID(), sourceId: input.sourceId, month: input.month, amount },
+        ],
+      };
+    }),
   loadDemo: () => set({ ...demoLedger(), ready: true }),
   keepDemo: () => set({ demo: false }),
   reset: () => set({ ...empty, ready: true }),
@@ -231,6 +278,8 @@ export function selectData(state: Store): LedgerData {
     expenses: state.expenses,
     cashbackCards: state.cashbackCards,
     cashbacks: state.cashbacks,
+    incomeSources: state.incomeSources,
+    incomes: state.incomes,
     currency: state.currency,
     monthlyGoal: state.monthlyGoal,
     fireGoal: state.fireGoal,

@@ -2,7 +2,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { toBackup } from "@/lib/ledger/backup";
-import { UserButton } from "@/lib/auth/gates";
 import { clampClosingDay, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { selectData, useLedger } from "@/lib/ledger/store";
 import { CURRENCIES, PLATFORM_KINDS, type CurrencyCode, type Platform, type PlatformKind } from "@/lib/ledger/types";
@@ -178,7 +177,9 @@ export function SettingsDialog({
       state.expenseTypes.length > 0 ||
       state.expenses.length > 0 ||
       state.cashbackCards.length > 0 ||
-      state.cashbacks.length > 0,
+      state.cashbacks.length > 0 ||
+      state.incomeSources.length > 0 ||
+      state.incomes.length > 0,
   );
   const fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
@@ -220,12 +221,9 @@ export function SettingsDialog({
         onOpenChange(next);
       }}
       title="Definições"
-      description="A caderneta está na tua conta. Exporta uma cópia se quiseres um ficheiro teu."
+      description="Os números ficam neste dispositivo. Exporta uma cópia se quiseres um ficheiro teu."
     >
       <div className="space-y-5">
-        <div className="rounded-md bg-chip px-3 py-3">
-          <UserButton />
-        </div>
         <div>
           <p className="mb-2 text-sm font-medium">Moeda</p>
           <div className="grid grid-cols-1 gap-2">

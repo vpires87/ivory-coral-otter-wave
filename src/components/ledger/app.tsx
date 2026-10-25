@@ -5,17 +5,19 @@ import { useLedger } from "@/lib/ledger/store";
 import { cn } from "@/lib/utils";
 import { PlatformDialog, SettingsDialog } from "@/components/ledger/dialogs";
 import { ExpensesPanel } from "@/components/ledger/expenses-panel";
+import { IncomePanel } from "@/components/ledger/income-panel";
 import { CashbackPanel } from "@/components/ledger/cashback-panel";
 import { MonthPanel } from "@/components/ledger/month-panel";
 import { PlatformsPanel } from "@/components/ledger/platforms-panel";
 import { SummaryView } from "@/components/ledger/summary";
 import { Button } from "@/components/ledger/ui";
 
-type Tab = "resumo" | "mes" | "despesas" | "cashback" | "plataformas";
+type Tab = "resumo" | "mes" | "ganhos" | "despesas" | "cashback" | "plataformas";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "resumo", label: "Resumo" },
   { id: "mes", label: "Mês" },
+  { id: "ganhos", label: "Ganhos" },
   { id: "despesas", label: "Despesas" },
   { id: "cashback", label: "Cartões" },
   { id: "plataformas", label: "Plataformas" },
@@ -29,11 +31,13 @@ export function LastroApp() {
   const platforms = useLedger((state) => state.platforms);
   const expenseTypes = useLedger((state) => state.expenseTypes);
   const cashbackCards = useLedger((state) => state.cashbackCards);
+  const incomeSources = useLedger((state) => state.incomeSources);
   const addCashbackCard = useLedger((state) => state.addCashbackCard);
   const demo = useLedger((state) => state.demo);
   const currency = useLedger((state) => state.currency);
   const closingDay = useLedger((state) => state.closingDay);
   const addExpenseType = useLedger((state) => state.addExpenseType);
+  const addIncomeSource = useLedger((state) => state.addIncomeSource);
   const keepDemo = useLedger((state) => state.keepDemo);
   const reset = useLedger((state) => state.reset);
   const loadDemo = useLedger((state) => state.loadDemo);
@@ -46,7 +50,11 @@ export function LastroApp() {
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const editing = platforms.find((platform) => platform.id === editingId) ?? null;
-  const empty = platforms.length === 0 && expenseTypes.length === 0 && cashbackCards.length === 0;
+  const empty =
+    platforms.length === 0 &&
+    expenseTypes.length === 0 &&
+    cashbackCards.length === 0 &&
+    incomeSources.length === 0;
 
   useEffect(() => {
     if (ready && !monthTouched.current) setMonth(dueMonth(closingDay));
@@ -146,6 +154,10 @@ export function LastroApp() {
               addCashbackCard(label);
               setTab("cashback");
             }}
+            onCreateIncome={(label) => {
+              addIncomeSource(label, "ordenado");
+              setTab("ganhos");
+            }}
           />
         ) : (
           <>
@@ -183,6 +195,7 @@ export function LastroApp() {
                   onRegister={() => setTab("mes")}
                   onExpenses={() => setTab("despesas")}
                   onCashback={() => setTab("cashback")}
+                  onIncome={() => setTab("ganhos")}
                   onOpenPlatform={(id) => {
                     setPlatformId(id);
                     setTab("plataformas");
@@ -192,6 +205,7 @@ export function LastroApp() {
               {tab === "mes" ? (
                 <MonthPanel month={month} onMonth={changeMonth} onAddPlatform={openCreate} />
               ) : null}
+              {tab === "ganhos" ? <IncomePanel month={month} onMonth={changeMonth} /> : null}
               {tab === "despesas" ? <ExpensesPanel month={month} onMonth={changeMonth} /> : null}
               {tab === "cashback" ? <CashbackPanel month={month} onMonth={changeMonth} /> : null}
               {tab === "plataformas" ? (
@@ -215,8 +229,8 @@ export function LastroApp() {
           {syncError
             ? syncError
             : saving
-              ? "A guardar na tua conta…"
-              : "Os números ficam na tua conta. Nas definições podes exportar uma cópia."}
+              ? "A guardar…"
+              : "Os números ficam neste dispositivo. Nas definições podes exportar uma cópia."}
         </p>
       </div>
 
@@ -238,27 +252,31 @@ function EmptyLedger({
   onDemo,
   onCreateType,
   onCreateCard,
+  onCreateIncome,
 }: {
   onAdd: () => void;
   onDemo: () => void;
   onCreateType: (name: string) => void;
   onCreateCard: (name: string) => void;
+  onCreateIncome: (name: string) => void;
 }) {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [cardName, setCardName] = useState("");
   const [cardError, setCardError] = useState("");
+  const [incomeName, setIncomeName] = useState("");
+  const [incomeError, setIncomeError] = useState("");
 
   return (
     <section className="mt-8 rounded-lg border border-line bg-card px-5 py-8 sm:px-8">
       <h2 className="font-serif text-3xl sm:text-4xl">O mesmo dia, todos os meses.</h2>
       <p className="mt-3 max-w-xl text-base leading-relaxed text-muted">
-        Escolhes o dia de fecho. Nesse dia apontas investimentos, despesas e o cashback de cada cartão.
+        Escolhes o dia de fecho. Nesse dia apontas o que ganhaste, o que investiste, as despesas e o cashback.
       </p>
       <ol className="mt-6 max-w-xl space-y-3 text-sm">
         <li className="flex gap-3">
           <span className="font-serif text-forest">01</span>
-          <span>Crias plataformas, tipos de despesa e cartões.</span>
+          <span>Crias o ordenado, plataformas, tipos de despesa e cartões.</span>
         </li>
         <li className="flex gap-3">
           <span className="font-serif text-forest">02</span>
@@ -266,7 +284,7 @@ function EmptyLedger({
         </li>
         <li className="flex gap-3">
           <span className="font-serif text-forest">03</span>
-          <span>Vês a carteira, as despesas e qual o cartão que deu mais cashback.</span>
+          <span>Vês quanto do que ganhaste foi para investir.</span>
         </li>
       </ol>
       <form
@@ -315,6 +333,30 @@ function EmptyLedger({
         </Button>
       </form>
       {cardError ? <p className="mt-2 text-sm text-loss">{cardError}</p> : null}
+      <form
+        className="mt-3 flex max-w-xl flex-col gap-2 sm:flex-row"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const trimmed = incomeName.trim();
+          if (trimmed.length < 1) {
+            setIncomeError("Dá um nome ao ordenado, por exemplo Empresa.");
+            return;
+          }
+          onCreateIncome(trimmed);
+        }}
+      >
+        <input
+          value={incomeName}
+          onChange={(event) => setIncomeName(event.target.value)}
+          placeholder="Primeiro ordenado"
+          maxLength={40}
+          className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+        />
+        <Button type="submit" variant="soft">
+          Criar ordenado
+        </Button>
+      </form>
+      {incomeError ? <p className="mt-2 text-sm text-loss">{incomeError}</p> : null}
       <div className="mt-3 flex flex-col gap-3 sm:flex-row">
         <Button variant="soft" onClick={onAdd}>
           Adicionar plataforma

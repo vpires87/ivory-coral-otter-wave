@@ -6,11 +6,13 @@ import type {
   ExpenseEntry,
   ExpenseMonth,
   ExpenseType,
+  IncomeEntry,
   MonthEntry,
   MonthPoint,
   Platform,
   PlatformSnapshot,
   ShareSlice,
+  SavingsPoint,
   Totals,
   YearRollup,
 } from "@/lib/ledger/types";
@@ -238,4 +240,34 @@ export function cashbackSeries(cards: CashbackCard[], entries: CashbackEntry[]) 
     total: cashbackTotal(entries, month),
     rows: cashbackRows(cards, entries, month),
   }));
+}
+
+export function incomeFor(entries: IncomeEntry[], sourceId: string, month: string): IncomeEntry | null {
+  return entries.find((entry) => entry.sourceId === sourceId && entry.month === month) ?? null;
+}
+
+export function incomeTotal(entries: IncomeEntry[], month: string): number {
+  return entries.reduce((sum, entry) => (entry.month === month ? cents(sum + entry.amount) : sum), 0);
+}
+
+export function contributedIn(entries: MonthEntry[], month: string): number {
+  return entries.reduce((sum, entry) => (entry.month === month ? cents(sum + entry.contributed) : sum), 0);
+}
+
+export function savingsRate(invested: number, earned: number): number | null {
+  if (earned <= 0) return null;
+  return invested / earned;
+}
+
+export function savingsSeries(contributions: MonthEntry[], incomes: IncomeEntry[]): SavingsPoint[] {
+  const months = new Set<string>();
+  for (const entry of contributions) months.add(entry.month);
+  for (const entry of incomes) months.add(entry.month);
+  if (months.size === 0) return [];
+  const sorted = [...months].sort();
+  return eachMonth(sorted[0], sorted[sorted.length - 1]).map((month) => {
+    const earned = incomeTotal(incomes, month);
+    const invested = contributedIn(contributions, month);
+    return { month, earned, invested, rate: savingsRate(invested, earned) };
+  });
 }

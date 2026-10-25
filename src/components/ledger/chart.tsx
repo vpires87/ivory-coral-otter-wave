@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { formatCompact, formatMoney, formatMonth } from "@/lib/ledger/money";
-import type { CashbackCard, CurrencyCode, ExpenseMonth, ExpenseType, MonthPoint } from "@/lib/ledger/types";
+import { formatCompact, formatMoney, formatMonth, formatShare } from "@/lib/ledger/money";
+import type { CashbackCard, CurrencyCode, ExpenseMonth, ExpenseType, MonthPoint, SavingsPoint } from "@/lib/ledger/types";
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -384,6 +384,64 @@ export function CashbackHistory({
         {cards.map((card, index) => (
           <Legend key={card.id} swatch={SERIES[index % SERIES.length].swatch} label={card.name} />
         ))}
+      </div>
+    </section>
+  );
+}
+
+export function SavingsChart({ series, currency }: { series: SavingsPoint[]; currency: CurrencyCode }) {
+  const reduced = useReducedMotion();
+  const visible = series.filter((point) => point.earned > 0 || point.invested > 0);
+  if (visible.length === 0) return null;
+  const data = visible.map((point) => ({
+    ...point,
+    label: formatMonth(point.month, "short"),
+  }));
+
+  return (
+    <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+      <h2 className="font-serif text-2xl">Ganho e investido</h2>
+      <p className="mt-1 text-sm text-muted">O que entrou no mês contra o que foi para investir.</p>
+      <div className="mt-4 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="var(--color-line)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              minTickGap={28}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              width={48}
+              tickFormatter={(value: number) => formatCompact(value)}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                const point = payload?.[0]?.payload as (SavingsPoint & { label: string }) | undefined;
+                if (!active || !point) return null;
+                return (
+                  <div className="rounded-md border border-line bg-card px-3 py-2 text-sm">
+                    <p className="font-medium">{formatMonth(point.month)}</p>
+                    <p className="mt-1 tabular-nums">Ganho {formatMoney(point.earned, currency)}</p>
+                    <p className="tabular-nums">Investido {formatMoney(point.invested, currency)}</p>
+                    <p className="tabular-nums">Poupança {point.rate == null ? "—" : formatShare(point.rate)}</p>
+                  </div>
+                );
+              }}
+            />
+            <Bar dataKey="earned" fill="var(--color-forest)" isAnimationActive={!reduced} maxBarSize={18} radius={4} />
+            <Bar dataKey="invested" fill="var(--color-brass)" isAnimationActive={!reduced} maxBarSize={18} radius={4} />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        <Legend swatch="bg-forest" label="Ganho" />
+        <Legend swatch="bg-brass" label="Investido" />
       </div>
     </section>
   );
