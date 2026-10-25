@@ -5,6 +5,8 @@ import {
   type CurrencyCode,
   type ExpenseEntry,
   type ExpenseType,
+  type CashbackCard,
+  type CashbackEntry,
   type LedgerData,
   type PlatformKind,
 } from "@/lib/ledger/types";
@@ -96,6 +98,13 @@ export function parseBackup(raw: unknown): LedgerData | string {
     monthlyGoal = goal > 0 ? goal : null;
   }
 
+  let fireGoal: number | null = null;
+  if (data.fireGoal != null) {
+    const goal = asMoney(data.fireGoal);
+    if (goal == null || goal < 0) return "O objetivo FIRE é inválido.";
+    fireGoal = goal > 0 ? goal : null;
+  }
+
   let closingDay = 1;
   if (data.closingDay != null) {
     if (typeof data.closingDay !== "number" || !Number.isInteger(data.closingDay)) {
@@ -147,13 +156,58 @@ export function parseBackup(raw: unknown): LedgerData | string {
     expenses.push({ id: row.id, typeId: row.typeId, month: row.month, amount });
   }
 
+  const cashbackCards: CashbackCard[] = [];
+  const seenCards = new Set<string>();
+  const cardRows = data.cashbackCards == null ? [] : data.cashbackCards;
+  if (!Array.isArray(cardRows)) return "Os cartões do ficheiro são inválidos.";
+  if (cardRows.length > 30) return "Há cartões a mais.";
+  for (const item of cardRows) {
+    const row = asRecord(item);
+    if (!row) return "Há um cartão inválido.";
+    if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) {
+      return "Há um cartão sem identificador válido.";
+    }
+    if (seenCards.has(row.id)) return "Há cartões repetidos.";
+    seenCards.add(row.id);
+    if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) {
+      return "Há um cartão com nome inválido.";
+    }
+    cashbackCards.push({ id: row.id, name: row.name.trim() });
+  }
+
+  const cashbacks: CashbackEntry[] = [];
+  const seenCash = new Set<string>();
+  const cashRows = data.cashbacks == null ? [] : data.cashbacks;
+  if (!Array.isArray(cashRows)) return "O cashback do ficheiro é inválido.";
+  if (cashRows.length > 8000) return "O ficheiro é demasiado grande.";
+  for (const item of cashRows) {
+    const row = asRecord(item);
+    if (!row) return "Há um cashback inválido.";
+    if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) {
+      return "Há um cashback sem identificador válido.";
+    }
+    if (typeof row.cardId !== "string" || !seenCards.has(row.cardId)) {
+      return "Há cashback ligado a um cartão que não existe.";
+    }
+    if (typeof row.month !== "string" || !isMonth(row.month)) return "Há cashback com mês inválido.";
+    const key = `${row.cardId}|${row.month}`;
+    if (seenCash.has(key)) return "Há dois cashbacks do mesmo cartão no mesmo mês.";
+    seenCash.add(key);
+    const amount = asMoney(row.amount);
+    if (amount == null || amount < 0) return "Há um valor de cashback inválido.";
+    cashbacks.push({ id: row.id, cardId: row.cardId, month: row.month, amount });
+  }
+
   return {
     currency: data.currency as CurrencyCode,
     platforms,
     entries,
     expenseTypes,
     expenses,
+    cashbackCards,
+    cashbacks,
     monthlyGoal,
+    fireGoal,
     closingDay,
     demo: false,
   };
@@ -166,10 +220,13 @@ export function toBackup(data: LedgerData) {
     exportedAt: new Date().toISOString(),
     currency: data.currency,
     monthlyGoal: data.monthlyGoal,
+    fireGoal: data.fireGoal,
     closingDay: data.closingDay,
     platforms: data.platforms,
     entries: data.entries,
     expenseTypes: data.expenseTypes,
     expenses: data.expenses,
+    cashbackCards: data.cashbackCards,
+    cashbacks: data.cashbacks,
   };
 }

@@ -1,4 +1,12 @@
-import type { ExpenseEntry, ExpenseType, LedgerData, MonthEntry, Platform } from "@/lib/ledger/types";
+import type {
+  CashbackCard,
+  CashbackEntry,
+  ExpenseEntry,
+  ExpenseType,
+  LedgerData,
+  MonthEntry,
+  Platform,
+} from "@/lib/ledger/types";
 
 const platforms: Platform[] = [
   { id: "demo-xtb", name: "XTB", kind: "corretora", openingInvested: 4200 },
@@ -68,14 +76,41 @@ for (let index = 0; index < 7; index += 1) {
   );
 }
 
+const cashbackCards: CashbackCard[] = [
+  { id: "demo-universo", name: "Universo" },
+  { id: "demo-ctt-card", name: "CTT" },
+  { id: "demo-revolut", name: "Revolut" },
+];
+
+const universo = [8, 9, 11, 7, 10, 12, 14];
+const cttCard = [3, 4, 3, 5, 4, 6, 4];
+const revolut = [6, 8, 15, 9, 11, 7, 18];
+
+function rebate(cardId: string, month: string, amount: number): CashbackEntry {
+  return { id: `demo-${cardId}-${month}`, cardId, month, amount };
+}
+
+const cashbacks: CashbackEntry[] = [];
+for (let index = 0; index < 7; index += 1) {
+  const month = `2026-${String(index + 3).padStart(2, "0")}`;
+  cashbacks.push(
+    rebate("demo-universo", month, universo[index]),
+    rebate("demo-ctt-card", month, cttCard[index]),
+    rebate("demo-revolut", month, revolut[index]),
+  );
+}
+
 export function demoLedger(): LedgerData {
   return {
     platforms: platforms.map((platform) => ({ ...platform })),
     entries: entries.map((entry) => ({ ...entry })),
     expenseTypes: expenseTypes.map((type) => ({ ...type })),
     expenses: expenses.map((entry) => ({ ...entry })),
+    cashbackCards: cashbackCards.map((card) => ({ ...card })),
+    cashbacks: cashbacks.map((entry) => ({ ...entry })),
     currency: "EUR",
     monthlyGoal: 650,
+    fireGoal: 50000,
     closingDay: 25,
     demo: true,
   };

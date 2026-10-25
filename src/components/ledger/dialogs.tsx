@@ -175,7 +175,9 @@ export function SettingsDialog({
       state.platforms.length > 0 ||
       state.entries.length > 0 ||
       state.expenseTypes.length > 0 ||
-      state.expenses.length > 0,
+      state.expenses.length > 0 ||
+      state.cashbackCards.length > 0 ||
+      state.cashbacks.length > 0,
   );
   const fileRef = useRef<HTMLInputElement>(null);
   const [message, setMessage] = useState("");
@@ -241,6 +243,7 @@ export function SettingsDialog({
           </div>
         </div>
         {open ? <GoalEditor /> : null}
+        {open ? <FireEditor /> : null}
         {open ? <ClosingDayEditor /> : null}
         <div className="grid gap-2 sm:grid-cols-2">
           <Button variant="soft" onClick={exportFile}>
@@ -368,6 +371,56 @@ function GoalEditor() {
       {error ? <p className="text-sm text-loss">{error}</p> : null}
       <Button type="submit" variant="soft">
         Guardar meta
+      </Button>
+    </form>
+  );
+}
+
+function FireEditor() {
+  const fireGoal = useLedger((state) => state.fireGoal);
+  const setFireGoal = useLedger((state) => state.setFireGoal);
+  const [value, setValue] = useState(fireGoal == null ? "" : formatPlain(fireGoal));
+  const [error, setError] = useState("");
+
+  function save() {
+    if (value.trim() === "") {
+      setFireGoal(null);
+      setError("");
+      return;
+    }
+    const parsed = parseAmount(value);
+    if (parsed == null || parsed <= 0) {
+      setError("O objetivo FIRE tem de ser um valor positivo. Deixa vazio para o tirar.");
+      return;
+    }
+    setFireGoal(parsed);
+    setValue(formatPlain(parsed));
+    setError("");
+  }
+
+  return (
+    <form
+      className="space-y-2"
+      onSubmit={(event) => {
+        event.preventDefault();
+        save();
+      }}
+    >
+      <Field
+        label="Objetivo FIRE"
+        hint="O valor que a carteira tem de atingir. O progresso usa o último valor registado de cada ativo."
+      >
+        <input
+          inputMode="decimal"
+          value={value}
+          onChange={(event) => setValue(event.target.value)}
+          placeholder="0,00"
+          className={cn(inputClassName(), "tabular-nums")}
+        />
+      </Field>
+      {error ? <p className="text-sm text-loss">{error}</p> : null}
+      <Button type="submit" variant="soft">
+        Guardar objetivo
       </Button>
     </form>
   );

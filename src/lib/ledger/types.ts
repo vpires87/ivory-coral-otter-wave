@@ -46,13 +46,28 @@ export type ExpenseEntry = {
   amount: number;
 };
 
+export type CashbackCard = {
+  id: string;
+  name: string;
+};
+
+export type CashbackEntry = {
+  id: string;
+  cardId: string;
+  month: string;
+  amount: number;
+};
+
 export type LedgerData = {
   platforms: Platform[];
   entries: MonthEntry[];
   expenseTypes: ExpenseType[];
   expenses: ExpenseEntry[];
+  cashbackCards: CashbackCard[];
+  cashbacks: CashbackEntry[];
   currency: CurrencyCode;
   monthlyGoal: number | null;
+  fireGoal: number | null;
   closingDay: number;
   demo: boolean;
 };

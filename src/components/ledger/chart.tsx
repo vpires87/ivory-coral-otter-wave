@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Area, Bar, BarChart, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatCompact, formatMoney, formatMonth } from "@/lib/ledger/money";
-import type { CurrencyCode, ExpenseMonth, ExpenseType, MonthPoint } from "@/lib/ledger/types";
+import type { CashbackCard, CurrencyCode, ExpenseMonth, ExpenseType, MonthPoint } from "@/lib/ledger/types";
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -236,6 +236,153 @@ export function ExpenseChart({
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
         {types.map((type, index) => (
           <Legend key={type.id} swatch={SERIES[index % SERIES.length].swatch} label={type.name} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+export function CashbackMonthChart({
+  rows,
+  currency,
+  title,
+}: {
+  rows: { id: string; name: string; amount: number }[];
+  currency: CurrencyCode;
+  title: string;
+}) {
+  const reduced = useReducedMotion();
+  const visible = [...rows].filter((row) => row.amount > 0).sort((a, b) => b.amount - a.amount);
+  if (visible.length === 0) return null;
+  const best = visible[0].amount;
+
+  return (
+    <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+      <h2 className="font-serif text-2xl">Qual deu mais</h2>
+      <p className="mt-1 text-sm text-muted">{title}</p>
+      <div className="mt-4" style={{ height: Math.max(160, visible.length * 48) }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={visible} layout="vertical" margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="var(--color-line)" horizontal={false} />
+            <XAxis
+              type="number"
+              tickFormatter={(value: number) => formatCompact(value)}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={88}
+              tick={{ fill: "var(--color-ink)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                const point = payload?.[0]?.payload as { name: string; amount: number } | undefined;
+                if (!active || !point) return null;
+                return (
+                  <div className="rounded-md border border-line bg-card px-3 py-2 text-sm">
+                    <p className="font-medium">{point.name}</p>
+                    <p className="mt-1 tabular-nums">{formatMoney(point.amount, currency)}</p>
+                  </div>
+                );
+              }}
+            />
+            <Bar dataKey="amount" isAnimationActive={!reduced} maxBarSize={22} radius={4}>
+              {visible.map((row) => (
+                <Cell key={row.id} fill={row.amount === best ? "var(--color-forest)" : "var(--color-brass)"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </section>
+  );
+}
+
+export function CashbackHistory({
+  series,
+  cards,
+  currency,
+}: {
+  series: { month: string; total: number; rows: { id: string; amount: number }[] }[];
+  cards: CashbackCard[];
+  currency: CurrencyCode;
+}) {
+  const reduced = useReducedMotion();
+  const visible = series.filter((point) => point.total > 0);
+  if (visible.length < 2 || cards.length === 0) return null;
+  const data = visible.map((point) => {
+    const row: Record<string, string | number> = {
+      month: point.month,
+      label: formatMonth(point.month, "short"),
+      total: point.total,
+    };
+    for (const item of point.rows) row[item.id] = item.amount;
+    return row;
+  });
+
+  return (
+    <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+      <h2 className="font-serif text-2xl">Mês a mês</h2>
+      <p className="mt-1 text-sm text-muted">Cada barra é um cartão, lado a lado.</p>
+      <div className="mt-4 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="var(--color-line)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              minTickGap={28}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              width={48}
+              tickFormatter={(value: number) => formatCompact(value)}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              content={({ active, payload }) => {
+                const point = payload?.[0]?.payload as (Record<string, string | number> & { month: string; total: number }) | undefined;
+                if (!active || !point) return null;
+                return (
+                  <div className="rounded-md border border-line bg-card px-3 py-2 text-sm">
+                    <p className="font-medium">{formatMonth(point.month)}</p>
+                    <p className="mt-1 tabular-nums">Total {formatMoney(point.total, currency)}</p>
+                    {cards.map((card) => {
+                      const amount = point[card.id];
+                      if (typeof amount !== "number" || amount === 0) return null;
+                      return (
+                        <p key={card.id} className="tabular-nums">
+                          {card.name} {formatMoney(amount, currency)}
+                        </p>
+                      );
+                    })}
+                  </div>
+                );
+              }}
+            />
+            {cards.map((card, index) => (
+              <Bar
+                key={card.id}
+                dataKey={card.id}
+                fill={SERIES[index % SERIES.length].fill}
+                isAnimationActive={!reduced}
+                maxBarSize={16}
+              />
+            ))}
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        {cards.map((card, index) => (
+          <Legend key={card.id} swatch={SERIES[index % SERIES.length].swatch} label={card.name} />
         ))}
       </div>
     </section>

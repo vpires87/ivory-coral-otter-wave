@@ -22,6 +22,7 @@ type Store = LedgerData & {
   hydrated: boolean;
   setCurrency: (currency: CurrencyCode) => void;
   setMonthlyGoal: (goal: number | null) => void;
+  setFireGoal: (goal: number | null) => void;
   setClosingDay: (day: number) => void;
   addPlatform: (draft: DraftPlatform) => string;
   updatePlatform: (id: string, draft: DraftPlatform) => void;
@@ -32,6 +33,10 @@ type Store = LedgerData & {
   renameExpenseType: (id: string, name: string) => void;
   deleteExpenseType: (id: string) => void;
   upsertExpense: (input: { typeId: string; month: string; amount: number }) => void;
+  addCashbackCard: (name: string) => string;
+  renameCashbackCard: (id: string, name: string) => void;
+  deleteCashbackCard: (id: string) => void;
+  upsertCashback: (input: { cardId: string; month: string; amount: number }) => void;
   loadDemo: () => void;
   keepDemo: () => void;
   reset: () => void;
@@ -43,8 +48,11 @@ const empty: LedgerData = {
   entries: [],
   expenseTypes: [],
   expenses: [],
+  cashbackCards: [],
+  cashbacks: [],
   currency: "EUR",
   monthlyGoal: null,
+  fireGoal: null,
   closingDay: 1,
   demo: false,
 };
@@ -74,6 +82,7 @@ export const useLedger = create<Store>()(
       hydrated: false,
       setCurrency: (currency) => set({ currency }),
       setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
+      setFireGoal: (goal) => set({ fireGoal: goal == null || goal <= 0 ? null : cents(goal) }),
       setClosingDay: (day) => set({ closingDay: clampClosingDay(day) }),
       addPlatform: (draft) => {
         const id = crypto.randomUUID();
@@ -174,6 +183,42 @@ export const useLedger = create<Store>()(
             ],
           };
         }),
+      addCashbackCard: (name) => {
+        const id = crypto.randomUUID();
+        set((state) => ({
+          cashbackCards: [...state.cashbackCards, { id, name: name.trim() }],
+        }));
+        return id;
+      },
+      renameCashbackCard: (id, name) =>
+        set((state) => ({
+          cashbackCards: state.cashbackCards.map((card) =>
+            card.id === id ? { ...card, name: name.trim() } : card,
+          ),
+        })),
+      deleteCashbackCard: (id) =>
+        set((state) => ({
+          cashbackCards: state.cashbackCards.filter((card) => card.id !== id),
+          cashbacks: state.cashbacks.filter((entry) => entry.cardId !== id),
+        })),
+      upsertCashback: (input) =>
+        set((state) => {
+          const index = state.cashbacks.findIndex(
+            (entry) => entry.cardId === input.cardId && entry.month === input.month,
+          );
+          const amount = cents(input.amount);
+          if (index >= 0) {
+            const cashbacks = state.cashbacks.slice();
+            cashbacks[index] = { ...cashbacks[index], amount };
+            return { cashbacks };
+          }
+          return {
+            cashbacks: [
+              ...state.cashbacks,
+              { id: crypto.randomUUID(), cardId: input.cardId, month: input.month, amount },
+            ],
+          };
+        }),
       loadDemo: () => set(demoLedger()),
       keepDemo: () => set({ demo: false }),
       reset: () => set(empty),
@@ -195,8 +240,11 @@ export const useLedger = create<Store>()(
         entries: state.entries,
         expenseTypes: state.expenseTypes,
         expenses: state.expenses,
+        cashbackCards: state.cashbackCards,
+        cashbacks: state.cashbacks,
         currency: state.currency,
         monthlyGoal: state.monthlyGoal,
+        fireGoal: state.fireGoal,
         closingDay: state.closingDay,
         demo: state.demo,
       }),
@@ -210,8 +258,11 @@ export function selectData(state: Store): LedgerData {
     entries: state.entries,
     expenseTypes: state.expenseTypes,
     expenses: state.expenses,
+    cashbackCards: state.cashbackCards,
+    cashbacks: state.cashbacks,
     currency: state.currency,
     monthlyGoal: state.monthlyGoal,
+    fireGoal: state.fireGoal,
     closingDay: state.closingDay,
     demo: state.demo,
   };

@@ -1,6 +1,6 @@
-import type { ReactNode } from "react";
-import { buildSeries, entryFor, expenseFor, expenseTotal, kindShares, platformSnapshot, pointFor, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
-import { cents, formatMoney, formatMonth, formatPercent } from "@/lib/ledger/money";
+import { useEffect, useState, type ReactNode } from "react";
+import { buildSeries, cashbackFor, cashbackRows, cashbackTotal, entryFor, expenseFor, expenseTotal, kindShares, platformSnapshot, pointFor, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
+import { cents, formatMoney, formatMonth, formatPercent, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { PLATFORM_KINDS, type CurrencyCode } from "@/lib/ledger/types";
 import { ValueChart } from "@/components/ledger/chart";
@@ -11,18 +11,22 @@ export function SummaryView({
   onMonth,
   onRegister,
   onExpenses,
+  onCashback,
   onOpenPlatform,
 }: {
   month: string;
   onMonth: (month: string) => void;
   onRegister: () => void;
   onExpenses: () => void;
+  onCashback: () => void;
   onOpenPlatform: (id: string) => void;
 }) {
   const platforms = useLedger((state) => state.platforms);
   const entries = useLedger((state) => state.entries);
   const expenseTypes = useLedger((state) => state.expenseTypes);
   const expenses = useLedger((state) => state.expenses);
+  const cashbackCards = useLedger((state) => state.cashbackCards);
+  const cashbacks = useLedger((state) => state.cashbacks);
   const currency = useLedger((state) => state.currency);
   const monthlyGoal = useLedger((state) => state.monthlyGoal);
   const series = buildSeries(platforms, entries);
@@ -34,6 +38,10 @@ export function SummaryView({
   const pending = platforms.filter((platform) => !entryFor(entries, platform.id, month));
   const pendingExpenses = expenseTypes.filter((type) => !expenseFor(expenses, type.id, month));
   const spent = expenseTotal(expenses, month);
+  const cashRows = cashbackRows(cashbackCards, cashbacks, month);
+  const cashTotal = cashbackTotal(cashbacks, month);
+  const cashLeaders = cashRows.filter((row) => row.amount > 0 && row.amount === cashRows[0]?.amount);
+  const pendingCash = cashbackCards.filter((card) => !cashbackFor(cashbacks, card.id, month));
   const monthContributed = entries.reduce(
     (sum, entry) => (entry.month === month ? cents(sum + entry.contributed) : sum),
     0,
@@ -64,6 +72,8 @@ export function SummaryView({
           <CompareBars invested={snapshot.invested} value={snapshot.value} currency={currency} />
         ) : null}
       </section>
+
+      <FireCard value={snapshot.value} recorded={snapshot.withValue > 0} currency={currency} />
 
       <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
         <MonthSwitcher month={month} onChange={onMonth} />
@@ -121,6 +131,24 @@ export function SummaryView({
           ) : null}
           <Button className="mt-4" variant="soft" onClick={onExpenses}>
             Registar despesas
+          </Button>
+        </section>
+      ) : null}
+
+      {cashbackCards.length > 0 ? (
+        <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+          <p className="text-sm text-muted">Cashback do mês</p>
+          <p className="mt-2 font-serif text-3xl tabular-nums">
+            {cashLeaders.length === 0 ? "Ainda por registar" : formatMoney(cashTotal, currency)}
+          </p>
+          {cashLeaders.length === 1 ? (
+            <p className="mt-2 text-sm text-muted">{cashLeaders[0].name} deu mais.</p>
+          ) : null}
+          {pendingCash.length > 0 && cashLeaders.length > 0 ? (
+            <p className="mt-2 text-sm text-muted">Falta {pendingCash.map((card) => card.name).join(", ")}.</p>
+          ) : null}
+          <Button className="mt-4" variant="soft" onClick={onCashback}>
+            Registar cashback
           </Button>
         </section>
       ) : null}
@@ -209,6 +237,112 @@ function Mini({ label, value }: { label: string; value: ReactNode }) {
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-base font-medium">{value}</p>
     </div>
+  );
+}
+
+function FireCard({
+  value,
+  recorded,
+  currency,
+}: {
+  value: number;
+  recorded: boolean;
+  currency: CurrencyCode;
+}) {
+  const fireGoal = useLedger((state) => state.fireGoal);
+  const setFireGoal = useLedger((state) => state.setFireGoal);
+  const [editing, setEditing] = useState(fireGoal == null);
+  const [draft, setDraft] = useState(fireGoal == null ? "" : formatPlain(fireGoal));
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setDraft(fireGoal == null ? "" : formatPlain(fireGoal));
+    setEditing(fireGoal == null);
+  }, [fireGoal]);
+
+  const width =
+    fireGoal == null || fireGoal <= 0 ? 0 : Math.max(0, Math.min(100, (Math.max(value, 0) / fireGoal) * 100));
+  const left = fireGoal == null ? 0 : cents(fireGoal - value);
+
+  function save() {
+    if (draft.trim() === "") {
+      setFireGoal(null);
+      setError("");
+      setEditing(true);
+      return;
+    }
+    const parsed = parseAmount(draft);
+    if (parsed == null || parsed <= 0) {
+      setError("O objetivo tem de ser um valor positivo.");
+      return;
+    }
+    setFireGoal(parsed);
+    setError("");
+    setEditing(false);
+  }
+
+  return (
+    <section className="rounded-lg border border-line bg-card p-5 sm:p-6">
+      <p className="text-sm text-muted">Objetivo FIRE</p>
+      {fireGoal != null && !editing ? (
+        <>
+          <p className="mt-2 font-serif text-4xl tabular-nums">
+            {recorded ? formatShare(Math.max(value, 0) / fireGoal) : formatMoney(fireGoal, currency)}
+          </p>
+          <p className="mt-3 text-sm leading-relaxed">
+            {recorded
+              ? value >= fireGoal
+                ? `A carteira vale ${formatMoney(value, currency)} e já passou o objetivo de ${formatMoney(fireGoal, currency)}.`
+                : `Os ativos registados valem ${formatMoney(value, currency)}. Faltam ${formatMoney(left, currency)}.`
+              : `O objetivo é ${formatMoney(fireGoal, currency)}. Ainda não há valores de ativos registados.`}
+          </p>
+          <div
+            className="mt-4 h-2 overflow-hidden rounded-full bg-chip"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(width)}
+            aria-label="Progresso do objetivo FIRE"
+          >
+            <div className="h-full rounded-full bg-forest" style={{ width: `${width}%` }} />
+          </div>
+          <p className="mt-2 text-sm tabular-nums text-muted">
+            {formatMoney(Math.max(value, 0), currency)} / {formatMoney(fireGoal, currency)}
+          </p>
+          <Button className="mt-4" variant="soft" onClick={() => setEditing(true)}>
+            Alterar objetivo
+          </Button>
+        </>
+      ) : (
+        <form
+          className="mt-3 space-y-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            save();
+          }}
+        >
+          <p className="text-sm leading-relaxed text-muted">
+            O valor que a carteira tem de atingir. Conta o último valor que registares em cada ativo.
+          </p>
+          <input
+            inputMode="decimal"
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            placeholder="0,00"
+            className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
+          />
+          {error ? <p className="text-sm text-loss">{error}</p> : null}
+          <div className="flex flex-wrap gap-2">
+            <Button type="submit">Guardar objetivo</Button>
+            {fireGoal != null ? (
+              <Button variant="ghost" onClick={() => setEditing(false)}>
+                Cancelar
+              </Button>
+            ) : null}
+          </div>
+        </form>
+      )}
+    </section>
   );
 }
 

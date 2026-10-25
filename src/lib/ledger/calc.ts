@@ -1,6 +1,8 @@
 import { cents, eachMonth } from "@/lib/ledger/money";
 import { PLATFORM_KINDS } from "@/lib/ledger/types";
 import type {
+  CashbackCard,
+  CashbackEntry,
   ExpenseEntry,
   ExpenseMonth,
   ExpenseType,
@@ -207,4 +209,33 @@ export function expenseSeries(types: ExpenseType[], expenses: ExpenseEntry[]): E
 
 export function expenseTotal(expenses: ExpenseEntry[], month: string): number {
   return expenses.reduce((sum, entry) => (entry.month === month ? cents(sum + entry.amount) : sum), 0);
+}
+
+export function cashbackFor(entries: CashbackEntry[], cardId: string, month: string): CashbackEntry | null {
+  return entries.find((entry) => entry.cardId === cardId && entry.month === month) ?? null;
+}
+
+export function cashbackTotal(entries: CashbackEntry[], month: string): number {
+  return entries.reduce((sum, entry) => (entry.month === month ? cents(sum + entry.amount) : sum), 0);
+}
+
+export function cashbackRows(cards: CashbackCard[], entries: CashbackEntry[], month: string) {
+  return cards
+    .map((card) => ({
+      id: card.id,
+      name: card.name,
+      amount: cashbackFor(entries, card.id, month)?.amount ?? 0,
+    }))
+    .sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, "pt"));
+}
+
+export function cashbackSeries(cards: CashbackCard[], entries: CashbackEntry[]) {
+  if (entries.length === 0) return [];
+  const sorted = [...entries].sort(byMonth);
+  const months = eachMonth(sorted[0].month, sorted[sorted.length - 1].month);
+  return months.map((month) => ({
+    month,
+    total: cashbackTotal(entries, month),
+    rows: cashbackRows(cards, entries, month),
+  }));
 }

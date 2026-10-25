@@ -14162,4 +14162,4 @@ var ComposedChart = generateCategoricalChart({
 	formatAxisMap
 });
 //#endregion
-export { Area as a, Bar as c, XAxis as i, ResponsiveContainer as l, BarChart as n, Line as o, YAxis as r, CartesianGrid as s, ComposedChart as t, Tooltip as u };
+export { Area as a, Bar as c, Tooltip as d, XAxis as i, Cell as l, BarChart as n, Line as o, YAxis as r, CartesianGrid as s, ComposedChart as t, ResponsiveContainer as u };

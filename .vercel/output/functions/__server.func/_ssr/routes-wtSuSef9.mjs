@@ -7,8 +7,8 @@ import { n as persist, r as create, t as createJSONStorage } from "../_libs/zust
 import { t as clsx } from "../_libs/clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
 import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
-import { a as Area, c as Bar, i as XAxis, l as ResponsiveContainer, n as BarChart, o as Line, r as YAxis, s as CartesianGrid, t as ComposedChart, u as Tooltip } from "../_libs/recharts+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-CztxCznG.js
+import { a as Area, c as Bar, d as Tooltip, i as XAxis, l as Cell, n as BarChart, o as Line, r as YAxis, s as CartesianGrid, t as ComposedChart, u as ResponsiveContainer } from "../_libs/recharts+[...].mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-wtSuSef9.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function cents(n) {
@@ -219,6 +219,12 @@ function parseBackup(raw) {
 		if (goal == null || goal < 0) return "A meta mensal é inválida.";
 		monthlyGoal = goal > 0 ? goal : null;
 	}
+	let fireGoal = null;
+	if (data.fireGoal != null) {
+		const goal = asMoney(data.fireGoal);
+		if (goal == null || goal < 0) return "O objetivo FIRE é inválido.";
+		fireGoal = goal > 0 ? goal : null;
+	}
 	let closingDay = 1;
 	if (data.closingDay != null) {
 		if (typeof data.closingDay !== "number" || !Number.isInteger(data.closingDay)) return "O dia de fecho é inválido.";
@@ -265,13 +271,56 @@ function parseBackup(raw) {
 			amount
 		});
 	}
+	const cashbackCards = [];
+	const seenCards = /* @__PURE__ */ new Set();
+	const cardRows = data.cashbackCards == null ? [] : data.cashbackCards;
+	if (!Array.isArray(cardRows)) return "Os cartões do ficheiro são inválidos.";
+	if (cardRows.length > 30) return "Há cartões a mais.";
+	for (const item of cardRows) {
+		const row = asRecord(item);
+		if (!row) return "Há um cartão inválido.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um cartão sem identificador válido.";
+		if (seenCards.has(row.id)) return "Há cartões repetidos.";
+		seenCards.add(row.id);
+		if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) return "Há um cartão com nome inválido.";
+		cashbackCards.push({
+			id: row.id,
+			name: row.name.trim()
+		});
+	}
+	const cashbacks = [];
+	const seenCash = /* @__PURE__ */ new Set();
+	const cashRows = data.cashbacks == null ? [] : data.cashbacks;
+	if (!Array.isArray(cashRows)) return "O cashback do ficheiro é inválido.";
+	if (cashRows.length > 8e3) return "O ficheiro é demasiado grande.";
+	for (const item of cashRows) {
+		const row = asRecord(item);
+		if (!row) return "Há um cashback inválido.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um cashback sem identificador válido.";
+		if (typeof row.cardId !== "string" || !seenCards.has(row.cardId)) return "Há cashback ligado a um cartão que não existe.";
+		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há cashback com mês inválido.";
+		const key = `${row.cardId}|${row.month}`;
+		if (seenCash.has(key)) return "Há dois cashbacks do mesmo cartão no mesmo mês.";
+		seenCash.add(key);
+		const amount = asMoney(row.amount);
+		if (amount == null || amount < 0) return "Há um valor de cashback inválido.";
+		cashbacks.push({
+			id: row.id,
+			cardId: row.cardId,
+			month: row.month,
+			amount
+		});
+	}
 	return {
 		currency: data.currency,
 		platforms,
 		entries,
 		expenseTypes,
 		expenses,
+		cashbackCards,
+		cashbacks,
 		monthlyGoal,
+		fireGoal,
 		closingDay,
 		demo: false
 	};
@@ -283,11 +332,14 @@ function toBackup(data) {
 		exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
 		currency: data.currency,
 		monthlyGoal: data.monthlyGoal,
+		fireGoal: data.fireGoal,
 		closingDay: data.closingDay,
 		platforms: data.platforms,
 		entries: data.entries,
 		expenseTypes: data.expenseTypes,
-		expenses: data.expenses
+		expenses: data.expenses,
+		cashbackCards: data.cashbackCards,
+		cashbacks: data.cashbacks
 	};
 }
 var platforms = [
@@ -413,14 +465,71 @@ for (let index = 0; index < 7; index += 1) {
 	const month = `2026-${String(index + 3).padStart(2, "0")}`;
 	expenses.push(spent("demo-renda", month, 780), spent("demo-comida", month, food[index]), spent("demo-transp", month, transit[index]), spent("demo-lazer", month, leisure[index]));
 }
+var cashbackCards = [
+	{
+		id: "demo-universo",
+		name: "Universo"
+	},
+	{
+		id: "demo-ctt-card",
+		name: "CTT"
+	},
+	{
+		id: "demo-revolut",
+		name: "Revolut"
+	}
+];
+var universo = [
+	8,
+	9,
+	11,
+	7,
+	10,
+	12,
+	14
+];
+var cttCard = [
+	3,
+	4,
+	3,
+	5,
+	4,
+	6,
+	4
+];
+var revolut = [
+	6,
+	8,
+	15,
+	9,
+	11,
+	7,
+	18
+];
+function rebate(cardId, month, amount) {
+	return {
+		id: `demo-${cardId}-${month}`,
+		cardId,
+		month,
+		amount
+	};
+}
+var cashbacks = [];
+for (let index = 0; index < 7; index += 1) {
+	const month = `2026-${String(index + 3).padStart(2, "0")}`;
+	cashbacks.push(rebate("demo-universo", month, universo[index]), rebate("demo-ctt-card", month, cttCard[index]), rebate("demo-revolut", month, revolut[index]));
+}
 function demoLedger() {
 	return {
 		platforms: platforms.map((platform) => ({ ...platform })),
 		entries: entries.map((entry) => ({ ...entry })),
 		expenseTypes: expenseTypes.map((type) => ({ ...type })),
 		expenses: expenses.map((entry) => ({ ...entry })),
+		cashbackCards: cashbackCards.map((card) => ({ ...card })),
+		cashbacks: cashbacks.map((entry) => ({ ...entry })),
 		currency: "EUR",
 		monthlyGoal: 650,
+		fireGoal: 5e4,
 		closingDay: 25,
 		demo: true
 	};
@@ -430,8 +539,11 @@ var empty = {
 	entries: [],
 	expenseTypes: [],
 	expenses: [],
+	cashbackCards: [],
+	cashbacks: [],
 	currency: "EUR",
 	monthlyGoal: null,
+	fireGoal: null,
 	closingDay: 1,
 	demo: false
 };
@@ -457,6 +569,7 @@ var useLedger = create()(persist((set) => ({
 	hydrated: false,
 	setCurrency: (currency) => set({ currency }),
 	setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
+	setFireGoal: (goal) => set({ fireGoal: goal == null || goal <= 0 ? null : cents(goal) }),
 	setClosingDay: (day) => set({ closingDay: clampClosingDay(day) }),
 	addPlatform: (draft) => {
 		const id = crypto.randomUUID();
@@ -534,6 +647,40 @@ var useLedger = create()(persist((set) => ({
 			amount
 		}] };
 	}),
+	addCashbackCard: (name) => {
+		const id = crypto.randomUUID();
+		set((state) => ({ cashbackCards: [...state.cashbackCards, {
+			id,
+			name: name.trim()
+		}] }));
+		return id;
+	},
+	renameCashbackCard: (id, name) => set((state) => ({ cashbackCards: state.cashbackCards.map((card) => card.id === id ? {
+		...card,
+		name: name.trim()
+	} : card) })),
+	deleteCashbackCard: (id) => set((state) => ({
+		cashbackCards: state.cashbackCards.filter((card) => card.id !== id),
+		cashbacks: state.cashbacks.filter((entry) => entry.cardId !== id)
+	})),
+	upsertCashback: (input) => set((state) => {
+		const index = state.cashbacks.findIndex((entry) => entry.cardId === input.cardId && entry.month === input.month);
+		const amount = cents(input.amount);
+		if (index >= 0) {
+			const cashbacks = state.cashbacks.slice();
+			cashbacks[index] = {
+				...cashbacks[index],
+				amount
+			};
+			return { cashbacks };
+		}
+		return { cashbacks: [...state.cashbacks, {
+			id: crypto.randomUUID(),
+			cardId: input.cardId,
+			month: input.month,
+			amount
+		}] };
+	}),
 	loadDemo: () => set(demoLedger()),
 	keepDemo: () => set({ demo: false }),
 	reset: () => set(empty),
@@ -552,8 +699,11 @@ var useLedger = create()(persist((set) => ({
 		entries: state.entries,
 		expenseTypes: state.expenseTypes,
 		expenses: state.expenses,
+		cashbackCards: state.cashbackCards,
+		cashbacks: state.cashbacks,
 		currency: state.currency,
 		monthlyGoal: state.monthlyGoal,
+		fireGoal: state.fireGoal,
 		closingDay: state.closingDay,
 		demo: state.demo
 	})
@@ -564,8 +714,11 @@ function selectData(state) {
 		entries: state.entries,
 		expenseTypes: state.expenseTypes,
 		expenses: state.expenses,
+		cashbackCards: state.cashbackCards,
+		cashbacks: state.cashbacks,
 		currency: state.currency,
 		monthlyGoal: state.monthlyGoal,
+		fireGoal: state.fireGoal,
 		closingDay: state.closingDay,
 		demo: state.demo
 	};
@@ -905,7 +1058,7 @@ function SettingsDialog({ open, onOpenChange }) {
 	const importData = useLedger((state) => state.importData);
 	const reset = useLedger((state) => state.reset);
 	const loadDemo = useLedger((state) => state.loadDemo);
-	const hasData = useLedger((state) => state.platforms.length > 0 || state.entries.length > 0 || state.expenseTypes.length > 0 || state.expenses.length > 0);
+	const hasData = useLedger((state) => state.platforms.length > 0 || state.entries.length > 0 || state.expenseTypes.length > 0 || state.expenses.length > 0 || state.cashbackCards.length > 0 || state.cashbacks.length > 0);
 	const fileRef = (0, import_react.useRef)(null);
 	const [message, setMessage] = (0, import_react.useState)("");
 	const [confirmWipe, setConfirmWipe] = (0, import_react.useState)(false);
@@ -963,6 +1116,7 @@ function SettingsDialog({ open, onOpenChange }) {
 					}, item.id))
 				})] }),
 				open ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(GoalEditor, {}) : null,
+				open ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(FireEditor, {}) : null,
 				open ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ClosingDayEditor, {}) : null,
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "grid gap-2 sm:grid-cols-2",
@@ -1096,6 +1250,56 @@ function GoalEditor() {
 				type: "submit",
 				variant: "soft",
 				children: "Guardar meta"
+			})
+		]
+	});
+}
+function FireEditor() {
+	const fireGoal = useLedger((state) => state.fireGoal);
+	const setFireGoal = useLedger((state) => state.setFireGoal);
+	const [value, setValue] = (0, import_react.useState)(fireGoal == null ? "" : formatPlain(fireGoal));
+	const [error, setError] = (0, import_react.useState)("");
+	function save() {
+		if (value.trim() === "") {
+			setFireGoal(null);
+			setError("");
+			return;
+		}
+		const parsed = parseAmount(value);
+		if (parsed == null || parsed <= 0) {
+			setError("O objetivo FIRE tem de ser um valor positivo. Deixa vazio para o tirar.");
+			return;
+		}
+		setFireGoal(parsed);
+		setValue(formatPlain(parsed));
+		setError("");
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+		className: "space-y-2",
+		onSubmit: (event) => {
+			event.preventDefault();
+			save();
+		},
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+				label: "Objetivo FIRE",
+				hint: "O valor que a carteira tem de atingir. O progresso usa o último valor registado de cada ativo.",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+					inputMode: "decimal",
+					value,
+					onChange: (event) => setValue(event.target.value),
+					placeholder: "0,00",
+					className: cn(inputClassName(), "tabular-nums")
+				})
+			}),
+			error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "text-sm text-loss",
+				children: error
+			}) : null,
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+				type: "submit",
+				variant: "soft",
+				children: "Guardar objetivo"
 			})
 		]
 	});
@@ -1328,6 +1532,28 @@ function expenseSeries(types, expenses) {
 }
 function expenseTotal(expenses, month) {
 	return expenses.reduce((sum, entry) => entry.month === month ? cents(sum + entry.amount) : sum, 0);
+}
+function cashbackFor(entries, cardId, month) {
+	return entries.find((entry) => entry.cardId === cardId && entry.month === month) ?? null;
+}
+function cashbackTotal(entries, month) {
+	return entries.reduce((sum, entry) => entry.month === month ? cents(sum + entry.amount) : sum, 0);
+}
+function cashbackRows(cards, entries, month) {
+	return cards.map((card) => ({
+		id: card.id,
+		name: card.name,
+		amount: cashbackFor(entries, card.id, month)?.amount ?? 0
+	})).sort((a, b) => b.amount - a.amount || a.name.localeCompare(b.name, "pt"));
+}
+function cashbackSeries(cards, entries) {
+	if (entries.length === 0) return [];
+	const sorted = [...entries].sort(byMonth);
+	return eachMonth(sorted[0].month, sorted[sorted.length - 1].month).map((month) => ({
+		month,
+		total: cashbackTotal(entries, month),
+		rows: cashbackRows(cards, entries, month)
+	}));
 }
 function useReducedMotion() {
 	const [reduced, setReduced] = (0, import_react.useState)(false);
@@ -1623,6 +1849,202 @@ function ExpenseChart({ series, types, currency }) {
 		]
 	});
 }
+function CashbackMonthChart({ rows, currency, title }) {
+	const reduced = useReducedMotion();
+	const visible = [...rows].filter((row) => row.amount > 0).sort((a, b) => b.amount - a.amount);
+	if (visible.length === 0) return null;
+	const best = visible[0].amount;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "font-serif text-2xl",
+				children: "Qual deu mais"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted",
+				children: title
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-4",
+				style: { height: Math.max(160, visible.length * 48) },
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
+					width: "100%",
+					height: "100%",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+						data: visible,
+						layout: "vertical",
+						margin: {
+							top: 4,
+							right: 8,
+							left: 0,
+							bottom: 0
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+								stroke: "var(--color-line)",
+								horizontal: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+								type: "number",
+								tickFormatter: (value) => formatCompact(value),
+								tick: {
+									fill: "var(--color-muted)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+								type: "category",
+								dataKey: "name",
+								width: 88,
+								tick: {
+									fill: "var(--color-ink)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Tooltip, { content: ({ active, payload }) => {
+								const point = payload?.[0]?.payload;
+								if (!active || !point) return null;
+								return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-md border border-line bg-card px-3 py-2 text-sm",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "font-medium",
+										children: point.name
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "mt-1 tabular-nums",
+										children: formatMoney(point.amount, currency)
+									})]
+								});
+							} }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "amount",
+								isAnimationActive: !reduced,
+								maxBarSize: 22,
+								radius: 4,
+								children: visible.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: row.amount === best ? "var(--color-forest)" : "var(--color-brass)" }, row.id))
+							})
+						]
+					})
+				})
+			})
+		]
+	});
+}
+function CashbackHistory({ series, cards, currency }) {
+	const reduced = useReducedMotion();
+	const visible = series.filter((point) => point.total > 0);
+	if (visible.length < 2 || cards.length === 0) return null;
+	const data = visible.map((point) => {
+		const row = {
+			month: point.month,
+			label: formatMonth(point.month, "short"),
+			total: point.total
+		};
+		for (const item of point.rows) row[item.id] = item.amount;
+		return row;
+	});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "font-serif text-2xl",
+				children: "Mês a mês"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted",
+				children: "Cada barra é um cartão, lado a lado."
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-4 h-64",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
+					width: "100%",
+					height: "100%",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+						data,
+						margin: {
+							top: 8,
+							right: 4,
+							left: 0,
+							bottom: 0
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+								stroke: "var(--color-line)",
+								vertical: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+								dataKey: "label",
+								minTickGap: 28,
+								tick: {
+									fill: "var(--color-muted)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+								width: 48,
+								tickFormatter: (value) => formatCompact(value),
+								tick: {
+									fill: "var(--color-muted)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Tooltip, { content: ({ active, payload }) => {
+								const point = payload?.[0]?.payload;
+								if (!active || !point) return null;
+								return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-md border border-line bg-card px-3 py-2 text-sm",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "font-medium",
+											children: formatMonth(point.month)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+											className: "mt-1 tabular-nums",
+											children: ["Total ", formatMoney(point.total, currency)]
+										}),
+										cards.map((card) => {
+											const amount = point[card.id];
+											if (typeof amount !== "number" || amount === 0) return null;
+											return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+												className: "tabular-nums",
+												children: [
+													card.name,
+													" ",
+													formatMoney(amount, currency)
+												]
+											}, card.id);
+										})
+									]
+								});
+							} }),
+							cards.map((card, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: card.id,
+								fill: SERIES[index % SERIES.length].fill,
+								isAnimationActive: !reduced,
+								maxBarSize: 16
+							}, card.id))
+						]
+					})
+				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm",
+				children: cards.map((card, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Legend, {
+					swatch: SERIES[index % SERIES.length].swatch,
+					label: card.name
+				}, card.id))
+			})
+		]
+	});
+}
 function ExpensesPanel({ month, onMonth }) {
 	const types = useLedger((state) => state.expenseTypes);
 	const expenses = useLedger((state) => state.expenses);
@@ -1870,6 +2292,244 @@ function ExpensesPanel({ month, onMonth }) {
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExpenseChart, {
 				series,
 				types,
+				currency
+			})
+		]
+	});
+}
+function CashbackPanel({ month, onMonth }) {
+	const cards = useLedger((state) => state.cashbackCards);
+	const cashbacks = useLedger((state) => state.cashbacks);
+	const currency = useLedger((state) => state.currency);
+	const addCashbackCard = useLedger((state) => state.addCashbackCard);
+	const renameCashbackCard = useLedger((state) => state.renameCashbackCard);
+	const deleteCashbackCard = useLedger((state) => state.deleteCashbackCard);
+	const upsertCashback = useLedger((state) => state.upsertCashback);
+	const [drafts, setDrafts] = (0, import_react.useState)({});
+	const [name, setName] = (0, import_react.useState)("");
+	const [nameError, setNameError] = (0, import_react.useState)("");
+	const [editingId, setEditingId] = (0, import_react.useState)(null);
+	const [editingName, setEditingName] = (0, import_react.useState)("");
+	const [confirmId, setConfirmId] = (0, import_react.useState)(null);
+	const [errors, setErrors] = (0, import_react.useState)({});
+	(0, import_react.useEffect)(() => {
+		const next = {};
+		for (const card of useLedger.getState().cashbackCards) {
+			const saved = cashbackFor(useLedger.getState().cashbacks, card.id, month);
+			next[card.id] = saved ? formatPlain(saved.amount) : "";
+		}
+		setDrafts(next);
+		setErrors({});
+		setConfirmId(null);
+	}, [month]);
+	(0, import_react.useEffect)(() => {
+		setDrafts((current) => {
+			let changed = false;
+			const next = { ...current };
+			for (const card of cards) if (next[card.id] == null) {
+				const saved = cashbackFor(cashbacks, card.id, month);
+				next[card.id] = saved ? formatPlain(saved.amount) : "";
+				changed = true;
+			}
+			return changed ? next : current;
+		});
+	}, [
+		cards,
+		cashbacks,
+		month
+	]);
+	function createCard() {
+		const trimmed = name.trim();
+		if (trimmed.length < 1) {
+			setNameError("Dá um nome ao cartão.");
+			return;
+		}
+		if (cards.some((card) => card.name.toLocaleLowerCase("pt") === trimmed.toLocaleLowerCase("pt"))) {
+			setNameError("Já existe um cartão com esse nome.");
+			return;
+		}
+		addCashbackCard(trimmed);
+		setName("");
+		setNameError("");
+	}
+	const rows = cashbackRows(cards, cashbacks, month);
+	const series = cashbackSeries(cards, cashbacks);
+	const total = cashbackTotal(cashbacks, month);
+	const recorded = cards.filter((card) => cashbackFor(cashbacks, card.id, month)).length;
+	const leaders = rows.filter((row) => row.amount > 0 && row.amount === rows[0]?.amount);
+	const fallback = [...series].reverse().find((point) => point.total > 0);
+	const chartRows = leaders.length > 0 ? rows : fallback?.rows ?? [];
+	const chartTitle = leaders.length > 0 ? leaders.length === 1 ? `${leaders[0].name} deu mais em ${formatMonth(month).toLowerCase()}.` : `${leaders.map((row) => row.name).join(" e ")} empataram em ${formatMonth(month).toLowerCase()}.` : fallback ? `Neste mês ainda não há cashback. O último foi ${formatMonth(fallback.month).toLowerCase()}.` : "";
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-4",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthSwitcher, {
+					month,
+					onChange: onMonth
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "mt-3 text-sm text-muted",
+					children: cards.length === 0 ? "Cria os cartões e, no fecho, aponta o cashback que cada um deu." : leaders.length > 0 ? `${recorded} de ${cards.length} cartões. Total ${formatMoney(total, currency)}.` : "Ainda sem cashback neste mês."
+				})]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+						className: "font-serif text-2xl",
+						children: "Cartões"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+						className: "mt-4 flex flex-col gap-2 sm:flex-row",
+						onSubmit: (event) => {
+							event.preventDefault();
+							createCard();
+						},
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+							value: name,
+							onChange: (event) => setName(event.target.value),
+							placeholder: "Novo cartão",
+							maxLength: 40,
+							className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							type: "submit",
+							children: "Adicionar"
+						})]
+					}),
+					nameError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-2 text-sm text-loss",
+						children: nameError
+					}) : null
+				]
+			}),
+			cards.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+				className: "space-y-3",
+				children: cards.map((card) => {
+					const draft = drafts[card.id] ?? "";
+					const saved = cashbackFor(cashbacks, card.id, month);
+					const parsed = parseAmount(draft);
+					const dirty = saved ? parsed !== saved.amount : draft.trim() !== "";
+					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
+						className: "rounded-lg border border-line bg-card p-4",
+						children: [
+							editingId === card.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+								className: "flex flex-col gap-2 sm:flex-row",
+								onSubmit: (event) => {
+									event.preventDefault();
+									const trimmed = editingName.trim();
+									if (trimmed.length < 1) return;
+									renameCashbackCard(card.id, trimmed);
+									setEditingId(null);
+								},
+								children: [
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+										value: editingName,
+										onChange: (event) => setEditingName(event.target.value),
+										maxLength: 40,
+										className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+										type: "submit",
+										children: "Guardar nome"
+									}),
+									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+										variant: "ghost",
+										onClick: () => setEditingId(null),
+										children: "Cancelar"
+									})
+								]
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex items-start justify-between gap-3",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									className: "font-medium",
+									children: card.name
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									className: "text-sm text-muted",
+									children: saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"
+								})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+									type: "button",
+									className: "h-11 px-2 text-sm font-medium text-forest",
+									onClick: () => {
+										setEditingId(card.id);
+										setEditingName(card.name);
+									},
+									children: "Renomear"
+								})]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+								className: "mt-3 block",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "mb-1.5 block text-sm font-medium",
+									children: "Cashback do mês"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+									inputMode: "decimal",
+									value: draft,
+									placeholder: "0,00",
+									onChange: (event) => setDrafts((current) => ({
+										...current,
+										[card.id]: event.target.value
+									})),
+									className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
+								})]
+							}),
+							errors[card.id] ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "mt-2 text-sm text-loss",
+								children: errors[card.id]
+							}) : null,
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "mt-3 flex flex-wrap gap-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									disabled: !dirty,
+									onClick: () => {
+										if (draft.trim() === "" || parsed == null || parsed < 0) {
+											setErrors((current) => ({
+												...current,
+												[card.id]: "Indica o cashback. Se não houve, escreve 0."
+											}));
+											return;
+										}
+										upsertCashback({
+											cardId: card.id,
+											month,
+											amount: parsed
+										});
+										setDrafts((current) => ({
+											...current,
+											[card.id]: formatPlain(parsed)
+										}));
+										setErrors((current) => ({
+											...current,
+											[card.id]: ""
+										}));
+									},
+									children: saved ? "Atualizar" : "Guardar"
+								}), confirmId === card.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "danger",
+									onClick: () => deleteCashbackCard(card.id),
+									children: "Apagar cartão"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									onClick: () => setConfirmId(null),
+									children: "Cancelar"
+								})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									onClick: () => setConfirmId(card.id),
+									children: "Eliminar cartão"
+								})]
+							})
+						]
+					}, card.id);
+				})
+			}) : null,
+			chartRows.some((row) => row.amount > 0) ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CashbackMonthChart, {
+				rows: chartRows,
+				currency,
+				title: chartTitle
+			}) : null,
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CashbackHistory, {
+				series,
+				cards,
 				currency
 			})
 		]
@@ -2439,11 +3099,13 @@ function Stat({ label, value }) {
 		})]
 	});
 }
-function SummaryView({ month, onMonth, onRegister, onExpenses, onOpenPlatform }) {
+function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onOpenPlatform }) {
 	const platforms = useLedger((state) => state.platforms);
 	const entries = useLedger((state) => state.entries);
 	const expenseTypes = useLedger((state) => state.expenseTypes);
 	const expenses = useLedger((state) => state.expenses);
+	const cashbackCards = useLedger((state) => state.cashbackCards);
+	const cashbacks = useLedger((state) => state.cashbacks);
 	const currency = useLedger((state) => state.currency);
 	const monthlyGoal = useLedger((state) => state.monthlyGoal);
 	const series = buildSeries(platforms, entries);
@@ -2455,6 +3117,10 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onOpenPlatform })
 	const pending = platforms.filter((platform) => !entryFor(entries, platform.id, month));
 	const pendingExpenses = expenseTypes.filter((type) => !expenseFor(expenses, type.id, month));
 	const spent = expenseTotal(expenses, month);
+	const cashRows = cashbackRows(cashbackCards, cashbacks, month);
+	const cashTotal = cashbackTotal(cashbacks, month);
+	const cashLeaders = cashRows.filter((row) => row.amount > 0 && row.amount === cashRows[0]?.amount);
+	const pendingCash = cashbackCards.filter((card) => !cashbackFor(cashbacks, card.id, month));
 	const monthContributed = entries.reduce((sum, entry) => entry.month === month ? cents(sum + entry.contributed) : sum, 0);
 	const ranked = platforms.map((platform) => ({
 		platform,
@@ -2495,6 +3161,11 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onOpenPlatform })
 						currency
 					}) : null
 				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FireCard, {
+				value: snapshot.value,
+				recorded: snapshot.withValue > 0,
+				currency
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
@@ -2575,6 +3246,37 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onOpenPlatform })
 						variant: "soft",
 						onClick: onExpenses,
 						children: "Registar despesas"
+					})
+				]
+			}) : null,
+			cashbackCards.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-sm text-muted",
+						children: "Cashback do mês"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-2 font-serif text-3xl tabular-nums",
+						children: cashLeaders.length === 0 ? "Ainda por registar" : formatMoney(cashTotal, currency)
+					}),
+					cashLeaders.length === 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "mt-2 text-sm text-muted",
+						children: [cashLeaders[0].name, " deu mais."]
+					}) : null,
+					pendingCash.length > 0 && cashLeaders.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "mt-2 text-sm text-muted",
+						children: [
+							"Falta ",
+							pendingCash.map((card) => card.name).join(", "),
+							"."
+						]
+					}) : null,
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						className: "mt-4",
+						variant: "soft",
+						onClick: onCashback,
+						children: "Registar cashback"
 					})
 				]
 			}) : null,
@@ -2691,6 +3393,111 @@ function Mini({ label, value }) {
 		})]
 	});
 }
+function FireCard({ value, recorded, currency }) {
+	const fireGoal = useLedger((state) => state.fireGoal);
+	const setFireGoal = useLedger((state) => state.setFireGoal);
+	const [editing, setEditing] = (0, import_react.useState)(fireGoal == null);
+	const [draft, setDraft] = (0, import_react.useState)(fireGoal == null ? "" : formatPlain(fireGoal));
+	const [error, setError] = (0, import_react.useState)("");
+	(0, import_react.useEffect)(() => {
+		setDraft(fireGoal == null ? "" : formatPlain(fireGoal));
+		setEditing(fireGoal == null);
+	}, [fireGoal]);
+	const width = fireGoal == null || fireGoal <= 0 ? 0 : Math.max(0, Math.min(100, Math.max(value, 0) / fireGoal * 100));
+	const left = fireGoal == null ? 0 : cents(fireGoal - value);
+	function save() {
+		if (draft.trim() === "") {
+			setFireGoal(null);
+			setError("");
+			setEditing(true);
+			return;
+		}
+		const parsed = parseAmount(draft);
+		if (parsed == null || parsed <= 0) {
+			setError("O objetivo tem de ser um valor positivo.");
+			return;
+		}
+		setFireGoal(parsed);
+		setError("");
+		setEditing(false);
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-5 sm:p-6",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "text-sm text-muted",
+			children: "Objetivo FIRE"
+		}), fireGoal != null && !editing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-2 font-serif text-4xl tabular-nums",
+				children: recorded ? formatShare(Math.max(value, 0) / fireGoal) : formatMoney(fireGoal, currency)
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-3 text-sm leading-relaxed",
+				children: recorded ? value >= fireGoal ? `A carteira vale ${formatMoney(value, currency)} e já passou o objetivo de ${formatMoney(fireGoal, currency)}.` : `Os ativos registados valem ${formatMoney(value, currency)}. Faltam ${formatMoney(left, currency)}.` : `O objetivo é ${formatMoney(fireGoal, currency)}. Ainda não há valores de ativos registados.`
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-4 h-2 overflow-hidden rounded-full bg-chip",
+				role: "progressbar",
+				"aria-valuemin": 0,
+				"aria-valuemax": 100,
+				"aria-valuenow": Math.round(width),
+				"aria-label": "Progresso do objetivo FIRE",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "h-full rounded-full bg-forest",
+					style: { width: `${width}%` }
+				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+				className: "mt-2 text-sm tabular-nums text-muted",
+				children: [
+					formatMoney(Math.max(value, 0), currency),
+					" / ",
+					formatMoney(fireGoal, currency)
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+				className: "mt-4",
+				variant: "soft",
+				onClick: () => setEditing(true),
+				children: "Alterar objetivo"
+			})
+		] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			className: "mt-3 space-y-3",
+			onSubmit: (event) => {
+				event.preventDefault();
+				save();
+			},
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-sm leading-relaxed text-muted",
+					children: "O valor que a carteira tem de atingir. Conta o último valor que registares em cada ativo."
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+					inputMode: "decimal",
+					value: draft,
+					onChange: (event) => setDraft(event.target.value),
+					placeholder: "0,00",
+					className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
+				}),
+				error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-sm text-loss",
+					children: error
+				}) : null,
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "flex flex-wrap gap-2",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						type: "submit",
+						children: "Guardar objetivo"
+					}), fireGoal != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						variant: "ghost",
+						onClick: () => setEditing(false),
+						children: "Cancelar"
+					}) : null]
+				})
+			]
+		})]
+	});
+}
 function story(snapshot, currency) {
 	if (snapshot.withValue === 0) return "Quando registares o primeiro fim de mês, comparas aqui o que meteste com o que ficou.";
 	const invested = formatMoney(snapshot.invested, currency);
@@ -2716,6 +3523,10 @@ var TABS = [
 		label: "Despesas"
 	},
 	{
+		id: "cashback",
+		label: "Cartões"
+	},
+	{
 		id: "plataformas",
 		label: "Plataformas"
 	}
@@ -2724,6 +3535,8 @@ function LastroApp() {
 	usePersist();
 	const platforms = useLedger((state) => state.platforms);
 	const expenseTypes = useLedger((state) => state.expenseTypes);
+	const cashbackCards = useLedger((state) => state.cashbackCards);
+	const addCashbackCard = useLedger((state) => state.addCashbackCard);
 	const demo = useLedger((state) => state.demo);
 	const currency = useLedger((state) => state.currency);
 	const closingDay = useLedger((state) => state.closingDay);
@@ -2739,7 +3552,7 @@ function LastroApp() {
 	const [editingId, setEditingId] = (0, import_react.useState)(null);
 	const [settingsOpen, setSettingsOpen] = (0, import_react.useState)(false);
 	const editing = platforms.find((platform) => platform.id === editingId) ?? null;
-	const empty = platforms.length === 0 && expenseTypes.length === 0;
+	const empty = platforms.length === 0 && expenseTypes.length === 0 && cashbackCards.length === 0;
 	(0, import_react.useEffect)(() => {
 		const apply = () => {
 			if (!monthTouched.current) setMonth(dueMonth(useLedger.getState().closingDay));
@@ -2821,12 +3634,16 @@ function LastroApp() {
 						onCreateType: (label) => {
 							addExpenseType(label);
 							setTab("despesas");
+						},
+						onCreateCard: (label) => {
+							addCashbackCard(label);
+							setTab("cashback");
 						}
 					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 							role: "tablist",
 							"aria-label": "Secções",
-							className: "mt-6 grid grid-cols-4 gap-1 rounded-md bg-paper-2 p-1",
+							className: "mt-6 flex flex-wrap gap-1 rounded-md bg-paper-2 p-1",
 							children: TABS.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
 								type: "button",
 								role: "tab",
@@ -2835,7 +3652,7 @@ function LastroApp() {
 									setTab(item.id);
 									if (item.id !== "plataformas") setPlatformId(null);
 								},
-								className: cn("h-11 truncate rounded-md px-1 text-xs font-medium sm:text-sm", tab === item.id ? "bg-card text-ink" : "text-muted"),
+								className: cn("h-11 min-w-24 flex-1 rounded-md px-2 text-xs font-medium sm:text-sm", tab === item.id ? "bg-card text-ink" : "text-muted"),
 								children: item.label
 							}, item.id))
 						}),
@@ -2857,6 +3674,7 @@ function LastroApp() {
 									onMonth: changeMonth,
 									onRegister: () => setTab("mes"),
 									onExpenses: () => setTab("despesas"),
+									onCashback: () => setTab("cashback"),
 									onOpenPlatform: (id) => {
 										setPlatformId(id);
 										setTab("plataformas");
@@ -2868,6 +3686,10 @@ function LastroApp() {
 									onAddPlatform: openCreate
 								}) : null,
 								tab === "despesas" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExpensesPanel, {
+									month,
+									onMonth: changeMonth
+								}) : null,
+								tab === "cashback" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CashbackPanel, {
 									month,
 									onMonth: changeMonth
 								}) : null,
@@ -2906,9 +3728,11 @@ function LastroApp() {
 		]
 	});
 }
-function EmptyLedger({ onAdd, onDemo, onCreateType }) {
+function EmptyLedger({ onAdd, onDemo, onCreateType, onCreateCard }) {
 	const [name, setName] = (0, import_react.useState)("");
 	const [error, setError] = (0, import_react.useState)("");
+	const [cardName, setCardName] = (0, import_react.useState)("");
+	const [cardError, setCardError] = (0, import_react.useState)("");
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 		className: "mt-8 rounded-lg border border-line bg-card px-5 py-8 sm:px-8",
 		children: [
@@ -2918,7 +3742,7 @@ function EmptyLedger({ onAdd, onDemo, onCreateType }) {
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "mt-3 max-w-xl text-base leading-relaxed text-muted",
-				children: "Escolhes o dia de fecho. Nesse dia apontas o que investiste, o que ficou em cada plataforma e o que gastaste em cada tipo."
+				children: "Escolhes o dia de fecho. Nesse dia apontas investimentos, despesas e o cashback de cada cartão."
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("ol", {
 				className: "mt-6 max-w-xl space-y-3 text-sm",
@@ -2928,7 +3752,7 @@ function EmptyLedger({ onAdd, onDemo, onCreateType }) {
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 							className: "font-serif text-forest",
 							children: "01"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Crias as plataformas e os tipos de despesa." })]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Crias plataformas, tipos de despesa e cartões." })]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
 						className: "flex gap-3",
@@ -2942,7 +3766,7 @@ function EmptyLedger({ onAdd, onDemo, onCreateType }) {
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
 							className: "font-serif text-forest",
 							children: "03"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Vês a carteira e o gráfico das despesas." })]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Vês a carteira, as despesas e qual o cartão que deu mais cashback." })]
 					})
 				]
 			}),
@@ -2971,6 +3795,33 @@ function EmptyLedger({ onAdd, onDemo, onCreateType }) {
 			error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "mt-2 text-sm text-loss",
 				children: error
+			}) : null,
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				className: "mt-3 flex max-w-xl flex-col gap-2 sm:flex-row",
+				onSubmit: (event) => {
+					event.preventDefault();
+					const trimmed = cardName.trim();
+					if (trimmed.length < 1) {
+						setCardError("Dá um nome ao cartão, por exemplo Universo.");
+						return;
+					}
+					onCreateCard(trimmed);
+				},
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+					value: cardName,
+					onChange: (event) => setCardName(event.target.value),
+					placeholder: "Primeiro cartão de cashback",
+					maxLength: 40,
+					className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					variant: "soft",
+					children: "Criar cartão"
+				})]
+			}),
+			cardError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-2 text-sm text-loss",
+				children: cardError
 			}) : null,
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "mt-3 flex flex-col gap-3 sm:flex-row",
