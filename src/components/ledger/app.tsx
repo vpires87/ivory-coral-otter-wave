@@ -22,7 +22,10 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export function LastroApp() {
-  usePersist();
+  const ready = useLedger((state) => state.ready);
+  const syncError = useLedger((state) => state.syncError);
+  const saving = useLedger((state) => state.saving);
+  const retryLoad = useLedger((state) => state.retryLoad);
   const platforms = useLedger((state) => state.platforms);
   const expenseTypes = useLedger((state) => state.expenseTypes);
   const cashbackCards = useLedger((state) => state.cashbackCards);
@@ -35,7 +38,7 @@ export function LastroApp() {
   const reset = useLedger((state) => state.reset);
   const loadDemo = useLedger((state) => state.loadDemo);
   const [tab, setTab] = useState<Tab>("resumo");
-  const [month, setMonth] = useState(() => dueMonth(useLedger.getState().closingDay));
+  const [month, setMonth] = useState(() => dueMonth(1));
   const monthTouched = useRef(false);
   const [platformId, setPlatformId] = useState<string | null>(null);
   const [platformOpen, setPlatformOpen] = useState(false);
@@ -46,12 +49,8 @@ export function LastroApp() {
   const empty = platforms.length === 0 && expenseTypes.length === 0 && cashbackCards.length === 0;
 
   useEffect(() => {
-    const apply = () => {
-      if (!monthTouched.current) setMonth(dueMonth(useLedger.getState().closingDay));
-    };
-    const unsub = useLedger.persist.onFinishHydration(apply);
-    return unsub;
-  }, []);
+    if (ready && !monthTouched.current) setMonth(dueMonth(closingDay));
+  }, [ready, closingDay]);
 
   function changeMonth(next: string) {
     monthTouched.current = true;
@@ -66,6 +65,30 @@ export function LastroApp() {
   function openEdit(id: string) {
     setEditingId(id);
     setPlatformOpen(true);
+  }
+
+  if (!ready) {
+    return (
+      <div className="min-h-dvh">
+        <div className="mx-auto w-full max-w-sm px-4 pt-16">
+          {syncError ? (
+            <>
+              <h1 className="font-serif text-3xl">Não abri a caderneta</h1>
+              <p className="mt-3 text-sm text-muted">{syncError}</p>
+              <button
+                type="button"
+                onClick={retryLoad}
+                className="mt-6 h-12 rounded-md bg-forest px-4 text-sm font-medium text-card"
+              >
+                Tentar outra vez
+              </button>
+            </>
+          ) : (
+            <div className="h-8 w-40 animate-pulse rounded-md bg-paper-2" />
+          )}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -189,7 +212,11 @@ export function LastroApp() {
         )}
 
         <p className="mt-10 text-sm text-muted">
-          Os números ficam neste browser, neste aparelho. Nas definições podes exportar uma cópia.
+          {syncError
+            ? syncError
+            : saving
+              ? "A guardar na tua conta…"
+              : "Os números ficam na tua conta. Nas definições podes exportar uma cópia."}
         </p>
       </div>
 
@@ -298,10 +325,4 @@ function EmptyLedger({
       </div>
     </section>
   );
-}
-
-function usePersist() {
-  useEffect(() => {
-    void Promise.resolve(useLedger.persist.rehydrate());
-  }, []);
 }

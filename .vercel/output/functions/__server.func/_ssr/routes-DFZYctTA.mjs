@@ -1,347 +1,20 @@
-import { i as __toESM } from "../_runtime.mjs";
+import { o as __toESM } from "../_runtime.mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
+import { i as signOut, r as signIn } from "./client-IWHfIGH2.mjs";
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
+import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
+import { a as getServerFnById, i as TSS_SERVER_FUNCTION, r as createServerFn } from "./ssr.mjs";
+import { a as hasGateSessionMarker, t as GROK_PROVIDERS } from "./server-DVgSAzeK.mjs";
+import { n as useCurrentUser, r as useCurrentUserState, t as AccountGate } from "./use-current-user-CmPHZtz3.mjs";
+import { _ as parseAmount, a as clampClosingDay, b as toBackup, c as eachMonth, d as formatMoney, f as formatMonth, g as isClosingToday, h as formatShare, i as cents, l as formatCloseDay, m as formatPlain, n as PLATFORM_KINDS, o as currentMonth, p as formatPercent, r as authMiddleware, s as dueMonth, t as CURRENCIES, u as formatCompact, v as parseBackup, y as shiftMonth } from "./backup-CGc3vTvo.mjs";
 import { a as Settings, c as ChevronRight, d as Bitcoin, i as Shapes, l as ChevronLeft, n as Wallet, o as PiggyBank, s as Landmark, t as X, u as ChartLine } from "../_libs/lucide-react.mjs";
-import { n as parse, r as format, t as pt } from "../_libs/date-fns.mjs";
-import { n as persist, r as create, t as createJSONStorage } from "../_libs/zustand.mjs";
+import { t as create } from "../_libs/zustand.mjs";
 import { t as clsx } from "../_libs/clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
-import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
 import { a as Area, c as Bar, d as Tooltip, i as XAxis, l as Cell, n as BarChart, o as Line, r as YAxis, s as CartesianGrid, t as ComposedChart, u as ResponsiveContainer } from "../_libs/recharts+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-wtSuSef9.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-DFZYctTA.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
-function cents(n) {
-	return Math.round(n * 100) / 100;
-}
-function currentMonth(now = /* @__PURE__ */ new Date()) {
-	return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-}
-function clampClosingDay(day) {
-	if (!Number.isInteger(day) || day < 1 || day > 31) return 1;
-	return day;
-}
-function daysInMonth(ym) {
-	const [year, month] = ym.split("-").map(Number);
-	return new Date(Date.UTC(year, month, 0)).getUTCDate();
-}
-function dueMonth(closingDay, now = /* @__PURE__ */ new Date()) {
-	const month = currentMonth(now);
-	const day = Math.min(clampClosingDay(closingDay), daysInMonth(month));
-	return now.getDate() >= day ? month : shiftMonth(month, -1);
-}
-function isClosingToday(closingDay, now = /* @__PURE__ */ new Date()) {
-	const month = currentMonth(now);
-	const day = Math.min(clampClosingDay(closingDay), daysInMonth(month));
-	return now.getDate() === day;
-}
-function formatCloseDay(ym, closingDay) {
-	const [year, month] = ym.split("-").map(Number);
-	const day = Math.min(clampClosingDay(closingDay), daysInMonth(ym));
-	const date = new Date(year, month - 1, day);
-	return format(date, "d 'de' LLLL", { locale: pt });
-}
-function shiftMonth(ym, delta) {
-	const [y, m] = ym.split("-").map(Number);
-	const date = new Date(Date.UTC(y, m - 1 + delta, 1));
-	return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-}
-function eachMonth(from, to) {
-	const out = [];
-	let cursor = from;
-	while (cursor <= to && out.length < 600) {
-		out.push(cursor);
-		cursor = shiftMonth(cursor, 1);
-	}
-	return out;
-}
-function isMonth(value) {
-	return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
-}
-function formatMonth(ym, style = "long") {
-	const date = parse(`${ym}-01`, "yyyy-MM-dd", /* @__PURE__ */ new Date());
-	const text = format(date, style === "long" ? "LLLL 'de' yyyy" : "LLL yy", { locale: pt });
-	return text.charAt(0).toUpperCase() + text.slice(1);
-}
-function formatMoney(value, currency, options) {
-	return new Intl.NumberFormat("pt-PT", {
-		style: "currency",
-		currency,
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2,
-		signDisplay: options?.sign ? "exceptZero" : "auto"
-	}).format(value);
-}
-function formatPlain(value) {
-	return new Intl.NumberFormat("pt-PT", {
-		minimumFractionDigits: 2,
-		maximumFractionDigits: 2
-	}).format(value);
-}
-function formatPercent(ratio) {
-	return new Intl.NumberFormat("pt-PT", {
-		style: "percent",
-		minimumFractionDigits: 1,
-		maximumFractionDigits: 1,
-		signDisplay: "exceptZero"
-	}).format(ratio);
-}
-function formatShare(ratio) {
-	return new Intl.NumberFormat("pt-PT", {
-		style: "percent",
-		maximumFractionDigits: 0
-	}).format(ratio);
-}
-function formatCompact(value) {
-	return new Intl.NumberFormat("pt-PT", {
-		notation: "compact",
-		maximumFractionDigits: 1
-	}).format(value);
-}
-function parseAmount(raw) {
-	const trimmed = raw.trim().replace(/\s/g, "").replace(/[€$£]/g, "");
-	if (!trimmed || trimmed === "-" || trimmed === "+" || trimmed === "," || trimmed === ".") return null;
-	const normalized = trimmed.includes(",") ? trimmed.replace(/\./g, "").replace(",", ".") : trimmed;
-	if (!/^[+-]?\d+(\.\d+)?$/.test(normalized)) return null;
-	const value = Number(normalized);
-	if (!Number.isFinite(value)) return null;
-	return cents(value);
-}
-var PLATFORM_KINDS = [
-	{
-		id: "corretora",
-		label: "Corretora"
-	},
-	{
-		id: "banco",
-		label: "Banco"
-	},
-	{
-		id: "cripto",
-		label: "Cripto"
-	},
-	{
-		id: "ppr",
-		label: "PPR"
-	},
-	{
-		id: "poupanca",
-		label: "Poupança"
-	},
-	{
-		id: "outro",
-		label: "Outro"
-	}
-];
-var CURRENCIES = [
-	{
-		id: "EUR",
-		label: "Euro"
-	},
-	{
-		id: "USD",
-		label: "Dólar"
-	},
-	{
-		id: "GBP",
-		label: "Libra"
-	},
-	{
-		id: "CHF",
-		label: "Franco suíço"
-	},
-	{
-		id: "BRL",
-		label: "Real"
-	}
-];
-var kinds = new Set(PLATFORM_KINDS.map((kind) => kind.id));
-var currencies = new Set(CURRENCIES.map((currency) => currency.id));
-function asRecord(value) {
-	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-	return value;
-}
-function asMoney(value) {
-	if (typeof value !== "number" || !Number.isFinite(value)) return null;
-	if (Math.abs(value) > 0xe8d4a51000) return null;
-	return cents(value);
-}
-function parseBackup(raw) {
-	const data = asRecord(raw);
-	if (!data || data.version !== 1) return "Este ficheiro não é uma caderneta Lastro.";
-	if (!Array.isArray(data.platforms) || !Array.isArray(data.entries)) return "Faltam plataformas ou meses no ficheiro.";
-	if (data.platforms.length > 200 || data.entries.length > 8e3) return "O ficheiro é demasiado grande.";
-	if (typeof data.currency !== "string" || !currencies.has(data.currency)) return "A moeda do ficheiro não é reconhecida.";
-	const platforms = [];
-	const seenPlatforms = /* @__PURE__ */ new Set();
-	for (const item of data.platforms) {
-		const row = asRecord(item);
-		if (!row) return "Há uma plataforma inválida no ficheiro.";
-		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há uma plataforma sem identificador válido.";
-		if (seenPlatforms.has(row.id)) return "Há plataformas repetidas no ficheiro.";
-		seenPlatforms.add(row.id);
-		if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 80) return "Há uma plataforma com nome inválido.";
-		if (typeof row.kind !== "string" || !kinds.has(row.kind)) return "Há um tipo de plataforma inválido.";
-		const opening = asMoney(row.openingInvested);
-		if (opening == null || opening < 0) return "O capital inicial de uma plataforma é inválido.";
-		platforms.push({
-			id: row.id,
-			name: row.name.trim(),
-			kind: row.kind,
-			openingInvested: opening
-		});
-	}
-	const entries = [];
-	const seenMonths = /* @__PURE__ */ new Set();
-	for (const item of data.entries) {
-		const row = asRecord(item);
-		if (!row) return "Há um mês inválido no ficheiro.";
-		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um mês sem identificador válido.";
-		if (typeof row.platformId !== "string" || !seenPlatforms.has(row.platformId)) return "Há um mês ligado a uma plataforma que não existe.";
-		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há um mês com data inválida.";
-		const key = `${row.platformId}|${row.month}`;
-		if (seenMonths.has(key)) return "Há dois registos para a mesma plataforma no mesmo mês.";
-		seenMonths.add(key);
-		const contributed = asMoney(row.contributed);
-		const endValue = asMoney(row.endValue);
-		if (contributed == null || endValue == null || endValue < 0) return "Há um valor mensal inválido.";
-		entries.push({
-			id: row.id,
-			platformId: row.platformId,
-			month: row.month,
-			contributed,
-			endValue
-		});
-	}
-	let monthlyGoal = null;
-	if (data.monthlyGoal != null) {
-		const goal = asMoney(data.monthlyGoal);
-		if (goal == null || goal < 0) return "A meta mensal é inválida.";
-		monthlyGoal = goal > 0 ? goal : null;
-	}
-	let fireGoal = null;
-	if (data.fireGoal != null) {
-		const goal = asMoney(data.fireGoal);
-		if (goal == null || goal < 0) return "O objetivo FIRE é inválido.";
-		fireGoal = goal > 0 ? goal : null;
-	}
-	let closingDay = 1;
-	if (data.closingDay != null) {
-		if (typeof data.closingDay !== "number" || !Number.isInteger(data.closingDay)) return "O dia de fecho é inválido.";
-		closingDay = clampClosingDay(data.closingDay);
-		if (data.closingDay < 1 || data.closingDay > 31) return "O dia de fecho é inválido.";
-	}
-	const expenseTypes = [];
-	const seenTypes = /* @__PURE__ */ new Set();
-	const typeRows = data.expenseTypes == null ? [] : data.expenseTypes;
-	if (!Array.isArray(typeRows)) return "Os tipos de despesa do ficheiro são inválidos.";
-	if (typeRows.length > 40) return "Há tipos de despesa a mais.";
-	for (const item of typeRows) {
-		const row = asRecord(item);
-		if (!row) return "Há um tipo de despesa inválido.";
-		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um tipo de despesa sem identificador válido.";
-		if (seenTypes.has(row.id)) return "Há tipos de despesa repetidos.";
-		seenTypes.add(row.id);
-		if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) return "Há um tipo de despesa com nome inválido.";
-		expenseTypes.push({
-			id: row.id,
-			name: row.name.trim()
-		});
-	}
-	const expenses = [];
-	const seenExpenses = /* @__PURE__ */ new Set();
-	const expenseRows = data.expenses == null ? [] : data.expenses;
-	if (!Array.isArray(expenseRows)) return "As despesas do ficheiro são inválidas.";
-	if (expenseRows.length > 8e3) return "O ficheiro é demasiado grande.";
-	for (const item of expenseRows) {
-		const row = asRecord(item);
-		if (!row) return "Há uma despesa inválida.";
-		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há uma despesa sem identificador válido.";
-		if (typeof row.typeId !== "string" || !seenTypes.has(row.typeId)) return "Há uma despesa ligada a um tipo que não existe.";
-		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há uma despesa com mês inválido.";
-		const key = `${row.typeId}|${row.month}`;
-		if (seenExpenses.has(key)) return "Há duas despesas do mesmo tipo no mesmo mês.";
-		seenExpenses.add(key);
-		const amount = asMoney(row.amount);
-		if (amount == null || amount < 0) return "Há um valor de despesa inválido.";
-		expenses.push({
-			id: row.id,
-			typeId: row.typeId,
-			month: row.month,
-			amount
-		});
-	}
-	const cashbackCards = [];
-	const seenCards = /* @__PURE__ */ new Set();
-	const cardRows = data.cashbackCards == null ? [] : data.cashbackCards;
-	if (!Array.isArray(cardRows)) return "Os cartões do ficheiro são inválidos.";
-	if (cardRows.length > 30) return "Há cartões a mais.";
-	for (const item of cardRows) {
-		const row = asRecord(item);
-		if (!row) return "Há um cartão inválido.";
-		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um cartão sem identificador válido.";
-		if (seenCards.has(row.id)) return "Há cartões repetidos.";
-		seenCards.add(row.id);
-		if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) return "Há um cartão com nome inválido.";
-		cashbackCards.push({
-			id: row.id,
-			name: row.name.trim()
-		});
-	}
-	const cashbacks = [];
-	const seenCash = /* @__PURE__ */ new Set();
-	const cashRows = data.cashbacks == null ? [] : data.cashbacks;
-	if (!Array.isArray(cashRows)) return "O cashback do ficheiro é inválido.";
-	if (cashRows.length > 8e3) return "O ficheiro é demasiado grande.";
-	for (const item of cashRows) {
-		const row = asRecord(item);
-		if (!row) return "Há um cashback inválido.";
-		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um cashback sem identificador válido.";
-		if (typeof row.cardId !== "string" || !seenCards.has(row.cardId)) return "Há cashback ligado a um cartão que não existe.";
-		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há cashback com mês inválido.";
-		const key = `${row.cardId}|${row.month}`;
-		if (seenCash.has(key)) return "Há dois cashbacks do mesmo cartão no mesmo mês.";
-		seenCash.add(key);
-		const amount = asMoney(row.amount);
-		if (amount == null || amount < 0) return "Há um valor de cashback inválido.";
-		cashbacks.push({
-			id: row.id,
-			cardId: row.cardId,
-			month: row.month,
-			amount
-		});
-	}
-	return {
-		currency: data.currency,
-		platforms,
-		entries,
-		expenseTypes,
-		expenses,
-		cashbackCards,
-		cashbacks,
-		monthlyGoal,
-		fireGoal,
-		closingDay,
-		demo: false
-	};
-}
-function toBackup(data) {
-	return {
-		version: 1,
-		app: "lastro",
-		exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
-		currency: data.currency,
-		monthlyGoal: data.monthlyGoal,
-		fireGoal: data.fireGoal,
-		closingDay: data.closingDay,
-		platforms: data.platforms,
-		entries: data.entries,
-		expenseTypes: data.expenseTypes,
-		expenses: data.expenses,
-		cashbackCards: data.cashbackCards,
-		cashbacks: data.cashbacks
-	};
-}
 var platforms = [
 	{
 		id: "demo-xtb",
@@ -547,26 +220,12 @@ var empty = {
 	closingDay: 1,
 	demo: false
 };
-function memoryStorage() {
-	const jar = /* @__PURE__ */ new Map();
-	return {
-		get length() {
-			return jar.size;
-		},
-		clear: () => jar.clear(),
-		getItem: (key) => jar.get(key) ?? null,
-		key: (index) => [...jar.keys()][index] ?? null,
-		removeItem: (key) => {
-			jar.delete(key);
-		},
-		setItem: (key, value) => {
-			jar.set(key, value);
-		}
-	};
-}
-var useLedger = create()(persist((set) => ({
+var useLedger = create()((set) => ({
 	...empty,
-	hydrated: false,
+	ready: false,
+	saving: false,
+	syncError: null,
+	loadAttempt: 0,
 	setCurrency: (currency) => set({ currency }),
 	setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
 	setFireGoal: (goal) => set({ fireGoal: goal == null || goal <= 0 ? null : cents(goal) }),
@@ -681,32 +340,47 @@ var useLedger = create()(persist((set) => ({
 			amount
 		}] };
 	}),
-	loadDemo: () => set(demoLedger()),
+	loadDemo: () => set({
+		...demoLedger(),
+		ready: true
+	}),
 	keepDemo: () => set({ demo: false }),
-	reset: () => set(empty),
+	reset: () => set({
+		...empty,
+		ready: true
+	}),
 	importData: (raw) => {
 		const parsed = parseBackup(raw);
 		if (typeof parsed === "string") return parsed;
-		set(parsed);
+		set({
+			...parsed,
+			ready: true
+		});
 		return null;
-	}
-}), {
-	name: "lastro-ledger-v1",
-	storage: createJSONStorage(() => typeof window === "undefined" ? memoryStorage() : localStorage),
-	skipHydration: true,
-	partialize: (state) => ({
-		platforms: state.platforms,
-		entries: state.entries,
-		expenseTypes: state.expenseTypes,
-		expenses: state.expenses,
-		cashbackCards: state.cashbackCards,
-		cashbacks: state.cashbacks,
-		currency: state.currency,
-		monthlyGoal: state.monthlyGoal,
-		fireGoal: state.fireGoal,
-		closingDay: state.closingDay,
-		demo: state.demo
-	})
+	},
+	prepareAccount: () => set({
+		...empty,
+		ready: false,
+		saving: false,
+		syncError: null
+	}),
+	adopt: (data) => set({
+		...data ?? empty,
+		ready: true,
+		saving: false,
+		syncError: null
+	}),
+	failLoad: (message) => set({
+		...empty,
+		ready: false,
+		saving: false,
+		syncError: message
+	}),
+	retryLoad: () => set((state) => ({
+		loadAttempt: state.loadAttempt + 1,
+		syncError: null,
+		ready: false
+	}))
 }));
 function selectData(state) {
 	return {
@@ -725,6 +399,74 @@ function selectData(state) {
 }
 function cn(...inputs) {
 	return twMerge(clsx(inputs));
+}
+function resolveSignInGateState(input) {
+	if (input.isPending) return "pending";
+	return input.hasUser ? "signed_in" : "signed_out";
+}
+var subscribeToNothing = () => () => {};
+var noGateSessionOnServer = () => false;
+function SignInGate({ children, fallback }) {
+	const { user, isPending } = useCurrentUserState();
+	const state = resolveSignInGateState({
+		isPending,
+		hasUser: user !== null
+	});
+	if (state === "pending") return null;
+	if (state === "signed_in") return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children });
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children: fallback ?? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignInButtons, {}) });
+}
+function SignInButtons() {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		className: "flex w-full max-w-sm flex-col gap-2",
+		children: GROK_PROVIDERS.map((p) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+			type: "button",
+			onClick: () => signIn(p.providerId, { callbackURL: "/" }),
+			className: "w-full cursor-pointer rounded-md border border-neutral-300 px-4 py-2 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900",
+			children: ["Continue with ", p.label]
+		}, p.providerId))
+	});
+}
+/**
+* Minimal signed-in identity chip + sign-out. Restyle freely (see the
+* `design-ui` skill). Sign-out is only shown when auth is enabled (the
+* disabled-auth dev user has nothing to sign out of) and the session is not
+* gate-materialized — behind the gate the next request signs the viewer
+* straight back in, so a sign-out control there is a broken loop.
+*/
+function UserButton() {
+	const user = useCurrentUser();
+	const [signingOut, setSigningOut] = (0, import_react.useState)(false);
+	const gateSession = (0, import_react.useSyncExternalStore)(subscribeToNothing, hasGateSessionMarker, noGateSessionOnServer);
+	if (!user) return null;
+	const label = user.displayName ?? user.primaryEmail ?? "Account";
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "flex items-center gap-2",
+		children: [
+			user.profileImageUrl ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", {
+				src: user.profileImageUrl,
+				alt: "",
+				className: "h-8 w-8 rounded-full object-cover"
+			}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+				className: "grid h-8 w-8 place-items-center rounded-full bg-black/10 text-sm font-medium dark:bg-white/20",
+				children: label.charAt(0).toUpperCase()
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+				className: "text-sm font-medium",
+				children: label
+			}),
+			!gateSession && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+				type: "button",
+				disabled: signingOut,
+				onClick: () => {
+					setSigningOut(true);
+					signOut().catch(() => setSigningOut(false));
+				},
+				className: "cursor-pointer text-sm underline-offset-4 opacity-70 hover:underline disabled:cursor-wait disabled:no-underline",
+				children: signingOut ? "Signing out…" : "Sign out"
+			})
+		]
+	});
 }
 var ICONS = {
 	corretora: ChartLine,
@@ -1095,10 +837,14 @@ function SettingsDialog({ open, onOpenChange }) {
 			onOpenChange(next);
 		},
 		title: "Definições",
-		description: "A caderneta fica neste browser. Exporta uma cópia se mudares de aparelho.",
+		description: "A caderneta está na tua conta. Exporta uma cópia se quiseres um ficheiro teu.",
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: "space-y-5",
 			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "rounded-md bg-chip px-3 py-3",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(UserButton, {})
+				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "mb-2 text-sm font-medium",
 					children: "Moeda"
@@ -1174,7 +920,7 @@ function SettingsDialog({ open, onOpenChange }) {
 				}),
 				confirmWipe ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "rounded-md bg-loss-soft p-3 text-sm",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Isto apaga plataformas e meses neste browser. Não dá para desfazer." }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Isto apaga a caderneta da tua conta. Não dá para desfazer." }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "mt-3 flex gap-2",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 							variant: "danger",
@@ -3532,7 +3278,10 @@ var TABS = [
 	}
 ];
 function LastroApp() {
-	usePersist();
+	const ready = useLedger((state) => state.ready);
+	const syncError = useLedger((state) => state.syncError);
+	const saving = useLedger((state) => state.saving);
+	const retryLoad = useLedger((state) => state.retryLoad);
 	const platforms = useLedger((state) => state.platforms);
 	const expenseTypes = useLedger((state) => state.expenseTypes);
 	const cashbackCards = useLedger((state) => state.cashbackCards);
@@ -3545,7 +3294,7 @@ function LastroApp() {
 	const reset = useLedger((state) => state.reset);
 	const loadDemo = useLedger((state) => state.loadDemo);
 	const [tab, setTab] = (0, import_react.useState)("resumo");
-	const [month, setMonth] = (0, import_react.useState)(() => dueMonth(useLedger.getState().closingDay));
+	const [month, setMonth] = (0, import_react.useState)(() => dueMonth(1));
 	const monthTouched = (0, import_react.useRef)(false);
 	const [platformId, setPlatformId] = (0, import_react.useState)(null);
 	const [platformOpen, setPlatformOpen] = (0, import_react.useState)(false);
@@ -3554,11 +3303,8 @@ function LastroApp() {
 	const editing = platforms.find((platform) => platform.id === editingId) ?? null;
 	const empty = platforms.length === 0 && expenseTypes.length === 0 && cashbackCards.length === 0;
 	(0, import_react.useEffect)(() => {
-		const apply = () => {
-			if (!monthTouched.current) setMonth(dueMonth(useLedger.getState().closingDay));
-		};
-		return useLedger.persist.onFinishHydration(apply);
-	}, []);
+		if (ready && !monthTouched.current) setMonth(dueMonth(closingDay));
+	}, [ready, closingDay]);
 	function changeMonth(next) {
 		monthTouched.current = true;
 		setMonth(next);
@@ -3571,6 +3317,28 @@ function LastroApp() {
 		setEditingId(id);
 		setPlatformOpen(true);
 	}
+	if (!ready) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+		className: "min-h-dvh",
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "mx-auto w-full max-w-sm px-4 pt-16",
+			children: syncError ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
+					className: "font-serif text-3xl",
+					children: "Não abri a caderneta"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "mt-3 text-sm text-muted",
+					children: syncError
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					type: "button",
+					onClick: retryLoad,
+					className: "mt-6 h-12 rounded-md bg-forest px-4 text-sm font-medium text-card",
+					children: "Tentar outra vez"
+				})
+			] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { className: "h-8 w-40 animate-pulse rounded-md bg-paper-2" })
+		})
+	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "min-h-dvh",
 		children: [
@@ -3709,7 +3477,7 @@ function LastroApp() {
 					] }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "mt-10 text-sm text-muted",
-						children: "Os números ficam neste browser, neste aparelho. Nas definições podes exportar uma cópia."
+						children: syncError ? syncError : saving ? "A guardar na tua conta…" : "Os números ficam na tua conta. Nas definições podes exportar uma cópia."
 					})
 				]
 			}),
@@ -3838,13 +3606,138 @@ function EmptyLedger({ onAdd, onDemo, onCreateType, onCreateCard }) {
 		]
 	});
 }
-function usePersist() {
+var createSsrRpc = (functionId) => {
+	const url = "/_serverFn/" + functionId;
+	const serverFnMeta = { id: functionId };
+	const fn = async (...args) => {
+		return (await getServerFnById(functionId, { origin: "server" }))(...args);
+	};
+	return Object.assign(fn, {
+		url,
+		serverFnMeta,
+		[TSS_SERVER_FUNCTION]: true
+	});
+};
+var loadLedger = createServerFn({ method: "GET" }).middleware([authMiddleware]).handler(createSsrRpc("b1169f5b85e3d12f18a4ae8bfa2efe3c74a72d6fa29cb184412a323254a7101b"));
+var saveLedger = createServerFn({ method: "POST" }).validator((input) => {
+	const parsed = parseBackup(input);
+	if (typeof parsed === "string") throw new Error("Caderneta inválida.");
+	return parsed;
+}).middleware([authMiddleware]).handler(createSsrRpc("94336ba60ad5fd3d3e26c0a812bda93c8cfff06ef5eb6a9fdc20d41278839862"));
+var LEGACY_KEY = "lastro-ledger-v1";
+function readLegacyLocal() {
+	if (typeof window === "undefined") return null;
+	try {
+		const raw = window.localStorage.getItem(LEGACY_KEY);
+		if (!raw) return null;
+		const state = JSON.parse(raw)?.state;
+		if (!state || typeof state !== "object") return null;
+		const result = parseBackup({
+			version: 1,
+			currency: state.currency,
+			monthlyGoal: state.monthlyGoal ?? null,
+			fireGoal: state.fireGoal ?? null,
+			closingDay: state.closingDay ?? 1,
+			platforms: state.platforms ?? [],
+			entries: state.entries ?? [],
+			expenseTypes: state.expenseTypes ?? [],
+			expenses: state.expenses ?? [],
+			cashbackCards: state.cashbackCards ?? [],
+			cashbacks: state.cashbacks ?? [],
+			demo: state.demo === true
+		});
+		if (typeof result === "string") return null;
+		return result.platforms.length === 0 && result.entries.length === 0 && result.expenseTypes.length === 0 && result.expenses.length === 0 && result.cashbackCards.length === 0 && result.cashbacks.length === 0 && result.monthlyGoal == null && result.fireGoal == null ? null : result;
+	} catch {
+		return null;
+	}
+}
+function LedgerSync({ userId }) {
+	const loadAttempt = useLedger((state) => state.loadAttempt);
+	const ready = useLedger((state) => state.ready);
+	(0, import_react.useLayoutEffect)(() => {
+		useLedger.getState().prepareAccount();
+	}, [userId, loadAttempt]);
 	(0, import_react.useEffect)(() => {
-		Promise.resolve(useLedger.persist.rehydrate());
-	}, []);
+		let cancelled = false;
+		(async () => {
+			try {
+				const remote = await loadLedger();
+				if (cancelled) return;
+				if (remote) {
+					useLedger.getState().adopt(remote);
+					return;
+				}
+				const local = readLegacyLocal();
+				if (local) {
+					useLedger.getState().adopt(local);
+					try {
+						await saveLedger({ data: toBackup(local) });
+						window.localStorage.removeItem(LEGACY_KEY);
+					} catch {
+						useLedger.setState({ syncError: "Encontrei os números neste telemóvel, mas ainda não os guardei na conta." });
+					}
+					return;
+				}
+				useLedger.getState().adopt(null);
+			} catch {
+				if (!cancelled) useLedger.getState().failLoad("Não consegui abrir a tua caderneta.");
+			}
+		})();
+		return () => {
+			cancelled = true;
+		};
+	}, [userId, loadAttempt]);
+	(0, import_react.useEffect)(() => {
+		if (!ready) return;
+		let timer = 0;
+		let last = JSON.stringify(selectData(useLedger.getState()));
+		const flush = () => {
+			const data = selectData(useLedger.getState());
+			const sent = JSON.stringify(data);
+			last = sent;
+			useLedger.setState({ saving: true });
+			saveLedger({ data: toBackup(data) }).then(() => {
+				if (JSON.stringify(selectData(useLedger.getState())) === sent) useLedger.setState({
+					saving: false,
+					syncError: null
+				});
+			}).catch(() => {
+				useLedger.setState({
+					saving: false,
+					syncError: "Não guardei esta alteração. Os números continuam neste ecrã."
+				});
+			});
+		};
+		const unsub = useLedger.subscribe((state) => {
+			if (JSON.stringify(selectData(state)) === last) return;
+			window.clearTimeout(timer);
+			timer = window.setTimeout(flush, 450);
+		});
+		const onHide = () => {
+			if (JSON.stringify(selectData(useLedger.getState())) === last) return;
+			window.clearTimeout(timer);
+			flush();
+		};
+		window.addEventListener("pagehide", onHide);
+		return () => {
+			unsub();
+			window.clearTimeout(timer);
+			window.removeEventListener("pagehide", onHide);
+		};
+	}, [ready, userId]);
+	return null;
 }
 function Home() {
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LastroApp, {});
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignInGate, {
+		fallback: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AccountGate, {}),
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthedLedger, {})
+	});
+}
+function AuthedLedger() {
+	const user = useCurrentUser();
+	if (!user) return null;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LedgerSync, { userId: user.id }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LastroApp, {})] });
 }
 //#endregion
 export { Home as component };

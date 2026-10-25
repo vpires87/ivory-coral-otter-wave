@@ -209,7 +209,7 @@ export function parseBackup(raw: unknown): LedgerData | string {
     monthlyGoal,
     fireGoal,
     closingDay,
-    demo: false,
+    demo: data.demo === true,
   };
 }
 
@@ -228,5 +228,6 @@ export function toBackup(data: LedgerData) {
     expenses: data.expenses,
     cashbackCards: data.cashbackCards,
     cashbacks: data.cashbacks,
+    demo: data.demo,
   };
 }

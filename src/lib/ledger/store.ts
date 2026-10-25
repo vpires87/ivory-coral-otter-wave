@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
 import { parseBackup } from "@/lib/ledger/backup";
 import { cents, clampClosingDay } from "@/lib/ledger/money";
 import { demoLedger } from "@/lib/ledger/demo";
@@ -19,7 +18,10 @@ type EntryInput = {
 };
 
 type Store = LedgerData & {
-  hydrated: boolean;
+  ready: boolean;
+  saving: boolean;
+  syncError: string | null;
+  loadAttempt: number;
   setCurrency: (currency: CurrencyCode) => void;
   setMonthlyGoal: (goal: number | null) => void;
   setFireGoal: (goal: number | null) => void;
@@ -41,6 +43,10 @@ type Store = LedgerData & {
   keepDemo: () => void;
   reset: () => void;
   importData: (raw: unknown) => string | null;
+  prepareAccount: () => void;
+  adopt: (data: LedgerData | null) => void;
+  failLoad: (message: string) => void;
+  retryLoad: () => void;
 };
 
 const empty: LedgerData = {
@@ -57,200 +63,165 @@ const empty: LedgerData = {
   demo: false,
 };
 
-function memoryStorage(): Storage {
-  const jar = new Map<string, string>();
-  return {
-    get length() {
-      return jar.size;
-    },
-    clear: () => jar.clear(),
-    getItem: (key) => jar.get(key) ?? null,
-    key: (index) => [...jar.keys()][index] ?? null,
-    removeItem: (key) => {
-      jar.delete(key);
-    },
-    setItem: (key, value) => {
-      jar.set(key, value);
-    },
-  };
-}
-
-export const useLedger = create<Store>()(
-  persist(
-    (set) => ({
-      ...empty,
-      hydrated: false,
-      setCurrency: (currency) => set({ currency }),
-      setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
-      setFireGoal: (goal) => set({ fireGoal: goal == null || goal <= 0 ? null : cents(goal) }),
-      setClosingDay: (day) => set({ closingDay: clampClosingDay(day) }),
-      addPlatform: (draft) => {
-        const id = crypto.randomUUID();
-        set((state) => ({
-          platforms: [
-            ...state.platforms,
-            {
-              id,
+export const useLedger = create<Store>()((set) => ({
+  ...empty,
+  ready: false,
+  saving: false,
+  syncError: null,
+  loadAttempt: 0,
+  setCurrency: (currency) => set({ currency }),
+  setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
+  setFireGoal: (goal) => set({ fireGoal: goal == null || goal <= 0 ? null : cents(goal) }),
+  setClosingDay: (day) => set({ closingDay: clampClosingDay(day) }),
+  addPlatform: (draft) => {
+    const id = crypto.randomUUID();
+    set((state) => ({
+      platforms: [
+        ...state.platforms,
+        {
+          id,
+          name: draft.name.trim(),
+          kind: draft.kind,
+          openingInvested: cents(draft.openingInvested),
+        },
+      ],
+    }));
+    return id;
+  },
+  updatePlatform: (id, draft) =>
+    set((state) => ({
+      platforms: state.platforms.map((platform) =>
+        platform.id === id
+          ? {
+              ...platform,
               name: draft.name.trim(),
               kind: draft.kind,
               openingInvested: cents(draft.openingInvested),
-            },
-          ],
-        }));
-        return id;
-      },
-      updatePlatform: (id, draft) =>
-        set((state) => ({
-          platforms: state.platforms.map((platform) =>
-            platform.id === id
-              ? {
-                  ...platform,
-                  name: draft.name.trim(),
-                  kind: draft.kind,
-                  openingInvested: cents(draft.openingInvested),
-                }
-              : platform,
-          ),
-        })),
-      deletePlatform: (id) =>
-        set((state) => ({
-          platforms: state.platforms.filter((platform) => platform.id !== id),
-          entries: state.entries.filter((entry) => entry.platformId !== id),
-        })),
-      upsertEntry: (input) =>
-        set((state) => {
-          const index = state.entries.findIndex(
-            (entry) => entry.platformId === input.platformId && entry.month === input.month,
-          );
-          const next = {
-            contributed: cents(input.contributed),
-            endValue: cents(input.endValue),
-          };
-          if (index >= 0) {
-            const entries = state.entries.slice();
-            entries[index] = { ...entries[index], ...next };
-            return { entries };
-          }
-          return {
-            entries: [
-              ...state.entries,
-              {
-                id: crypto.randomUUID(),
-                platformId: input.platformId,
-                month: input.month,
-                ...next,
-              },
-            ],
-          };
-        }),
-      deleteEntry: (id) =>
-        set((state) => ({
-          entries: state.entries.filter((entry) => entry.id !== id),
-        })),
-      addExpenseType: (name) => {
-        const id = crypto.randomUUID();
-        set((state) => ({
-          expenseTypes: [...state.expenseTypes, { id, name: name.trim() }],
-        }));
-        return id;
-      },
-      renameExpenseType: (id, name) =>
-        set((state) => ({
-          expenseTypes: state.expenseTypes.map((type) =>
-            type.id === id ? { ...type, name: name.trim() } : type,
-          ),
-        })),
-      deleteExpenseType: (id) =>
-        set((state) => ({
-          expenseTypes: state.expenseTypes.filter((type) => type.id !== id),
-          expenses: state.expenses.filter((entry) => entry.typeId !== id),
-        })),
-      upsertExpense: (input) =>
-        set((state) => {
-          const index = state.expenses.findIndex(
-            (entry) => entry.typeId === input.typeId && entry.month === input.month,
-          );
-          const amount = cents(input.amount);
-          if (index >= 0) {
-            const expenses = state.expenses.slice();
-            expenses[index] = { ...expenses[index], amount };
-            return { expenses };
-          }
-          return {
-            expenses: [
-              ...state.expenses,
-              { id: crypto.randomUUID(), typeId: input.typeId, month: input.month, amount },
-            ],
-          };
-        }),
-      addCashbackCard: (name) => {
-        const id = crypto.randomUUID();
-        set((state) => ({
-          cashbackCards: [...state.cashbackCards, { id, name: name.trim() }],
-        }));
-        return id;
-      },
-      renameCashbackCard: (id, name) =>
-        set((state) => ({
-          cashbackCards: state.cashbackCards.map((card) =>
-            card.id === id ? { ...card, name: name.trim() } : card,
-          ),
-        })),
-      deleteCashbackCard: (id) =>
-        set((state) => ({
-          cashbackCards: state.cashbackCards.filter((card) => card.id !== id),
-          cashbacks: state.cashbacks.filter((entry) => entry.cardId !== id),
-        })),
-      upsertCashback: (input) =>
-        set((state) => {
-          const index = state.cashbacks.findIndex(
-            (entry) => entry.cardId === input.cardId && entry.month === input.month,
-          );
-          const amount = cents(input.amount);
-          if (index >= 0) {
-            const cashbacks = state.cashbacks.slice();
-            cashbacks[index] = { ...cashbacks[index], amount };
-            return { cashbacks };
-          }
-          return {
-            cashbacks: [
-              ...state.cashbacks,
-              { id: crypto.randomUUID(), cardId: input.cardId, month: input.month, amount },
-            ],
-          };
-        }),
-      loadDemo: () => set(demoLedger()),
-      keepDemo: () => set({ demo: false }),
-      reset: () => set(empty),
-      importData: (raw) => {
-        const parsed = parseBackup(raw);
-        if (typeof parsed === "string") return parsed;
-        set(parsed);
-        return null;
-      },
-    }),
-    {
-      name: "lastro-ledger-v1",
-      storage: createJSONStorage(() =>
-        typeof window === "undefined" ? memoryStorage() : localStorage,
+            }
+          : platform,
       ),
-      skipHydration: true,
-      partialize: (state) => ({
-        platforms: state.platforms,
-        entries: state.entries,
-        expenseTypes: state.expenseTypes,
-        expenses: state.expenses,
-        cashbackCards: state.cashbackCards,
-        cashbacks: state.cashbacks,
-        currency: state.currency,
-        monthlyGoal: state.monthlyGoal,
-        fireGoal: state.fireGoal,
-        closingDay: state.closingDay,
-        demo: state.demo,
-      }),
-    },
-  ),
-);
+    })),
+  deletePlatform: (id) =>
+    set((state) => ({
+      platforms: state.platforms.filter((platform) => platform.id !== id),
+      entries: state.entries.filter((entry) => entry.platformId !== id),
+    })),
+  upsertEntry: (input) =>
+    set((state) => {
+      const index = state.entries.findIndex(
+        (entry) => entry.platformId === input.platformId && entry.month === input.month,
+      );
+      const next = {
+        contributed: cents(input.contributed),
+        endValue: cents(input.endValue),
+      };
+      if (index >= 0) {
+        const entries = state.entries.slice();
+        entries[index] = { ...entries[index], ...next };
+        return { entries };
+      }
+      return {
+        entries: [
+          ...state.entries,
+          {
+            id: crypto.randomUUID(),
+            platformId: input.platformId,
+            month: input.month,
+            ...next,
+          },
+        ],
+      };
+    }),
+  deleteEntry: (id) =>
+    set((state) => ({
+      entries: state.entries.filter((entry) => entry.id !== id),
+    })),
+  addExpenseType: (name) => {
+    const id = crypto.randomUUID();
+    set((state) => ({
+      expenseTypes: [...state.expenseTypes, { id, name: name.trim() }],
+    }));
+    return id;
+  },
+  renameExpenseType: (id, name) =>
+    set((state) => ({
+      expenseTypes: state.expenseTypes.map((type) =>
+        type.id === id ? { ...type, name: name.trim() } : type,
+      ),
+    })),
+  deleteExpenseType: (id) =>
+    set((state) => ({
+      expenseTypes: state.expenseTypes.filter((type) => type.id !== id),
+      expenses: state.expenses.filter((entry) => entry.typeId !== id),
+    })),
+  upsertExpense: (input) =>
+    set((state) => {
+      const index = state.expenses.findIndex(
+        (entry) => entry.typeId === input.typeId && entry.month === input.month,
+      );
+      const amount = cents(input.amount);
+      if (index >= 0) {
+        const expenses = state.expenses.slice();
+        expenses[index] = { ...expenses[index], amount };
+        return { expenses };
+      }
+      return {
+        expenses: [
+          ...state.expenses,
+          { id: crypto.randomUUID(), typeId: input.typeId, month: input.month, amount },
+        ],
+      };
+    }),
+  addCashbackCard: (name) => {
+    const id = crypto.randomUUID();
+    set((state) => ({
+      cashbackCards: [...state.cashbackCards, { id, name: name.trim() }],
+    }));
+    return id;
+  },
+  renameCashbackCard: (id, name) =>
+    set((state) => ({
+      cashbackCards: state.cashbackCards.map((card) =>
+        card.id === id ? { ...card, name: name.trim() } : card,
+      ),
+    })),
+  deleteCashbackCard: (id) =>
+    set((state) => ({
+      cashbackCards: state.cashbackCards.filter((card) => card.id !== id),
+      cashbacks: state.cashbacks.filter((entry) => entry.cardId !== id),
+    })),
+  upsertCashback: (input) =>
+    set((state) => {
+      const index = state.cashbacks.findIndex(
+        (entry) => entry.cardId === input.cardId && entry.month === input.month,
+      );
+      const amount = cents(input.amount);
+      if (index >= 0) {
+        const cashbacks = state.cashbacks.slice();
+        cashbacks[index] = { ...cashbacks[index], amount };
+        return { cashbacks };
+      }
+      return {
+        cashbacks: [
+          ...state.cashbacks,
+          { id: crypto.randomUUID(), cardId: input.cardId, month: input.month, amount },
+        ],
+      };
+    }),
+  loadDemo: () => set({ ...demoLedger(), ready: true }),
+  keepDemo: () => set({ demo: false }),
+  reset: () => set({ ...empty, ready: true }),
+  importData: (raw) => {
+    const parsed = parseBackup(raw);
+    if (typeof parsed === "string") return parsed;
+    set({ ...parsed, ready: true });
+    return null;
+  },
+  prepareAccount: () => set({ ...empty, ready: false, saving: false, syncError: null }),
+  adopt: (data) => set({ ...(data ?? empty), ready: true, saving: false, syncError: null }),
+  failLoad: (message) => set({ ...empty, ready: false, saving: false, syncError: message }),
+  retryLoad: () => set((state) => ({ loadAttempt: state.loadAttempt + 1, syncError: null, ready: false })),
+}));
 
 export function selectData(state: Store): LedgerData {
   return {

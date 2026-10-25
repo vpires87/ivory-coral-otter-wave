@@ -2,6 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useRef, useState, type ReactNode } from "react";
 import { toBackup } from "@/lib/ledger/backup";
+import { UserButton } from "@/lib/auth/gates";
 import { clampClosingDay, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { selectData, useLedger } from "@/lib/ledger/store";
 import { CURRENCIES, PLATFORM_KINDS, type CurrencyCode, type Platform, type PlatformKind } from "@/lib/ledger/types";
@@ -219,9 +220,12 @@ export function SettingsDialog({
         onOpenChange(next);
       }}
       title="Definições"
-      description="A caderneta fica neste browser. Exporta uma cópia se mudares de aparelho."
+      description="A caderneta está na tua conta. Exporta uma cópia se quiseres um ficheiro teu."
     >
       <div className="space-y-5">
+        <div className="rounded-md bg-chip px-3 py-3">
+          <UserButton />
+        </div>
         <div>
           <p className="mb-2 text-sm font-medium">Moeda</p>
           <div className="grid grid-cols-1 gap-2">
@@ -298,7 +302,7 @@ export function SettingsDialog({
         )}
         {confirmWipe ? (
           <div className="rounded-md bg-loss-soft p-3 text-sm">
-            <p>Isto apaga plataformas e meses neste browser. Não dá para desfazer.</p>
+            <p>Isto apaga a caderneta da tua conta. Não dá para desfazer.</p>
             <div className="mt-3 flex gap-2">
               <Button
                 variant="danger"
