@@ -54,11 +54,11 @@ function isDirty(draft: Draft, saved: MonthEntry | null) {
 export function MonthPanel({
   month,
   onMonth,
-  onAddPlatform,
+  onSetup,
 }: {
   month: string;
   onMonth: (month: string) => void;
-  onAddPlatform: () => void;
+  onSetup: () => void;
 }) {
   const platforms = useLedger((state) => state.platforms);
   const entries = useLedger((state) => state.entries);
@@ -96,9 +96,9 @@ export function MonthPanel({
     return (
       <section className="rounded-lg border border-line bg-card p-5">
         <h2 className="font-serif text-2xl">Ainda não há plataformas</h2>
-        <p className="mt-2 text-sm text-muted">Cria a primeira e depois apontas o mês.</p>
-        <Button className="mt-4" onClick={onAddPlatform}>
-          Adicionar plataforma
+        <p className="mt-2 text-sm text-muted">Cria-as nas tabelas e depois apontas o mês.</p>
+        <Button className="mt-4" onClick={onSetup}>
+          Ir para tabelas
         </Button>
       </section>
     );

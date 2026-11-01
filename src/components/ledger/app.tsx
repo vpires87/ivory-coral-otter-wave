@@ -3,16 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import { dueMonth, formatCloseDay, isClosingToday } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { cn } from "@/lib/utils";
-import { PlatformDialog, SettingsDialog } from "@/components/ledger/dialogs";
+import { SettingsDialog } from "@/components/ledger/dialogs";
 import { ExpensesPanel } from "@/components/ledger/expenses-panel";
 import { IncomePanel } from "@/components/ledger/income-panel";
 import { CashbackPanel } from "@/components/ledger/cashback-panel";
 import { MonthPanel } from "@/components/ledger/month-panel";
-import { PlatformsPanel } from "@/components/ledger/platforms-panel";
 import { SummaryView } from "@/components/ledger/summary";
+import { TablesPanel } from "@/components/ledger/tables-panel";
 import { Button } from "@/components/ledger/ui";
 
-type Tab = "resumo" | "mes" | "ganhos" | "despesas" | "cashback" | "plataformas";
+type Tab = "resumo" | "mes" | "ganhos" | "despesas" | "cashback" | "tabelas";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "resumo", label: "Resumo" },
@@ -20,7 +20,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: "ganhos", label: "Ganhos" },
   { id: "despesas", label: "Despesas" },
   { id: "cashback", label: "Cartões" },
-  { id: "plataformas", label: "Plataformas" },
+  { id: "tabelas", label: "Tabelas" },
 ];
 
 export function LastroApp() {
@@ -32,24 +32,19 @@ export function LastroApp() {
   const expenseTypes = useLedger((state) => state.expenseTypes);
   const cashbackCards = useLedger((state) => state.cashbackCards);
   const incomeSources = useLedger((state) => state.incomeSources);
-  const addCashbackCard = useLedger((state) => state.addCashbackCard);
   const demo = useLedger((state) => state.demo);
   const currency = useLedger((state) => state.currency);
   const closingDay = useLedger((state) => state.closingDay);
-  const addExpenseType = useLedger((state) => state.addExpenseType);
-  const addIncomeSource = useLedger((state) => state.addIncomeSource);
   const keepDemo = useLedger((state) => state.keepDemo);
   const reset = useLedger((state) => state.reset);
   const loadDemo = useLedger((state) => state.loadDemo);
   const [tab, setTab] = useState<Tab>("resumo");
   const [month, setMonth] = useState(() => dueMonth(1));
   const monthTouched = useRef(false);
+  const routedEmpty = useRef(false);
   const [platformId, setPlatformId] = useState<string | null>(null);
-  const [platformOpen, setPlatformOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const editing = platforms.find((platform) => platform.id === editingId) ?? null;
   const empty =
     platforms.length === 0 &&
     expenseTypes.length === 0 &&
@@ -60,19 +55,20 @@ export function LastroApp() {
     if (ready && !monthTouched.current) setMonth(dueMonth(closingDay));
   }, [ready, closingDay]);
 
+  useEffect(() => {
+    if (!ready || routedEmpty.current) return;
+    routedEmpty.current = true;
+    if (empty) setTab("tabelas");
+  }, [ready, empty]);
+
   function changeMonth(next: string) {
     monthTouched.current = true;
     setMonth(next);
   }
 
-  function openCreate() {
-    setEditingId(null);
-    setPlatformOpen(true);
-  }
-
-  function openEdit(id: string) {
-    setEditingId(id);
-    setPlatformOpen(true);
+  function openTables() {
+    setPlatformId(null);
+    setTab("tabelas");
   }
 
   if (!ready) {
@@ -137,93 +133,69 @@ export function LastroApp() {
           </div>
         ) : null}
 
-        {empty ? (
-          <EmptyLedger
-            onAdd={openCreate}
-            onDemo={() => {
-              loadDemo();
-              setTab("resumo");
-              monthTouched.current = false;
-              setMonth(dueMonth(25));
-            }}
-            onCreateType={(label) => {
-              addExpenseType(label);
-              setTab("despesas");
-            }}
-            onCreateCard={(label) => {
-              addCashbackCard(label);
-              setTab("cashback");
-            }}
-            onCreateIncome={(label) => {
-              addIncomeSource(label, "ordenado");
-              setTab("ganhos");
-            }}
-          />
-        ) : (
-          <>
-            <div role="tablist" aria-label="Secções" className="mt-6 flex flex-wrap gap-1 rounded-md bg-paper-2 p-1">
-              {TABS.map((item) => (
-                <button
-                  key={item.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={tab === item.id}
-                  onClick={() => {
-                    setTab(item.id);
-                    if (item.id !== "plataformas") setPlatformId(null);
-                  }}
-                  className={cn(
-                    "h-11 min-w-24 flex-1 rounded-md px-2 text-xs font-medium sm:text-sm",
-                    tab === item.id ? "bg-card text-ink" : "text-muted",
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-            <p className="mt-3 text-sm text-muted">
-              {isClosingToday(closingDay)
-                ? `Hoje é o dia de atualizar.`
-                : `Atualizas sempre no dia ${closingDay}.`}{" "}
-              Este fecho é {formatCloseDay(month, closingDay)}.
-            </p>
-            <div className="mt-4">
-              {tab === "resumo" ? (
-                <SummaryView
-                  month={month}
-                  onMonth={changeMonth}
-                  onRegister={() => setTab("mes")}
-                  onExpenses={() => setTab("despesas")}
-                  onCashback={() => setTab("cashback")}
-                  onIncome={() => setTab("ganhos")}
-                  onOpenPlatform={(id) => {
-                    setPlatformId(id);
-                    setTab("plataformas");
-                  }}
-                />
-              ) : null}
-              {tab === "mes" ? (
-                <MonthPanel month={month} onMonth={changeMonth} onAddPlatform={openCreate} />
-              ) : null}
-              {tab === "ganhos" ? <IncomePanel month={month} onMonth={changeMonth} /> : null}
-              {tab === "despesas" ? <ExpensesPanel month={month} onMonth={changeMonth} /> : null}
-              {tab === "cashback" ? <CashbackPanel month={month} onMonth={changeMonth} /> : null}
-              {tab === "plataformas" ? (
-                <PlatformsPanel
-                  selectedId={platformId}
-                  onOpen={setPlatformId}
-                  onClose={() => setPlatformId(null)}
-                  onAdd={openCreate}
-                  onEdit={openEdit}
-                  onGoMonth={(next) => {
-                    changeMonth(next);
-                    setTab("mes");
-                  }}
-                />
-              ) : null}
-            </div>
-          </>
-        )}
+        <div role="tablist" aria-label="Secções" className="mt-6 flex flex-wrap gap-1 rounded-md bg-paper-2 p-1">
+          {TABS.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === item.id}
+              onClick={() => {
+                setTab(item.id);
+                if (item.id !== "tabelas") setPlatformId(null);
+              }}
+              className={cn(
+                "h-11 min-w-24 flex-1 rounded-md px-2 text-xs font-medium sm:text-sm",
+                tab === item.id ? "bg-card text-ink" : "text-muted",
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-sm text-muted">
+          {isClosingToday(closingDay)
+            ? `Hoje é o dia de atualizar.`
+            : `Atualizas sempre no dia ${closingDay}.`}{" "}
+          Este fecho é {formatCloseDay(month, closingDay)}.
+        </p>
+        <div className="mt-4">
+          {tab === "resumo" ? (
+            <SummaryView
+              month={month}
+              onMonth={changeMonth}
+              onRegister={() => setTab("mes")}
+              onExpenses={() => setTab("despesas")}
+              onCashback={() => setTab("cashback")}
+              onIncome={() => setTab("ganhos")}
+              onOpenPlatform={(id) => {
+                setPlatformId(id);
+                setTab("tabelas");
+              }}
+            />
+          ) : null}
+          {tab === "mes" ? <MonthPanel month={month} onMonth={changeMonth} onSetup={openTables} /> : null}
+          {tab === "ganhos" ? <IncomePanel month={month} onMonth={changeMonth} onSetup={openTables} /> : null}
+          {tab === "despesas" ? <ExpensesPanel month={month} onMonth={changeMonth} onSetup={openTables} /> : null}
+          {tab === "cashback" ? <CashbackPanel month={month} onMonth={changeMonth} onSetup={openTables} /> : null}
+          {tab === "tabelas" ? (
+            <TablesPanel
+              selectedId={platformId}
+              onOpen={setPlatformId}
+              onClose={() => setPlatformId(null)}
+              onGoMonth={(next) => {
+                changeMonth(next);
+                setTab("mes");
+              }}
+              onDemo={() => {
+                loadDemo();
+                setTab("resumo");
+                monthTouched.current = false;
+                setMonth(dueMonth(25));
+              }}
+            />
+          ) : null}
+        </div>
 
         <p className="mt-10 text-sm text-muted">
           {syncError
@@ -234,137 +206,7 @@ export function LastroApp() {
         </p>
       </div>
 
-      <PlatformDialog
-        open={platformOpen}
-        platform={editing}
-        onOpenChange={(open) => {
-          setPlatformOpen(open);
-          if (!open) setEditingId(null);
-        }}
-      />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
     </div>
-  );
-}
-
-function EmptyLedger({
-  onAdd,
-  onDemo,
-  onCreateType,
-  onCreateCard,
-  onCreateIncome,
-}: {
-  onAdd: () => void;
-  onDemo: () => void;
-  onCreateType: (name: string) => void;
-  onCreateCard: (name: string) => void;
-  onCreateIncome: (name: string) => void;
-}) {
-  const [name, setName] = useState("");
-  const [error, setError] = useState("");
-  const [cardName, setCardName] = useState("");
-  const [cardError, setCardError] = useState("");
-  const [incomeName, setIncomeName] = useState("");
-  const [incomeError, setIncomeError] = useState("");
-
-  return (
-    <section className="mt-8 rounded-lg border border-line bg-card px-5 py-8 sm:px-8">
-      <h2 className="font-serif text-3xl sm:text-4xl">O mesmo dia, todos os meses.</h2>
-      <p className="mt-3 max-w-xl text-base leading-relaxed text-muted">
-        Escolhes o dia de fecho. Nesse dia apontas o que ganhaste, o que investiste, as despesas e o cashback.
-      </p>
-      <ol className="mt-6 max-w-xl space-y-3 text-sm">
-        <li className="flex gap-3">
-          <span className="font-serif text-forest">01</span>
-          <span>Crias o ordenado, plataformas, tipos de despesa e cartões.</span>
-        </li>
-        <li className="flex gap-3">
-          <span className="font-serif text-forest">02</span>
-          <span>No dia de fecho, registas aportes, valores e gastos.</span>
-        </li>
-        <li className="flex gap-3">
-          <span className="font-serif text-forest">03</span>
-          <span>Vês quanto do que ganhaste foi para investir.</span>
-        </li>
-      </ol>
-      <form
-        className="mt-8 flex max-w-xl flex-col gap-2 sm:flex-row"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const trimmed = name.trim();
-          if (trimmed.length < 1) {
-            setError("Dá um nome ao primeiro tipo, por exemplo Renda.");
-            return;
-          }
-          onCreateType(trimmed);
-        }}
-      >
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          placeholder="Primeiro tipo de despesa"
-          maxLength={40}
-          className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-        />
-        <Button type="submit">Criar tipo</Button>
-      </form>
-      {error ? <p className="mt-2 text-sm text-loss">{error}</p> : null}
-      <form
-        className="mt-3 flex max-w-xl flex-col gap-2 sm:flex-row"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const trimmed = cardName.trim();
-          if (trimmed.length < 1) {
-            setCardError("Dá um nome ao cartão, por exemplo Universo.");
-            return;
-          }
-          onCreateCard(trimmed);
-        }}
-      >
-        <input
-          value={cardName}
-          onChange={(event) => setCardName(event.target.value)}
-          placeholder="Primeiro cartão de cashback"
-          maxLength={40}
-          className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-        />
-        <Button type="submit" variant="soft">
-          Criar cartão
-        </Button>
-      </form>
-      {cardError ? <p className="mt-2 text-sm text-loss">{cardError}</p> : null}
-      <form
-        className="mt-3 flex max-w-xl flex-col gap-2 sm:flex-row"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const trimmed = incomeName.trim();
-          if (trimmed.length < 1) {
-            setIncomeError("Dá um nome ao ordenado, por exemplo Empresa.");
-            return;
-          }
-          onCreateIncome(trimmed);
-        }}
-      >
-        <input
-          value={incomeName}
-          onChange={(event) => setIncomeName(event.target.value)}
-          placeholder="Primeiro ordenado"
-          maxLength={40}
-          className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-        />
-        <Button type="submit" variant="soft">
-          Criar ordenado
-        </Button>
-      </form>
-      {incomeError ? <p className="mt-2 text-sm text-loss">{incomeError}</p> : null}
-      <div className="mt-3 flex flex-col gap-3 sm:flex-row">
-        <Button variant="soft" onClick={onAdd}>
-          Adicionar plataforma
-        </Button>
-        <Button variant="ghost" onClick={onDemo}>
-          Ver um exemplo
-        </Button>
-      </div>
-    </section>
   );
 }

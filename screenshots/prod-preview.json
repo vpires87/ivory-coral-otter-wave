@@ -1,0 +1,38 @@
+{
+  "url": "http://127.0.0.1:8081/",
+  "viewports": {
+    "desktop": {
+      "width": 1280,
+      "height": 800,
+      "status": 200,
+      "title": "Lastro",
+      "hasCanvas": false,
+      "bodyTextLen": 650,
+      "bodyTextHash": "cbcdff22c19b3589c3756fc1bfaeaad7b93e7fac929a325889a49d5fa3e2929f",
+      "bodyTextPrefix": "L Lastro O que investes, o que fica e o que gastas EUR Resumo Mê",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/prod-preview.png"
+    },
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "status": 200,
+      "title": "Lastro",
+      "hasCanvas": false,
+      "bodyTextLen": 650,
+      "bodyTextHash": "cbcdff22c19b3589c3756fc1bfaeaad7b93e7fac929a325889a49d5fa3e2929f",
+      "bodyTextPrefix": "L Lastro O que investes, o que fica e o que gastas EUR Resumo Mê",
+      "horizontalOverflow": false,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "screenshot": "/workspace/screenshots/prod-preview-mobile.png"
+    }
+  },
+  "brandWarnings": [],
+  "authWarnings": [],
+  "verdictFile": "/workspace/screenshots/prod-preview.json",
+  "divergesFromBaseline": false,
+  "baselineReasons": []
+}

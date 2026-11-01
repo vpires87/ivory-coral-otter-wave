@@ -3,27 +3,23 @@ import { SavingsChart } from "@/components/ledger/chart";
 import { incomeFor, incomeTotal, savingsRate, savingsSeries, contributedIn } from "@/lib/ledger/calc";
 import { formatMoney, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
-import { INCOME_KINDS, type IncomeKind } from "@/lib/ledger/types";
 import { Button, MonthSwitcher } from "@/components/ledger/ui";
-import { cn } from "@/lib/utils";
 
-export function IncomePanel({ month, onMonth }: { month: string; onMonth: (month: string) => void }) {
+export function IncomePanel({
+  month,
+  onMonth,
+  onSetup,
+}: {
+  month: string;
+  onMonth: (month: string) => void;
+  onSetup: () => void;
+}) {
   const sources = useLedger((state) => state.incomeSources);
   const incomes = useLedger((state) => state.incomes);
   const entries = useLedger((state) => state.entries);
   const currency = useLedger((state) => state.currency);
-  const addIncomeSource = useLedger((state) => state.addIncomeSource);
-  const renameIncomeSource = useLedger((state) => state.renameIncomeSource);
-  const setIncomeKind = useLedger((state) => state.setIncomeKind);
-  const deleteIncomeSource = useLedger((state) => state.deleteIncomeSource);
   const upsertIncome = useLedger((state) => state.upsertIncome);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [name, setName] = useState("");
-  const [kind, setKind] = useState<IncomeKind>("ordenado");
-  const [nameError, setNameError] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [confirmId, setConfirmId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -34,7 +30,6 @@ export function IncomePanel({ month, onMonth }: { month: string; onMonth: (month
     }
     setDrafts(next);
     setErrors({});
-    setConfirmId(null);
   }, [month]);
 
   useEffect(() => {
@@ -51,21 +46,6 @@ export function IncomePanel({ month, onMonth }: { month: string; onMonth: (month
       return changed ? next : current;
     });
   }, [sources, incomes, month]);
-
-  function createSource() {
-    const trimmed = name.trim();
-    if (trimmed.length < 1) {
-      setNameError("Dá um nome, por exemplo Empresa.");
-      return;
-    }
-    if (sources.some((source) => source.name.toLocaleLowerCase("pt") === trimmed.toLocaleLowerCase("pt"))) {
-      setNameError("Já existe um ganho com esse nome.");
-      return;
-    }
-    addIncomeSource(trimmed, kind);
-    setName("");
-    setNameError("");
-  }
 
   const ordered = [...sources].sort((a, b) => {
     if (a.kind !== b.kind) return a.kind === "ordenado" ? -1 : 1;
@@ -86,9 +66,14 @@ export function IncomePanel({ month, onMonth }: { month: string; onMonth: (month
         <MonthSwitcher month={month} onChange={onMonth} />
         <p className="mt-3 text-sm text-muted">
           {sources.length === 0
-            ? "Cria o ordenado e os extras. Em cada fecho apontas quanto entrou."
+            ? "Ainda sem ordenados nem extras."
             : `${recorded} de ${sources.length} neste mês. Total ${formatMoney(earned, currency)}.`}
         </p>
+        {sources.length === 0 ? (
+          <Button className="mt-4" variant="soft" onClick={onSetup}>
+            Criar nas tabelas
+          </Button>
+        ) : null}
       </section>
 
       <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
@@ -106,43 +91,6 @@ export function IncomePanel({ month, onMonth }: { month: string; onMonth: (month
         ) : null}
       </section>
 
-      <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
-        <h2 className="font-serif text-2xl">Fontes</h2>
-        <div className="mt-4 grid grid-cols-2 gap-1 rounded-md bg-paper-2 p-1">
-          {INCOME_KINDS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              aria-pressed={kind === item.id}
-              onClick={() => setKind(item.id)}
-              className={cn(
-                "h-11 rounded-md text-sm font-medium",
-                kind === item.id ? "bg-card text-ink" : "text-muted",
-              )}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-        <form
-          className="mt-3 flex flex-col gap-2 sm:flex-row"
-          onSubmit={(event) => {
-            event.preventDefault();
-            createSource();
-          }}
-        >
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder={kind === "ordenado" ? "Nome do ordenado" : "Nome do extra"}
-            maxLength={40}
-            className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-          />
-          <Button type="submit">Adicionar</Button>
-        </form>
-        {nameError ? <p className="mt-2 text-sm text-loss">{nameError}</p> : null}
-      </section>
-
       {ordered.length > 0 ? (
         <ul className="space-y-3">
           {ordered.map((source) => {
@@ -153,66 +101,12 @@ export function IncomePanel({ month, onMonth }: { month: string; onMonth: (month
             const label = source.kind === "ordenado" ? "Ordenado" : "Extra";
             return (
               <li key={source.id} className="rounded-lg border border-line bg-card p-4">
-                {editingId === source.id ? (
-                  <form
-                    className="flex flex-col gap-2 sm:flex-row"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const trimmed = editingName.trim();
-                      if (trimmed.length < 1) return;
-                      renameIncomeSource(source.id, trimmed);
-                      setEditingId(null);
-                    }}
-                  >
-                    <input
-                      value={editingName}
-                      onChange={(event) => setEditingName(event.target.value)}
-                      maxLength={40}
-                      className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-                    />
-                    <Button type="submit">Guardar nome</Button>
-                    <Button variant="ghost" onClick={() => setEditingId(null)}>
-                      Cancelar
-                    </Button>
-                  </form>
-                ) : (
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{source.name}</p>
-                      <p className="text-sm text-muted">
-                        {label}
-                        {" · "}
-                        {saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      className="h-11 px-2 text-sm font-medium text-forest"
-                      onClick={() => {
-                        setEditingId(source.id);
-                        setEditingName(source.name);
-                      }}
-                    >
-                      Renomear
-                    </button>
-                  </div>
-                )}
-                <div className="mt-3 grid grid-cols-2 gap-1 rounded-md bg-paper-2 p-1">
-                  {INCOME_KINDS.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      aria-pressed={source.kind === item.id}
-                      onClick={() => setIncomeKind(source.id, item.id)}
-                      className={cn(
-                        "h-10 rounded-md text-sm font-medium",
-                        source.kind === item.id ? "bg-card text-ink" : "text-muted",
-                      )}
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
+                <p className="font-medium">{source.name}</p>
+                <p className="text-sm text-muted">
+                  {label}
+                  {" · "}
+                  {saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"}
+                </p>
                 <label className="mt-3 block">
                   <span className="mb-1.5 block text-sm font-medium">Quanto entrou</span>
                   <input
@@ -244,20 +138,6 @@ export function IncomePanel({ month, onMonth }: { month: string; onMonth: (month
                   >
                     {saved ? "Atualizar" : "Guardar"}
                   </Button>
-                  {confirmId === source.id ? (
-                    <>
-                      <Button variant="danger" onClick={() => deleteIncomeSource(source.id)}>
-                        Apagar
-                      </Button>
-                      <Button variant="ghost" onClick={() => setConfirmId(null)}>
-                        Cancelar
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="ghost" onClick={() => setConfirmId(source.id)}>
-                      Eliminar
-                    </Button>
-                  )}
                 </div>
               </li>
             );

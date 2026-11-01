@@ -8,23 +8,17 @@ import { Button, MonthSwitcher, ShareList } from "@/components/ledger/ui";
 export function ExpensesPanel({
   month,
   onMonth,
+  onSetup,
 }: {
   month: string;
   onMonth: (month: string) => void;
+  onSetup: () => void;
 }) {
   const types = useLedger((state) => state.expenseTypes);
   const expenses = useLedger((state) => state.expenses);
   const currency = useLedger((state) => state.currency);
-  const addExpenseType = useLedger((state) => state.addExpenseType);
-  const renameExpenseType = useLedger((state) => state.renameExpenseType);
-  const deleteExpenseType = useLedger((state) => state.deleteExpenseType);
   const upsertExpense = useLedger((state) => state.upsertExpense);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const [name, setName] = useState("");
-  const [nameError, setNameError] = useState("");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState("");
-  const [confirmId, setConfirmId] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -35,7 +29,6 @@ export function ExpensesPanel({
     }
     setDrafts(next);
     setErrors({});
-    setConfirmId(null);
   }, [month]);
 
   useEffect(() => {
@@ -52,21 +45,6 @@ export function ExpensesPanel({
       return changed ? next : current;
     });
   }, [types, expenses, month]);
-
-  function createType() {
-    const trimmed = name.trim();
-    if (trimmed.length < 1) {
-      setNameError("Dá um nome ao tipo.");
-      return;
-    }
-    if (types.some((type) => type.name.toLocaleLowerCase("pt") === trimmed.toLocaleLowerCase("pt"))) {
-      setNameError("Já existe um tipo com esse nome.");
-      return;
-    }
-    addExpenseType(trimmed);
-    setName("");
-    setNameError("");
-  }
 
   const series = expenseSeries(types, expenses);
   const monthTotal = expenseTotal(expenses, month);
@@ -88,30 +66,14 @@ export function ExpensesPanel({
         <MonthSwitcher month={month} onChange={onMonth} />
         <p className="mt-3 text-sm text-muted">
           {types.length === 0
-            ? "Cria os tipos — renda, alimentação, transportes — e em cada fecho apontas quanto saiu."
+            ? "Ainda sem tipos de despesa."
             : `${recorded} de ${types.length} tipos neste mês. Total ${formatMoney(monthTotal, currency)}.`}
         </p>
-      </section>
-
-      <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
-        <h2 className="font-serif text-2xl">Tipos</h2>
-        <form
-          className="mt-4 flex flex-col gap-2 sm:flex-row"
-          onSubmit={(event) => {
-            event.preventDefault();
-            createType();
-          }}
-        >
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Novo tipo"
-            maxLength={40}
-            className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-          />
-          <Button type="submit">Adicionar</Button>
-        </form>
-        {nameError ? <p className="mt-2 text-sm text-loss">{nameError}</p> : null}
+        {types.length === 0 ? (
+          <Button className="mt-4" variant="soft" onClick={onSetup}>
+            Criar nas tabelas
+          </Button>
+        ) : null}
       </section>
 
       {types.length > 0 ? (
@@ -125,50 +87,10 @@ export function ExpensesPanel({
               : draft.trim() !== "";
             return (
               <li key={type.id} className="rounded-lg border border-line bg-card p-4">
-                {editingId === type.id ? (
-                  <form
-                    className="flex flex-col gap-2 sm:flex-row"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const trimmed = editingName.trim();
-                      if (trimmed.length < 1) return;
-                      renameExpenseType(type.id, trimmed);
-                      setEditingId(null);
-                    }}
-                  >
-                    <input
-                      value={editingName}
-                      onChange={(event) => setEditingName(event.target.value)}
-                      maxLength={40}
-                      className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-                    />
-                    <Button type="submit">Guardar nome</Button>
-                    <Button variant="ghost" onClick={() => setEditingId(null)}>
-                      Cancelar
-                    </Button>
-                  </form>
-                ) : (
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{type.name}</p>
-                      <p className="text-sm text-muted">
-                        {saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"}
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        className="h-11 px-2 text-sm font-medium text-forest"
-                        onClick={() => {
-                          setEditingId(type.id);
-                          setEditingName(type.name);
-                        }}
-                      >
-                        Renomear
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <p className="font-medium">{type.name}</p>
+                <p className="text-sm text-muted">
+                  {saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"}
+                </p>
                 <label className="mt-3 block">
                   <span className="mb-1.5 block text-sm font-medium">Quanto saiu</span>
                   <input
@@ -200,20 +122,6 @@ export function ExpensesPanel({
                   >
                     {saved ? "Atualizar" : "Guardar"}
                   </Button>
-                  {confirmId === type.id ? (
-                    <>
-                      <Button variant="danger" onClick={() => deleteExpenseType(type.id)}>
-                        Apagar tipo
-                      </Button>
-                      <Button variant="ghost" onClick={() => setConfirmId(null)}>
-                        Cancelar
-                      </Button>
-                    </>
-                  ) : (
-                    <Button variant="ghost" onClick={() => setConfirmId(type.id)}>
-                      Eliminar tipo
-                    </Button>
-                  )}
                 </div>
               </li>
             );

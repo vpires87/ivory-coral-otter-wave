@@ -1,20 +1,402 @@
 import { o as __toESM } from "../_runtime.mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
-import { i as signOut, r as signIn } from "./client-IWHfIGH2.mjs";
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
-import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
-import { a as getServerFnById, i as TSS_SERVER_FUNCTION, r as createServerFn } from "./ssr.mjs";
-import { a as hasGateSessionMarker, t as GROK_PROVIDERS } from "./server-DVgSAzeK.mjs";
-import { n as useCurrentUser, r as useCurrentUserState, t as AccountGate } from "./use-current-user-CmPHZtz3.mjs";
-import { _ as parseAmount, a as clampClosingDay, b as toBackup, c as eachMonth, d as formatMoney, f as formatMonth, g as isClosingToday, h as formatShare, i as cents, l as formatCloseDay, m as formatPlain, n as PLATFORM_KINDS, o as currentMonth, p as formatPercent, r as authMiddleware, s as dueMonth, t as CURRENCIES, u as formatCompact, v as parseBackup, y as shiftMonth } from "./backup-CGc3vTvo.mjs";
 import { a as Settings, c as ChevronRight, d as Bitcoin, i as Shapes, l as ChevronLeft, n as Wallet, o as PiggyBank, s as Landmark, t as X, u as ChartLine } from "../_libs/lucide-react.mjs";
+import { n as parse, r as format, t as pt } from "../_libs/date-fns.mjs";
 import { t as create } from "../_libs/zustand.mjs";
 import { t as clsx } from "../_libs/clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
+import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
 import { a as Area, c as Bar, d as Tooltip, i as XAxis, l as Cell, n as BarChart, o as Line, r as YAxis, s as CartesianGrid, t as ComposedChart, u as ResponsiveContainer } from "../_libs/recharts+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-DFZYctTA.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-BeRm01Xx.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
+function cents(n) {
+	return Math.round(n * 100) / 100;
+}
+function currentMonth(now = /* @__PURE__ */ new Date()) {
+	return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+function clampClosingDay(day) {
+	if (!Number.isInteger(day) || day < 1 || day > 31) return 1;
+	return day;
+}
+function daysInMonth(ym) {
+	const [year, month] = ym.split("-").map(Number);
+	return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+function dueMonth(closingDay, now = /* @__PURE__ */ new Date()) {
+	const month = currentMonth(now);
+	const day = Math.min(clampClosingDay(closingDay), daysInMonth(month));
+	return now.getDate() >= day ? month : shiftMonth(month, -1);
+}
+function isClosingToday(closingDay, now = /* @__PURE__ */ new Date()) {
+	const month = currentMonth(now);
+	const day = Math.min(clampClosingDay(closingDay), daysInMonth(month));
+	return now.getDate() === day;
+}
+function formatCloseDay(ym, closingDay) {
+	const [year, month] = ym.split("-").map(Number);
+	const day = Math.min(clampClosingDay(closingDay), daysInMonth(ym));
+	const date = new Date(year, month - 1, day);
+	return format(date, "d 'de' LLLL", { locale: pt });
+}
+function shiftMonth(ym, delta) {
+	const [y, m] = ym.split("-").map(Number);
+	const date = new Date(Date.UTC(y, m - 1 + delta, 1));
+	return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+function eachMonth(from, to) {
+	const out = [];
+	let cursor = from;
+	while (cursor <= to && out.length < 600) {
+		out.push(cursor);
+		cursor = shiftMonth(cursor, 1);
+	}
+	return out;
+}
+function isMonth(value) {
+	return /^\d{4}-(0[1-9]|1[0-2])$/.test(value);
+}
+function formatMonth(ym, style = "long") {
+	const date = parse(`${ym}-01`, "yyyy-MM-dd", /* @__PURE__ */ new Date());
+	const text = format(date, style === "long" ? "LLLL 'de' yyyy" : "LLL yy", { locale: pt });
+	return text.charAt(0).toUpperCase() + text.slice(1);
+}
+function formatMoney(value, currency, options) {
+	return new Intl.NumberFormat("pt-PT", {
+		style: "currency",
+		currency,
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2,
+		signDisplay: options?.sign ? "exceptZero" : "auto"
+	}).format(value);
+}
+function formatPlain(value) {
+	return new Intl.NumberFormat("pt-PT", {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2
+	}).format(value);
+}
+function formatPercent(ratio) {
+	return new Intl.NumberFormat("pt-PT", {
+		style: "percent",
+		minimumFractionDigits: 1,
+		maximumFractionDigits: 1,
+		signDisplay: "exceptZero"
+	}).format(ratio);
+}
+function formatShare(ratio) {
+	return new Intl.NumberFormat("pt-PT", {
+		style: "percent",
+		maximumFractionDigits: 0
+	}).format(ratio);
+}
+function formatCompact(value) {
+	return new Intl.NumberFormat("pt-PT", {
+		notation: "compact",
+		maximumFractionDigits: 1
+	}).format(value);
+}
+function parseAmount(raw) {
+	const trimmed = raw.trim().replace(/\s/g, "").replace(/[€$£]/g, "");
+	if (!trimmed || trimmed === "-" || trimmed === "+" || trimmed === "," || trimmed === ".") return null;
+	const normalized = trimmed.includes(",") ? trimmed.replace(/\./g, "").replace(",", ".") : trimmed;
+	if (!/^[+-]?\d+(\.\d+)?$/.test(normalized)) return null;
+	const value = Number(normalized);
+	if (!Number.isFinite(value)) return null;
+	return cents(value);
+}
+var PLATFORM_KINDS = [
+	{
+		id: "corretora",
+		label: "Corretora"
+	},
+	{
+		id: "banco",
+		label: "Banco"
+	},
+	{
+		id: "cripto",
+		label: "Cripto"
+	},
+	{
+		id: "ppr",
+		label: "PPR"
+	},
+	{
+		id: "poupanca",
+		label: "Poupança"
+	},
+	{
+		id: "outro",
+		label: "Outro"
+	}
+];
+var CURRENCIES = [
+	{
+		id: "EUR",
+		label: "Euro"
+	},
+	{
+		id: "USD",
+		label: "Dólar"
+	},
+	{
+		id: "GBP",
+		label: "Libra"
+	},
+	{
+		id: "CHF",
+		label: "Franco suíço"
+	},
+	{
+		id: "BRL",
+		label: "Real"
+	}
+];
+var INCOME_KINDS = [{
+	id: "ordenado",
+	label: "Ordenado"
+}, {
+	id: "extra",
+	label: "Extra"
+}];
+var kinds = new Set(PLATFORM_KINDS.map((kind) => kind.id));
+var currencies = new Set(CURRENCIES.map((currency) => currency.id));
+function asRecord(value) {
+	if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+	return value;
+}
+function asMoney(value) {
+	if (typeof value !== "number" || !Number.isFinite(value)) return null;
+	if (Math.abs(value) > 0xe8d4a51000) return null;
+	return cents(value);
+}
+function parseBackup(raw) {
+	const data = asRecord(raw);
+	if (!data || data.version !== 1) return "Este ficheiro não é uma caderneta Lastro.";
+	if (!Array.isArray(data.platforms) || !Array.isArray(data.entries)) return "Faltam plataformas ou meses no ficheiro.";
+	if (data.platforms.length > 200 || data.entries.length > 8e3) return "O ficheiro é demasiado grande.";
+	if (typeof data.currency !== "string" || !currencies.has(data.currency)) return "A moeda do ficheiro não é reconhecida.";
+	const platforms = [];
+	const seenPlatforms = /* @__PURE__ */ new Set();
+	for (const item of data.platforms) {
+		const row = asRecord(item);
+		if (!row) return "Há uma plataforma inválida no ficheiro.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há uma plataforma sem identificador válido.";
+		if (seenPlatforms.has(row.id)) return "Há plataformas repetidas no ficheiro.";
+		seenPlatforms.add(row.id);
+		if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 80) return "Há uma plataforma com nome inválido.";
+		if (typeof row.kind !== "string" || !kinds.has(row.kind)) return "Há um tipo de plataforma inválido.";
+		const opening = asMoney(row.openingInvested);
+		if (opening == null || opening < 0) return "O capital inicial de uma plataforma é inválido.";
+		platforms.push({
+			id: row.id,
+			name: row.name.trim(),
+			kind: row.kind,
+			openingInvested: opening
+		});
+	}
+	const entries = [];
+	const seenMonths = /* @__PURE__ */ new Set();
+	for (const item of data.entries) {
+		const row = asRecord(item);
+		if (!row) return "Há um mês inválido no ficheiro.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um mês sem identificador válido.";
+		if (typeof row.platformId !== "string" || !seenPlatforms.has(row.platformId)) return "Há um mês ligado a uma plataforma que não existe.";
+		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há um mês com data inválida.";
+		const key = `${row.platformId}|${row.month}`;
+		if (seenMonths.has(key)) return "Há dois registos para a mesma plataforma no mesmo mês.";
+		seenMonths.add(key);
+		const contributed = asMoney(row.contributed);
+		const endValue = asMoney(row.endValue);
+		if (contributed == null || endValue == null || endValue < 0) return "Há um valor mensal inválido.";
+		entries.push({
+			id: row.id,
+			platformId: row.platformId,
+			month: row.month,
+			contributed,
+			endValue
+		});
+	}
+	let monthlyGoal = null;
+	if (data.monthlyGoal != null) {
+		const goal = asMoney(data.monthlyGoal);
+		if (goal == null || goal < 0) return "A meta mensal é inválida.";
+		monthlyGoal = goal > 0 ? goal : null;
+	}
+	let fireGoal = null;
+	if (data.fireGoal != null) {
+		const goal = asMoney(data.fireGoal);
+		if (goal == null || goal < 0) return "O objetivo FIRE é inválido.";
+		fireGoal = goal > 0 ? goal : null;
+	}
+	let closingDay = 1;
+	if (data.closingDay != null) {
+		if (typeof data.closingDay !== "number" || !Number.isInteger(data.closingDay)) return "O dia de fecho é inválido.";
+		closingDay = clampClosingDay(data.closingDay);
+		if (data.closingDay < 1 || data.closingDay > 31) return "O dia de fecho é inválido.";
+	}
+	const expenseTypes = [];
+	const seenTypes = /* @__PURE__ */ new Set();
+	const typeRows = data.expenseTypes == null ? [] : data.expenseTypes;
+	if (!Array.isArray(typeRows)) return "Os tipos de despesa do ficheiro são inválidos.";
+	if (typeRows.length > 40) return "Há tipos de despesa a mais.";
+	for (const item of typeRows) {
+		const row = asRecord(item);
+		if (!row) return "Há um tipo de despesa inválido.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um tipo de despesa sem identificador válido.";
+		if (seenTypes.has(row.id)) return "Há tipos de despesa repetidos.";
+		seenTypes.add(row.id);
+		if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) return "Há um tipo de despesa com nome inválido.";
+		expenseTypes.push({
+			id: row.id,
+			name: row.name.trim()
+		});
+	}
+	const expenses = [];
+	const seenExpenses = /* @__PURE__ */ new Set();
+	const expenseRows = data.expenses == null ? [] : data.expenses;
+	if (!Array.isArray(expenseRows)) return "As despesas do ficheiro são inválidas.";
+	if (expenseRows.length > 8e3) return "O ficheiro é demasiado grande.";
+	for (const item of expenseRows) {
+		const row = asRecord(item);
+		if (!row) return "Há uma despesa inválida.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há uma despesa sem identificador válido.";
+		if (typeof row.typeId !== "string" || !seenTypes.has(row.typeId)) return "Há uma despesa ligada a um tipo que não existe.";
+		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há uma despesa com mês inválido.";
+		const key = `${row.typeId}|${row.month}`;
+		if (seenExpenses.has(key)) return "Há duas despesas do mesmo tipo no mesmo mês.";
+		seenExpenses.add(key);
+		const amount = asMoney(row.amount);
+		if (amount == null || amount < 0) return "Há um valor de despesa inválido.";
+		expenses.push({
+			id: row.id,
+			typeId: row.typeId,
+			month: row.month,
+			amount
+		});
+	}
+	const cashbackCards = [];
+	const seenCards = /* @__PURE__ */ new Set();
+	const cardRows = data.cashbackCards == null ? [] : data.cashbackCards;
+	if (!Array.isArray(cardRows)) return "Os cartões do ficheiro são inválidos.";
+	if (cardRows.length > 30) return "Há cartões a mais.";
+	for (const item of cardRows) {
+		const row = asRecord(item);
+		if (!row) return "Há um cartão inválido.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um cartão sem identificador válido.";
+		if (seenCards.has(row.id)) return "Há cartões repetidos.";
+		seenCards.add(row.id);
+		if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) return "Há um cartão com nome inválido.";
+		cashbackCards.push({
+			id: row.id,
+			name: row.name.trim()
+		});
+	}
+	const cashbacks = [];
+	const seenCash = /* @__PURE__ */ new Set();
+	const cashRows = data.cashbacks == null ? [] : data.cashbacks;
+	if (!Array.isArray(cashRows)) return "O cashback do ficheiro é inválido.";
+	if (cashRows.length > 8e3) return "O ficheiro é demasiado grande.";
+	for (const item of cashRows) {
+		const row = asRecord(item);
+		if (!row) return "Há um cashback inválido.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um cashback sem identificador válido.";
+		if (typeof row.cardId !== "string" || !seenCards.has(row.cardId)) return "Há cashback ligado a um cartão que não existe.";
+		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há cashback com mês inválido.";
+		const key = `${row.cardId}|${row.month}`;
+		if (seenCash.has(key)) return "Há dois cashbacks do mesmo cartão no mesmo mês.";
+		seenCash.add(key);
+		const amount = asMoney(row.amount);
+		if (amount == null || amount < 0) return "Há um valor de cashback inválido.";
+		cashbacks.push({
+			id: row.id,
+			cardId: row.cardId,
+			month: row.month,
+			amount
+		});
+	}
+	const incomeKinds = /* @__PURE__ */ new Set(["ordenado", "extra"]);
+	const incomeSources = [];
+	const seenSources = /* @__PURE__ */ new Set();
+	const sourceRows = data.incomeSources == null ? [] : data.incomeSources;
+	if (!Array.isArray(sourceRows)) return "Os ganhos do ficheiro são inválidos.";
+	if (sourceRows.length > 40) return "Há fontes de rendimento a mais.";
+	for (const item of sourceRows) {
+		const row = asRecord(item);
+		if (!row) return "Há um rendimento inválido.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um rendimento sem identificador válido.";
+		if (seenSources.has(row.id)) return "Há rendimentos repetidos.";
+		seenSources.add(row.id);
+		if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) return "Há um rendimento com nome inválido.";
+		if (typeof row.kind !== "string" || !incomeKinds.has(row.kind)) return "Há um tipo de rendimento inválido.";
+		incomeSources.push({
+			id: row.id,
+			name: row.name.trim(),
+			kind: row.kind
+		});
+	}
+	const incomes = [];
+	const seenIncome = /* @__PURE__ */ new Set();
+	const incomeRows = data.incomes == null ? [] : data.incomes;
+	if (!Array.isArray(incomeRows)) return "Os valores ganhos do ficheiro são inválidos.";
+	if (incomeRows.length > 8e3) return "O ficheiro é demasiado grande.";
+	for (const item of incomeRows) {
+		const row = asRecord(item);
+		if (!row) return "Há um ganho inválido.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um ganho sem identificador válido.";
+		if (typeof row.sourceId !== "string" || !seenSources.has(row.sourceId)) return "Há um ganho ligado a uma fonte que não existe.";
+		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há um ganho com mês inválido.";
+		const key = `${row.sourceId}|${row.month}`;
+		if (seenIncome.has(key)) return "Há dois ganhos da mesma fonte no mesmo mês.";
+		seenIncome.add(key);
+		const amount = asMoney(row.amount);
+		if (amount == null || amount < 0) return "Há um valor de ganho inválido.";
+		incomes.push({
+			id: row.id,
+			sourceId: row.sourceId,
+			month: row.month,
+			amount
+		});
+	}
+	return {
+		currency: data.currency,
+		platforms,
+		entries,
+		expenseTypes,
+		expenses,
+		cashbackCards,
+		cashbacks,
+		incomeSources,
+		incomes,
+		monthlyGoal,
+		fireGoal,
+		closingDay,
+		demo: data.demo === true
+	};
+}
+function toBackup(data) {
+	return {
+		version: 1,
+		app: "lastro",
+		exportedAt: (/* @__PURE__ */ new Date()).toISOString(),
+		currency: data.currency,
+		monthlyGoal: data.monthlyGoal,
+		fireGoal: data.fireGoal,
+		closingDay: data.closingDay,
+		platforms: data.platforms,
+		entries: data.entries,
+		expenseTypes: data.expenseTypes,
+		expenses: data.expenses,
+		cashbackCards: data.cashbackCards,
+		cashbacks: data.cashbacks,
+		incomeSources: data.incomeSources,
+		incomes: data.incomes,
+		demo: data.demo
+	};
+}
 var platforms = [
 	{
 		id: "demo-xtb",
@@ -192,6 +574,38 @@ for (let index = 0; index < 7; index += 1) {
 	const month = `2026-${String(index + 3).padStart(2, "0")}`;
 	cashbacks.push(rebate("demo-universo", month, universo[index]), rebate("demo-ctt-card", month, cttCard[index]), rebate("demo-revolut", month, revolut[index]));
 }
+var incomeSources = [{
+	id: "demo-ordenado",
+	name: "Empresa",
+	kind: "ordenado"
+}, {
+	id: "demo-extra",
+	name: "Freelance",
+	kind: "extra"
+}];
+var extras = [
+	0,
+	150,
+	0,
+	400,
+	0,
+	200,
+	0
+];
+function earned(sourceId, month, amount) {
+	return {
+		id: `demo-${sourceId}-${month}`,
+		sourceId,
+		month,
+		amount
+	};
+}
+var incomes = [];
+for (let index = 0; index < 7; index += 1) {
+	const month = `2026-${String(index + 3).padStart(2, "0")}`;
+	incomes.push(earned("demo-ordenado", month, 2100));
+	if (extras[index] > 0) incomes.push(earned("demo-extra", month, extras[index]));
+}
 function demoLedger() {
 	return {
 		platforms: platforms.map((platform) => ({ ...platform })),
@@ -200,6 +614,8 @@ function demoLedger() {
 		expenses: expenses.map((entry) => ({ ...entry })),
 		cashbackCards: cashbackCards.map((card) => ({ ...card })),
 		cashbacks: cashbacks.map((entry) => ({ ...entry })),
+		incomeSources: incomeSources.map((source) => ({ ...source })),
+		incomes: incomes.map((entry) => ({ ...entry })),
 		currency: "EUR",
 		monthlyGoal: 650,
 		fireGoal: 5e4,
@@ -214,6 +630,8 @@ var empty = {
 	expenses: [],
 	cashbackCards: [],
 	cashbacks: [],
+	incomeSources: [],
+	incomes: [],
 	currency: "EUR",
 	monthlyGoal: null,
 	fireGoal: null,
@@ -222,7 +640,7 @@ var empty = {
 };
 var useLedger = create()((set) => ({
 	...empty,
-	ready: false,
+	ready: true,
 	saving: false,
 	syncError: null,
 	loadAttempt: 0,
@@ -340,6 +758,45 @@ var useLedger = create()((set) => ({
 			amount
 		}] };
 	}),
+	addIncomeSource: (name, kind) => {
+		const id = crypto.randomUUID();
+		set((state) => ({ incomeSources: [...state.incomeSources, {
+			id,
+			name: name.trim(),
+			kind
+		}] }));
+		return id;
+	},
+	renameIncomeSource: (id, name) => set((state) => ({ incomeSources: state.incomeSources.map((source) => source.id === id ? {
+		...source,
+		name: name.trim()
+	} : source) })),
+	setIncomeKind: (id, kind) => set((state) => ({ incomeSources: state.incomeSources.map((source) => source.id === id ? {
+		...source,
+		kind
+	} : source) })),
+	deleteIncomeSource: (id) => set((state) => ({
+		incomeSources: state.incomeSources.filter((source) => source.id !== id),
+		incomes: state.incomes.filter((entry) => entry.sourceId !== id)
+	})),
+	upsertIncome: (input) => set((state) => {
+		const index = state.incomes.findIndex((entry) => entry.sourceId === input.sourceId && entry.month === input.month);
+		const amount = cents(input.amount);
+		if (index >= 0) {
+			const incomes = state.incomes.slice();
+			incomes[index] = {
+				...incomes[index],
+				amount
+			};
+			return { incomes };
+		}
+		return { incomes: [...state.incomes, {
+			id: crypto.randomUUID(),
+			sourceId: input.sourceId,
+			month: input.month,
+			amount
+		}] };
+	}),
 	loadDemo: () => set({
 		...demoLedger(),
 		ready: true
@@ -390,6 +847,8 @@ function selectData(state) {
 		expenses: state.expenses,
 		cashbackCards: state.cashbackCards,
 		cashbacks: state.cashbacks,
+		incomeSources: state.incomeSources,
+		incomes: state.incomes,
 		currency: state.currency,
 		monthlyGoal: state.monthlyGoal,
 		fireGoal: state.fireGoal,
@@ -399,74 +858,6 @@ function selectData(state) {
 }
 function cn(...inputs) {
 	return twMerge(clsx(inputs));
-}
-function resolveSignInGateState(input) {
-	if (input.isPending) return "pending";
-	return input.hasUser ? "signed_in" : "signed_out";
-}
-var subscribeToNothing = () => () => {};
-var noGateSessionOnServer = () => false;
-function SignInGate({ children, fallback }) {
-	const { user, isPending } = useCurrentUserState();
-	const state = resolveSignInGateState({
-		isPending,
-		hasUser: user !== null
-	});
-	if (state === "pending") return null;
-	if (state === "signed_in") return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children });
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children: fallback ?? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignInButtons, {}) });
-}
-function SignInButtons() {
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-		className: "flex w-full max-w-sm flex-col gap-2",
-		children: GROK_PROVIDERS.map((p) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-			type: "button",
-			onClick: () => signIn(p.providerId, { callbackURL: "/" }),
-			className: "w-full cursor-pointer rounded-md border border-neutral-300 px-4 py-2 hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-900",
-			children: ["Continue with ", p.label]
-		}, p.providerId))
-	});
-}
-/**
-* Minimal signed-in identity chip + sign-out. Restyle freely (see the
-* `design-ui` skill). Sign-out is only shown when auth is enabled (the
-* disabled-auth dev user has nothing to sign out of) and the session is not
-* gate-materialized — behind the gate the next request signs the viewer
-* straight back in, so a sign-out control there is a broken loop.
-*/
-function UserButton() {
-	const user = useCurrentUser();
-	const [signingOut, setSigningOut] = (0, import_react.useState)(false);
-	const gateSession = (0, import_react.useSyncExternalStore)(subscribeToNothing, hasGateSessionMarker, noGateSessionOnServer);
-	if (!user) return null;
-	const label = user.displayName ?? user.primaryEmail ?? "Account";
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "flex items-center gap-2",
-		children: [
-			user.profileImageUrl ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("img", {
-				src: user.profileImageUrl,
-				alt: "",
-				className: "h-8 w-8 rounded-full object-cover"
-			}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-				className: "grid h-8 w-8 place-items-center rounded-full bg-black/10 text-sm font-medium dark:bg-white/20",
-				children: label.charAt(0).toUpperCase()
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-				className: "text-sm font-medium",
-				children: label
-			}),
-			!gateSession && /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-				type: "button",
-				disabled: signingOut,
-				onClick: () => {
-					setSigningOut(true);
-					signOut().catch(() => setSigningOut(false));
-				},
-				className: "cursor-pointer text-sm underline-offset-4 opacity-70 hover:underline disabled:cursor-wait disabled:no-underline",
-				children: signingOut ? "Signing out…" : "Sign out"
-			})
-		]
-	});
 }
 var ICONS = {
 	corretora: ChartLine,
@@ -800,7 +1191,7 @@ function SettingsDialog({ open, onOpenChange }) {
 	const importData = useLedger((state) => state.importData);
 	const reset = useLedger((state) => state.reset);
 	const loadDemo = useLedger((state) => state.loadDemo);
-	const hasData = useLedger((state) => state.platforms.length > 0 || state.entries.length > 0 || state.expenseTypes.length > 0 || state.expenses.length > 0 || state.cashbackCards.length > 0 || state.cashbacks.length > 0);
+	const hasData = useLedger((state) => state.platforms.length > 0 || state.entries.length > 0 || state.expenseTypes.length > 0 || state.expenses.length > 0 || state.cashbackCards.length > 0 || state.cashbacks.length > 0 || state.incomeSources.length > 0 || state.incomes.length > 0);
 	const fileRef = (0, import_react.useRef)(null);
 	const [message, setMessage] = (0, import_react.useState)("");
 	const [confirmWipe, setConfirmWipe] = (0, import_react.useState)(false);
@@ -837,14 +1228,10 @@ function SettingsDialog({ open, onOpenChange }) {
 			onOpenChange(next);
 		},
 		title: "Definições",
-		description: "A caderneta está na tua conta. Exporta uma cópia se quiseres um ficheiro teu.",
+		description: "Os números ficam neste dispositivo. Exporta uma cópia se quiseres um ficheiro teu.",
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: "space-y-5",
 			children: [
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "rounded-md bg-chip px-3 py-3",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(UserButton, {})
-				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "mb-2 text-sm font-medium",
 					children: "Moeda"
@@ -1300,6 +1687,36 @@ function cashbackSeries(cards, entries) {
 		total: cashbackTotal(entries, month),
 		rows: cashbackRows(cards, entries, month)
 	}));
+}
+function incomeFor(entries, sourceId, month) {
+	return entries.find((entry) => entry.sourceId === sourceId && entry.month === month) ?? null;
+}
+function incomeTotal(entries, month) {
+	return entries.reduce((sum, entry) => entry.month === month ? cents(sum + entry.amount) : sum, 0);
+}
+function contributedIn(entries, month) {
+	return entries.reduce((sum, entry) => entry.month === month ? cents(sum + entry.contributed) : sum, 0);
+}
+function savingsRate(invested, earned) {
+	if (earned <= 0) return null;
+	return invested / earned;
+}
+function savingsSeries(contributions, incomes) {
+	const months = /* @__PURE__ */ new Set();
+	for (const entry of contributions) months.add(entry.month);
+	for (const entry of incomes) months.add(entry.month);
+	if (months.size === 0) return [];
+	const sorted = [...months].sort();
+	return eachMonth(sorted[0], sorted[sorted.length - 1]).map((month) => {
+		const earned = incomeTotal(incomes, month);
+		const invested = contributedIn(contributions, month);
+		return {
+			month,
+			earned,
+			invested,
+			rate: savingsRate(invested, earned)
+		};
+	});
 }
 function useReducedMotion() {
 	const [reduced, setReduced] = (0, import_react.useState)(false);
@@ -1791,20 +2208,125 @@ function CashbackHistory({ series, cards, currency }) {
 		]
 	});
 }
-function ExpensesPanel({ month, onMonth }) {
+function SavingsChart({ series, currency }) {
+	const reduced = useReducedMotion();
+	const visible = series.filter((point) => point.earned > 0 || point.invested > 0);
+	if (visible.length === 0) return null;
+	const data = visible.map((point) => ({
+		...point,
+		label: formatMonth(point.month, "short")
+	}));
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "font-serif text-2xl",
+				children: "Ganho e investido"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted",
+				children: "O que entrou no mês contra o que foi para investir."
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-4 h-64",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
+					width: "100%",
+					height: "100%",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+						data,
+						margin: {
+							top: 8,
+							right: 4,
+							left: 0,
+							bottom: 0
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+								stroke: "var(--color-line)",
+								vertical: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+								dataKey: "label",
+								minTickGap: 28,
+								tick: {
+									fill: "var(--color-muted)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+								width: 48,
+								tickFormatter: (value) => formatCompact(value),
+								tick: {
+									fill: "var(--color-muted)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Tooltip, { content: ({ active, payload }) => {
+								const point = payload?.[0]?.payload;
+								if (!active || !point) return null;
+								return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-md border border-line bg-card px-3 py-2 text-sm",
+									children: [
+										/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+											className: "font-medium",
+											children: formatMonth(point.month)
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+											className: "mt-1 tabular-nums",
+											children: ["Ganho ", formatMoney(point.earned, currency)]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+											className: "tabular-nums",
+											children: ["Investido ", formatMoney(point.invested, currency)]
+										}),
+										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+											className: "tabular-nums",
+											children: ["Poupança ", point.rate == null ? "—" : formatShare(point.rate)]
+										})
+									]
+								});
+							} }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "earned",
+								fill: "var(--color-forest)",
+								isAnimationActive: !reduced,
+								maxBarSize: 18,
+								radius: 4
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "invested",
+								fill: "var(--color-brass)",
+								isAnimationActive: !reduced,
+								maxBarSize: 18,
+								radius: 4
+							})
+						]
+					})
+				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Legend, {
+					swatch: "bg-forest",
+					label: "Ganho"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Legend, {
+					swatch: "bg-brass",
+					label: "Investido"
+				})]
+			})
+		]
+	});
+}
+function ExpensesPanel({ month, onMonth, onSetup }) {
 	const types = useLedger((state) => state.expenseTypes);
 	const expenses = useLedger((state) => state.expenses);
 	const currency = useLedger((state) => state.currency);
-	const addExpenseType = useLedger((state) => state.addExpenseType);
-	const renameExpenseType = useLedger((state) => state.renameExpenseType);
-	const deleteExpenseType = useLedger((state) => state.deleteExpenseType);
 	const upsertExpense = useLedger((state) => state.upsertExpense);
 	const [drafts, setDrafts] = (0, import_react.useState)({});
-	const [name, setName] = (0, import_react.useState)("");
-	const [nameError, setNameError] = (0, import_react.useState)("");
-	const [editingId, setEditingId] = (0, import_react.useState)(null);
-	const [editingName, setEditingName] = (0, import_react.useState)("");
-	const [confirmId, setConfirmId] = (0, import_react.useState)(null);
 	const [errors, setErrors] = (0, import_react.useState)({});
 	(0, import_react.useEffect)(() => {
 		const next = {};
@@ -1814,7 +2336,6 @@ function ExpensesPanel({ month, onMonth }) {
 		}
 		setDrafts(next);
 		setErrors({});
-		setConfirmId(null);
 	}, [month]);
 	(0, import_react.useEffect)(() => {
 		setDrafts((current) => {
@@ -1832,20 +2353,6 @@ function ExpensesPanel({ month, onMonth }) {
 		expenses,
 		month
 	]);
-	function createType() {
-		const trimmed = name.trim();
-		if (trimmed.length < 1) {
-			setNameError("Dá um nome ao tipo.");
-			return;
-		}
-		if (types.some((type) => type.name.toLocaleLowerCase("pt") === trimmed.toLocaleLowerCase("pt"))) {
-			setNameError("Já existe um tipo com esse nome.");
-			return;
-		}
-		addExpenseType(trimmed);
-		setName("");
-		setNameError("");
-	}
 	const series = expenseSeries(types, expenses);
 	const monthTotal = expenseTotal(expenses, month);
 	const recorded = types.filter((type) => expenseFor(expenses, type.id, month)).length;
@@ -1864,41 +2371,20 @@ function ExpensesPanel({ month, onMonth }) {
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthSwitcher, {
-					month,
-					onChange: onMonth
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-					className: "mt-3 text-sm text-muted",
-					children: types.length === 0 ? "Cria os tipos — renda, alimentação, transportes — e em cada fecho apontas quanto saiu." : `${recorded} de ${types.length} tipos neste mês. Total ${formatMoney(monthTotal, currency)}.`
-				})]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
 				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-						className: "font-serif text-2xl",
-						children: "Tipos"
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthSwitcher, {
+						month,
+						onChange: onMonth
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-						className: "mt-4 flex flex-col gap-2 sm:flex-row",
-						onSubmit: (event) => {
-							event.preventDefault();
-							createType();
-						},
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-							value: name,
-							onChange: (event) => setName(event.target.value),
-							placeholder: "Novo tipo",
-							maxLength: 40,
-							className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							type: "submit",
-							children: "Adicionar"
-						})]
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-3 text-sm text-muted",
+						children: types.length === 0 ? "Ainda sem tipos de despesa." : `${recorded} de ${types.length} tipos neste mês. Total ${formatMoney(monthTotal, currency)}.`
 					}),
-					nameError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						className: "mt-2 text-sm text-loss",
-						children: nameError
+					types.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						className: "mt-4",
+						variant: "soft",
+						onClick: onSetup,
+						children: "Criar nas tabelas"
 					}) : null
 				]
 			}),
@@ -1912,52 +2398,13 @@ function ExpensesPanel({ month, onMonth }) {
 					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
 						className: "rounded-lg border border-line bg-card p-4",
 						children: [
-							editingId === type.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-								className: "flex flex-col gap-2 sm:flex-row",
-								onSubmit: (event) => {
-									event.preventDefault();
-									const trimmed = editingName.trim();
-									if (trimmed.length < 1) return;
-									renameExpenseType(type.id, trimmed);
-									setEditingId(null);
-								},
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-										value: editingName,
-										onChange: (event) => setEditingName(event.target.value),
-										maxLength: 40,
-										className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-										type: "submit",
-										children: "Guardar nome"
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-										variant: "ghost",
-										onClick: () => setEditingId(null),
-										children: "Cancelar"
-									})
-								]
-							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex items-start justify-between gap-3",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									className: "font-medium",
-									children: type.name
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									className: "text-sm text-muted",
-									children: saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"
-								})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-									className: "flex gap-2",
-									children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-										type: "button",
-										className: "h-11 px-2 text-sm font-medium text-forest",
-										onClick: () => {
-											setEditingId(type.id);
-											setEditingName(type.name);
-										},
-										children: "Renomear"
-									})
-								})]
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "font-medium",
+								children: type.name
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-sm text-muted",
+								children: saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
 								className: "mt-3 block",
@@ -1979,9 +2426,9 @@ function ExpensesPanel({ month, onMonth }) {
 								className: "mt-2 text-sm text-loss",
 								children: errors[type.id]
 							}) : null,
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 								className: "mt-3 flex flex-wrap gap-2",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									disabled: !dirty,
 									onClick: () => {
 										if (draft.trim() === "" || parsed == null || parsed < 0) {
@@ -2006,19 +2453,7 @@ function ExpensesPanel({ month, onMonth }) {
 										}));
 									},
 									children: saved ? "Atualizar" : "Guardar"
-								}), confirmId === type.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "danger",
-									onClick: () => deleteExpenseType(type.id),
-									children: "Apagar tipo"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									onClick: () => setConfirmId(null),
-									children: "Cancelar"
-								})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									onClick: () => setConfirmId(type.id),
-									children: "Eliminar tipo"
-								})]
+								})
 							})
 						]
 					}, type.id);
@@ -2043,20 +2478,188 @@ function ExpensesPanel({ month, onMonth }) {
 		]
 	});
 }
-function CashbackPanel({ month, onMonth }) {
+function IncomePanel({ month, onMonth, onSetup }) {
+	const sources = useLedger((state) => state.incomeSources);
+	const incomes = useLedger((state) => state.incomes);
+	const entries = useLedger((state) => state.entries);
+	const currency = useLedger((state) => state.currency);
+	const upsertIncome = useLedger((state) => state.upsertIncome);
+	const [drafts, setDrafts] = (0, import_react.useState)({});
+	const [errors, setErrors] = (0, import_react.useState)({});
+	(0, import_react.useEffect)(() => {
+		const next = {};
+		for (const source of useLedger.getState().incomeSources) {
+			const saved = incomeFor(useLedger.getState().incomes, source.id, month);
+			next[source.id] = saved ? formatPlain(saved.amount) : "";
+		}
+		setDrafts(next);
+		setErrors({});
+	}, [month]);
+	(0, import_react.useEffect)(() => {
+		setDrafts((current) => {
+			let changed = false;
+			const next = { ...current };
+			for (const source of sources) if (next[source.id] == null) {
+				const saved = incomeFor(incomes, source.id, month);
+				next[source.id] = saved ? formatPlain(saved.amount) : "";
+				changed = true;
+			}
+			return changed ? next : current;
+		});
+	}, [
+		sources,
+		incomes,
+		month
+	]);
+	const ordered = [...sources].sort((a, b) => {
+		if (a.kind !== b.kind) return a.kind === "ordenado" ? -1 : 1;
+		return a.name.localeCompare(b.name, "pt");
+	});
+	const earned = incomeTotal(incomes, month);
+	const invested = contributedIn(entries, month);
+	const rate = savingsRate(invested, earned);
+	const series = savingsSeries(entries, incomes);
+	const earnedAll = incomes.reduce((sum, entry) => sum + entry.amount, 0);
+	const rateAll = savingsRate(entries.reduce((sum, entry) => sum + entry.contributed, 0), earnedAll);
+	const recorded = sources.filter((source) => incomeFor(incomes, source.id, month)).length;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-4",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthSwitcher, {
+						month,
+						onChange: onMonth
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-3 text-sm text-muted",
+						children: sources.length === 0 ? "Ainda sem ordenados nem extras." : `${recorded} de ${sources.length} neste mês. Total ${formatMoney(earned, currency)}.`
+					}),
+					sources.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						className: "mt-4",
+						variant: "soft",
+						onClick: onSetup,
+						children: "Criar nas tabelas"
+					}) : null
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-sm text-muted",
+						children: "Poupança investida"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-2 font-serif text-4xl tabular-nums",
+						children: rate == null ? "—" : formatShare(rate)
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-2 text-sm text-muted",
+						children: earned <= 0 ? "Regista o que ganhaste para ver a percentagem." : `Ganhaste ${formatMoney(earned, currency)} e meteste ${formatMoney(invested, currency)} a investir.`
+					}),
+					rateAll != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "mt-2 text-sm text-muted",
+						children: [
+							"No período registado, ",
+							formatShare(rateAll),
+							" de ",
+							formatMoney(earnedAll, currency),
+							"."
+						]
+					}) : null
+				]
+			}),
+			ordered.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+				className: "space-y-3",
+				children: ordered.map((source) => {
+					const draft = drafts[source.id] ?? "";
+					const saved = incomeFor(incomes, source.id, month);
+					const parsed = parseAmount(draft);
+					const dirty = saved ? parsed !== saved.amount : draft.trim() !== "";
+					const label = source.kind === "ordenado" ? "Ordenado" : "Extra";
+					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
+						className: "rounded-lg border border-line bg-card p-4",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "font-medium",
+								children: source.name
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+								className: "text-sm text-muted",
+								children: [
+									label,
+									" · ",
+									saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"
+								]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+								className: "mt-3 block",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "mb-1.5 block text-sm font-medium",
+									children: "Quanto entrou"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+									inputMode: "decimal",
+									value: draft,
+									placeholder: "0,00",
+									onChange: (event) => setDrafts((current) => ({
+										...current,
+										[source.id]: event.target.value
+									})),
+									className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
+								})]
+							}),
+							errors[source.id] ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "mt-2 text-sm text-loss",
+								children: errors[source.id]
+							}) : null,
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+								className: "mt-3 flex flex-wrap gap-2",
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									disabled: !dirty,
+									onClick: () => {
+										if (draft.trim() === "" || parsed == null || parsed < 0) {
+											setErrors((current) => ({
+												...current,
+												[source.id]: "Indica o valor. Se não entrou nada, escreve 0."
+											}));
+											return;
+										}
+										upsertIncome({
+											sourceId: source.id,
+											month,
+											amount: parsed
+										});
+										setDrafts((current) => ({
+											...current,
+											[source.id]: formatPlain(parsed)
+										}));
+										setErrors((current) => ({
+											...current,
+											[source.id]: ""
+										}));
+									},
+									children: saved ? "Atualizar" : "Guardar"
+								})
+							})
+						]
+					}, source.id);
+				})
+			}) : null,
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SavingsChart, {
+				series,
+				currency
+			})
+		]
+	});
+}
+function CashbackPanel({ month, onMonth, onSetup }) {
 	const cards = useLedger((state) => state.cashbackCards);
 	const cashbacks = useLedger((state) => state.cashbacks);
 	const currency = useLedger((state) => state.currency);
-	const addCashbackCard = useLedger((state) => state.addCashbackCard);
-	const renameCashbackCard = useLedger((state) => state.renameCashbackCard);
-	const deleteCashbackCard = useLedger((state) => state.deleteCashbackCard);
 	const upsertCashback = useLedger((state) => state.upsertCashback);
 	const [drafts, setDrafts] = (0, import_react.useState)({});
-	const [name, setName] = (0, import_react.useState)("");
-	const [nameError, setNameError] = (0, import_react.useState)("");
-	const [editingId, setEditingId] = (0, import_react.useState)(null);
-	const [editingName, setEditingName] = (0, import_react.useState)("");
-	const [confirmId, setConfirmId] = (0, import_react.useState)(null);
 	const [errors, setErrors] = (0, import_react.useState)({});
 	(0, import_react.useEffect)(() => {
 		const next = {};
@@ -2066,7 +2669,6 @@ function CashbackPanel({ month, onMonth }) {
 		}
 		setDrafts(next);
 		setErrors({});
-		setConfirmId(null);
 	}, [month]);
 	(0, import_react.useEffect)(() => {
 		setDrafts((current) => {
@@ -2084,20 +2686,6 @@ function CashbackPanel({ month, onMonth }) {
 		cashbacks,
 		month
 	]);
-	function createCard() {
-		const trimmed = name.trim();
-		if (trimmed.length < 1) {
-			setNameError("Dá um nome ao cartão.");
-			return;
-		}
-		if (cards.some((card) => card.name.toLocaleLowerCase("pt") === trimmed.toLocaleLowerCase("pt"))) {
-			setNameError("Já existe um cartão com esse nome.");
-			return;
-		}
-		addCashbackCard(trimmed);
-		setName("");
-		setNameError("");
-	}
 	const rows = cashbackRows(cards, cashbacks, month);
 	const series = cashbackSeries(cards, cashbacks);
 	const total = cashbackTotal(cashbacks, month);
@@ -2111,41 +2699,20 @@ function CashbackPanel({ month, onMonth }) {
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthSwitcher, {
-					month,
-					onChange: onMonth
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-					className: "mt-3 text-sm text-muted",
-					children: cards.length === 0 ? "Cria os cartões e, no fecho, aponta o cashback que cada um deu." : leaders.length > 0 ? `${recorded} de ${cards.length} cartões. Total ${formatMoney(total, currency)}.` : "Ainda sem cashback neste mês."
-				})]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
 				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-						className: "font-serif text-2xl",
-						children: "Cartões"
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthSwitcher, {
+						month,
+						onChange: onMonth
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-						className: "mt-4 flex flex-col gap-2 sm:flex-row",
-						onSubmit: (event) => {
-							event.preventDefault();
-							createCard();
-						},
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-							value: name,
-							onChange: (event) => setName(event.target.value),
-							placeholder: "Novo cartão",
-							maxLength: 40,
-							className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							type: "submit",
-							children: "Adicionar"
-						})]
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-3 text-sm text-muted",
+						children: cards.length === 0 ? "Ainda sem cartões." : leaders.length > 0 ? `${recorded} de ${cards.length} cartões. Total ${formatMoney(total, currency)}.` : "Ainda sem cashback neste mês."
 					}),
-					nameError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						className: "mt-2 text-sm text-loss",
-						children: nameError
+					cards.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						className: "mt-4",
+						variant: "soft",
+						onClick: onSetup,
+						children: "Criar nas tabelas"
 					}) : null
 				]
 			}),
@@ -2159,49 +2726,13 @@ function CashbackPanel({ month, onMonth }) {
 					return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
 						className: "rounded-lg border border-line bg-card p-4",
 						children: [
-							editingId === card.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-								className: "flex flex-col gap-2 sm:flex-row",
-								onSubmit: (event) => {
-									event.preventDefault();
-									const trimmed = editingName.trim();
-									if (trimmed.length < 1) return;
-									renameCashbackCard(card.id, trimmed);
-									setEditingId(null);
-								},
-								children: [
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-										value: editingName,
-										onChange: (event) => setEditingName(event.target.value),
-										maxLength: 40,
-										className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-										type: "submit",
-										children: "Guardar nome"
-									}),
-									/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-										variant: "ghost",
-										onClick: () => setEditingId(null),
-										children: "Cancelar"
-									})
-								]
-							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "flex items-start justify-between gap-3",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									className: "font-medium",
-									children: card.name
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									className: "text-sm text-muted",
-									children: saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"
-								})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-									type: "button",
-									className: "h-11 px-2 text-sm font-medium text-forest",
-									onClick: () => {
-										setEditingId(card.id);
-										setEditingName(card.name);
-									},
-									children: "Renomear"
-								})]
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "font-medium",
+								children: card.name
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-sm text-muted",
+								children: saved && !dirty ? "Registado" : dirty ? "Por guardar" : "Por registar"
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
 								className: "mt-3 block",
@@ -2223,9 +2754,9 @@ function CashbackPanel({ month, onMonth }) {
 								className: "mt-2 text-sm text-loss",
 								children: errors[card.id]
 							}) : null,
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 								className: "mt-3 flex flex-wrap gap-2",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									disabled: !dirty,
 									onClick: () => {
 										if (draft.trim() === "" || parsed == null || parsed < 0) {
@@ -2250,19 +2781,7 @@ function CashbackPanel({ month, onMonth }) {
 										}));
 									},
 									children: saved ? "Atualizar" : "Guardar"
-								}), confirmId === card.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "danger",
-									onClick: () => deleteCashbackCard(card.id),
-									children: "Apagar cartão"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									onClick: () => setConfirmId(null),
-									children: "Cancelar"
-								})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-									variant: "ghost",
-									onClick: () => setConfirmId(card.id),
-									children: "Eliminar cartão"
-								})]
+								})
 							})
 						]
 					}, card.id);
@@ -2315,7 +2834,7 @@ function isDirty(draft, saved) {
 	const endValue = parseAmount(draft.endValue);
 	return contributed !== saved.contributed || endValue !== saved.endValue;
 }
-function MonthPanel({ month, onMonth, onAddPlatform }) {
+function MonthPanel({ month, onMonth, onSetup }) {
 	const platforms = useLedger((state) => state.platforms);
 	const entries = useLedger((state) => state.entries);
 	const currency = useLedger((state) => state.currency);
@@ -2354,12 +2873,12 @@ function MonthPanel({ month, onMonth, onAddPlatform }) {
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "mt-2 text-sm text-muted",
-				children: "Cria a primeira e depois apontas o mês."
+				children: "Cria-as nas tabelas e depois apontas o mês."
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 				className: "mt-4",
-				onClick: onAddPlatform,
-				children: "Adicionar plataforma"
+				onClick: onSetup,
+				children: "Ir para tabelas"
 			})
 		]
 	});
@@ -2607,251 +3126,15 @@ function MonthPanel({ month, onMonth, onAddPlatform }) {
 		})]
 	});
 }
-function PlatformsPanel({ selectedId, onOpen, onClose, onAdd, onEdit, onGoMonth }) {
-	const platforms = useLedger((state) => state.platforms);
-	const entries = useLedger((state) => state.entries);
-	const currency = useLedger((state) => state.currency);
-	const selected = platforms.find((platform) => platform.id === selectedId) ?? null;
-	if (selected) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PlatformDetail, {
-		platformId: selected.id,
-		onClose,
-		onEdit: () => onEdit(selected.id),
-		onGoMonth
-	});
-	const ranked = [...platforms].sort((a, b) => a.name.localeCompare(b.name, "pt"));
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "space-y-4",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-			className: "flex items-center justify-between gap-3",
-			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-				className: "font-serif text-2xl",
-				children: "Plataformas"
-			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-				onClick: onAdd,
-				children: "Nova"
-			})]
-		}), ranked.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", {
-			className: "rounded-lg border border-line bg-card p-5",
-			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "text-sm text-muted",
-				children: "Ainda não adicionaste nenhuma."
-			})
-		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
-			className: "space-y-2",
-			children: ranked.map((platform) => {
-				const snap = platformSnapshot(platform, entries);
-				const kind = PLATFORM_KINDS.find((item) => item.id === platform.kind)?.label;
-				return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-					type: "button",
-					onClick: () => onOpen(platform.id),
-					className: "flex w-full items-center gap-3 rounded-lg border border-line bg-card p-3 text-left hover:border-forest",
-					children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(KindMark, { kind: platform.kind }),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-							className: "min-w-0 flex-1",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "block truncate font-medium",
-								children: platform.name
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-								className: "block text-sm text-muted",
-								children: [kind, snap.months > 0 ? ` · ${snap.months} ${snap.months === 1 ? "mês" : "meses"}` : ""]
-							})]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
-							className: "text-right",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "block font-serif text-lg tabular-nums",
-								children: snap.value == null ? "—" : formatMoney(snap.value, currency)
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-								className: "block text-sm text-muted",
-								children: snap.invested > 0 || snap.months > 0 ? `investido ${formatMoney(snap.invested, currency)}` : "sem capital"
-							})]
-						})
-					]
-				}) }, platform.id);
-			})
-		})]
-	});
-}
-function PlatformDetail({ platformId, onClose, onEdit, onGoMonth }) {
-	const platform = useLedger((state) => state.platforms.find((item) => item.id === platformId));
-	const entries = useLedger((state) => state.entries);
-	const currency = useLedger((state) => state.currency);
-	const deletePlatform = useLedger((state) => state.deletePlatform);
-	const deleteEntry = useLedger((state) => state.deleteEntry);
-	const [confirmPlatform, setConfirmPlatform] = (0, import_react.useState)(false);
-	const [confirmEntry, setConfirmEntry] = (0, import_react.useState)(null);
-	if (!platform) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-		className: "rounded-lg border border-line bg-card p-5",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Esta plataforma já não existe." }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-			className: "mt-4",
-			variant: "soft",
-			onClick: onClose,
-			children: "Voltar"
-		})]
-	});
-	const snap = platformSnapshot(platform, entries);
-	const rows = platformRows(platform, entries);
-	const kind = PLATFORM_KINDS.find((item) => item.id === platform.kind)?.label;
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "space-y-4",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-				type: "button",
-				onClick: onClose,
-				className: "inline-flex h-11 items-center text-sm font-medium text-forest",
-				children: "Voltar às plataformas"
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-				className: "rounded-lg border border-line bg-card p-5",
-				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "flex items-start gap-3",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(KindMark, { kind: platform.kind }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "min-w-0 flex-1",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-								className: "truncate font-serif text-3xl",
-								children: platform.name
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-								className: "text-sm text-muted",
-								children: kind
-							})]
-						})]
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3",
-						children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Stat, {
-								label: "Investido",
-								value: formatMoney(snap.invested, currency)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Stat, {
-								label: "Valor",
-								value: snap.value == null ? "—" : formatMoney(snap.value, currency)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Stat, {
-								label: "Resultado",
-								value: snap.result == null ? "—" : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
-									value: snap.result,
-									currency
-								}), snap.resultRatio != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-									className: "ml-2 text-sm text-muted",
-									children: formatPercent(snap.resultRatio)
-								}) : null] })
-							})
-						]
-					}),
-					platform.openingInvested > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-						className: "mt-4 text-sm text-muted",
-						children: [
-							"Capital inicial ",
-							formatMoney(platform.openingInvested, currency),
-							", antes do primeiro mês registado."
-						]
-					}) : null,
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "mt-4 flex flex-wrap gap-2",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							variant: "soft",
-							onClick: onEdit,
-							children: "Editar"
-						}), confirmPlatform ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							variant: "danger",
-							onClick: () => {
-								deletePlatform(platform.id);
-								onClose();
-							},
-							children: "Apagar plataforma"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							variant: "ghost",
-							onClick: () => setConfirmPlatform(false),
-							children: "Cancelar"
-						})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-							variant: "ghost",
-							onClick: () => setConfirmPlatform(true),
-							children: "Apagar"
-						})]
-					})
-				]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-				className: "rounded-lg border border-line bg-card px-4 py-2 sm:px-5",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
-					className: "py-3 font-serif text-2xl",
-					children: "Meses"
-				}), rows.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-					className: "pb-4 text-sm text-muted",
-					children: "Ainda não há um fim de mês nesta plataforma."
-				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", { children: rows.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
-					className: "border-t border-line py-3 first:border-t-0",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "flex items-start justify-between gap-3",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
-							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-								type: "button",
-								onClick: () => onGoMonth(row.month),
-								className: "font-medium text-forest",
-								children: formatMonth(row.month)
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-								className: "mt-1 text-sm tabular-nums",
-								children: ["Aporte ", formatMoney(row.contributed, currency, { sign: true })]
-							}),
-							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-								className: "text-sm",
-								children: ["Mercado ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
-									value: row.market,
-									currency
-								})]
-							})
-						] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-							className: "font-serif text-xl tabular-nums",
-							children: formatMoney(row.endValue, currency)
-						})]
-					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-						className: "mt-2",
-						children: confirmEntry === row.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "flex gap-2",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-								variant: "danger",
-								onClick: () => deleteEntry(row.id),
-								children: "Eliminar mês"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-								variant: "ghost",
-								onClick: () => setConfirmEntry(null),
-								children: "Cancelar"
-							})]
-						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-							type: "button",
-							onClick: () => setConfirmEntry(row.id),
-							className: "text-sm text-muted hover:text-loss",
-							children: "Eliminar"
-						})
-					})]
-				}, row.id)) })]
-			})
-		]
-	});
-}
-function Stat({ label, value }) {
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-		className: "rounded-md bg-paper px-3 py-3",
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-			className: "text-sm text-muted",
-			children: label
-		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-			className: "mt-1 font-medium tabular-nums",
-			children: value
-		})]
-	});
-}
-function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onOpenPlatform }) {
+function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onIncome, onOpenPlatform }) {
 	const platforms = useLedger((state) => state.platforms);
 	const entries = useLedger((state) => state.entries);
 	const expenseTypes = useLedger((state) => state.expenseTypes);
 	const expenses = useLedger((state) => state.expenses);
 	const cashbackCards = useLedger((state) => state.cashbackCards);
 	const cashbacks = useLedger((state) => state.cashbacks);
+	const incomeSources = useLedger((state) => state.incomeSources);
+	const incomes = useLedger((state) => state.incomes);
 	const currency = useLedger((state) => state.currency);
 	const monthlyGoal = useLedger((state) => state.monthlyGoal);
 	const series = buildSeries(platforms, entries);
@@ -2867,7 +3150,13 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onOpe
 	const cashTotal = cashbackTotal(cashbacks, month);
 	const cashLeaders = cashRows.filter((row) => row.amount > 0 && row.amount === cashRows[0]?.amount);
 	const pendingCash = cashbackCards.filter((card) => !cashbackFor(cashbacks, card.id, month));
-	const monthContributed = entries.reduce((sum, entry) => entry.month === month ? cents(sum + entry.contributed) : sum, 0);
+	const monthContributed = contributedIn(entries, month);
+	const earned = incomeTotal(incomes, month);
+	const saveRate = savingsRate(monthContributed, earned);
+	const pendingIncome = incomeSources.filter((source) => !incomeFor(incomes, source.id, month));
+	const period = savingsSeries(entries, incomes);
+	const earnedAll = period.reduce((sum, point) => sum + point.earned, 0);
+	const rateAll = savingsRate(period.reduce((sum, point) => sum + point.invested, 0), earnedAll);
 	const ranked = platforms.map((platform) => ({
 		platform,
 		snap: platformSnapshot(platform, entries)
@@ -2968,6 +3257,47 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onOpe
 					})
 				]
 			}),
+			incomeSources.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-sm text-muted",
+						children: "Poupança investida"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-2 font-serif text-4xl tabular-nums",
+						children: saveRate == null ? "—" : formatShare(saveRate)
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-2 text-sm text-muted",
+						children: earned <= 0 ? "Ainda sem ganhos neste mês." : `Ganhaste ${formatMoney(earned, currency)} e investiste ${formatMoney(monthContributed, currency)}.`
+					}),
+					pendingIncome.length > 0 && earned > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "mt-2 text-sm text-muted",
+						children: [
+							"Falta ",
+							pendingIncome.map((source) => source.name).join(", "),
+							"."
+						]
+					}) : null,
+					rateAll != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "mt-2 text-sm text-muted",
+						children: [
+							"No período, ",
+							formatShare(rateAll),
+							" de ",
+							formatMoney(earnedAll, currency),
+							"."
+						]
+					}) : null,
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						className: "mt-4",
+						variant: "soft",
+						onClick: onIncome,
+						children: "Registar ganhos"
+					})
+				]
+			}) : null,
 			expenseTypes.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
 				children: [
@@ -3255,6 +3585,694 @@ function monthStory(focus, platformCount, currency) {
 	if (!focus || focus.recorded === 0) return "Este mês ainda não tem registos. Em cada plataforma, indica o aporte e o valor no fim do mês.";
 	return `Neste mês ${focus.contributed === 0 ? "não houve aportes" : focus.contributed > 0 ? `entraram ${formatMoney(focus.contributed, currency)}` : `saíram ${formatMoney(Math.abs(focus.contributed), currency)}`} e ${focus.market === 0 ? "o mercado não mexeu o saldo" : focus.market > 0 ? `o mercado somou ${formatMoney(focus.market, currency)}` : `o mercado tirou ${formatMoney(Math.abs(focus.market), currency)}`}.${focus.recorded < platformCount ? ` ${focus.recorded} de ${platformCount} plataformas.` : ""}`;
 }
+function PlatformsPanel({ selectedId, onOpen, onClose, onAdd, onEdit, onGoMonth }) {
+	const platforms = useLedger((state) => state.platforms);
+	const entries = useLedger((state) => state.entries);
+	const currency = useLedger((state) => state.currency);
+	const selected = platforms.find((platform) => platform.id === selectedId) ?? null;
+	if (selected) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PlatformDetail, {
+		platformId: selected.id,
+		onClose,
+		onEdit: () => onEdit(selected.id),
+		onGoMonth
+	});
+	const ranked = [...platforms].sort((a, b) => a.name.localeCompare(b.name, "pt"));
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-4",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex items-center justify-between gap-3",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "font-serif text-2xl",
+				children: "Plataformas"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+				onClick: onAdd,
+				children: "Nova"
+			})]
+		}), ranked.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("section", {
+			className: "rounded-lg border border-line bg-card p-5",
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "text-sm text-muted",
+				children: "Ainda não adicionaste nenhuma."
+			})
+		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+			className: "space-y-2",
+			children: ranked.map((platform) => {
+				const snap = platformSnapshot(platform, entries);
+				const kind = PLATFORM_KINDS.find((item) => item.id === platform.kind)?.label;
+				return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					type: "button",
+					onClick: () => onOpen(platform.id),
+					className: "flex w-full items-center gap-3 rounded-lg border border-line bg-card p-3 text-left hover:border-forest",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)(KindMark, { kind: platform.kind }),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+							className: "min-w-0 flex-1",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "block truncate font-medium",
+								children: platform.name
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "block text-sm text-muted",
+								children: [kind, snap.months > 0 ? ` · ${snap.months} ${snap.months === 1 ? "mês" : "meses"}` : ""]
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+							className: "text-right",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "block font-serif text-lg tabular-nums",
+								children: snap.value == null ? "—" : formatMoney(snap.value, currency)
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: "block text-sm text-muted",
+								children: snap.invested > 0 || snap.months > 0 ? `investido ${formatMoney(snap.invested, currency)}` : "sem capital"
+							})]
+						})
+					]
+				}) }, platform.id);
+			})
+		})]
+	});
+}
+function PlatformDetail({ platformId, onClose, onEdit, onGoMonth }) {
+	const platform = useLedger((state) => state.platforms.find((item) => item.id === platformId));
+	const entries = useLedger((state) => state.entries);
+	const currency = useLedger((state) => state.currency);
+	const deletePlatform = useLedger((state) => state.deletePlatform);
+	const deleteEntry = useLedger((state) => state.deleteEntry);
+	const [confirmPlatform, setConfirmPlatform] = (0, import_react.useState)(false);
+	const [confirmEntry, setConfirmEntry] = (0, import_react.useState)(null);
+	if (!platform) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-5",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Esta plataforma já não existe." }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+			className: "mt-4",
+			variant: "soft",
+			onClick: onClose,
+			children: "Voltar"
+		})]
+	});
+	const snap = platformSnapshot(platform, entries);
+	const rows = platformRows(platform, entries);
+	const kind = PLATFORM_KINDS.find((item) => item.id === platform.kind)?.label;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-4",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+				type: "button",
+				onClick: onClose,
+				className: "inline-flex h-11 items-center text-sm font-medium text-forest",
+				children: "Voltar às plataformas"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-line bg-card p-5",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex items-start gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(KindMark, { kind: platform.kind }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "min-w-0 flex-1",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+								className: "truncate font-serif text-3xl",
+								children: platform.name
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-sm text-muted",
+								children: kind
+							})]
+						})]
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3",
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Stat, {
+								label: "Investido",
+								value: formatMoney(snap.invested, currency)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Stat, {
+								label: "Valor",
+								value: snap.value == null ? "—" : formatMoney(snap.value, currency)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Stat, {
+								label: "Resultado",
+								value: snap.result == null ? "—" : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
+									value: snap.result,
+									currency
+								}), snap.resultRatio != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "ml-2 text-sm text-muted",
+									children: formatPercent(snap.resultRatio)
+								}) : null] })
+							})
+						]
+					}),
+					platform.openingInvested > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "mt-4 text-sm text-muted",
+						children: [
+							"Capital inicial ",
+							formatMoney(platform.openingInvested, currency),
+							", antes do primeiro mês registado."
+						]
+					}) : null,
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-4 flex flex-wrap gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "soft",
+							onClick: onEdit,
+							children: "Editar"
+						}), confirmPlatform ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "danger",
+							onClick: () => {
+								deletePlatform(platform.id);
+								onClose();
+							},
+							children: "Apagar plataforma"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "ghost",
+							onClick: () => setConfirmPlatform(false),
+							children: "Cancelar"
+						})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "ghost",
+							onClick: () => setConfirmPlatform(true),
+							children: "Apagar"
+						})]
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-line bg-card px-4 py-2 sm:px-5",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+					className: "py-3 font-serif text-2xl",
+					children: "Meses"
+				}), rows.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "pb-4 text-sm text-muted",
+					children: "Ainda não há um fim de mês nesta plataforma."
+				}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", { children: rows.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
+					className: "border-t border-line py-3 first:border-t-0",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex items-start justify-between gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+								type: "button",
+								onClick: () => onGoMonth(row.month),
+								className: "font-medium text-forest",
+								children: formatMonth(row.month)
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+								className: "mt-1 text-sm tabular-nums",
+								children: ["Aporte ", formatMoney(row.contributed, currency, { sign: true })]
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+								className: "text-sm",
+								children: ["Mercado ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
+									value: row.market,
+									currency
+								})]
+							})
+						] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "font-serif text-xl tabular-nums",
+							children: formatMoney(row.endValue, currency)
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-2",
+						children: confirmEntry === row.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "danger",
+								onClick: () => deleteEntry(row.id),
+								children: "Eliminar mês"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								onClick: () => setConfirmEntry(null),
+								children: "Cancelar"
+							})]
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							onClick: () => setConfirmEntry(row.id),
+							className: "text-sm text-muted hover:text-loss",
+							children: "Eliminar"
+						})
+					})]
+				}, row.id)) })]
+			})
+		]
+	});
+}
+function Stat({ label, value }) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "rounded-md bg-paper px-3 py-3",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "text-sm text-muted",
+			children: label
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "mt-1 font-medium tabular-nums",
+			children: value
+		})]
+	});
+}
+function TablesPanel({ selectedId, onOpen, onClose, onGoMonth, onDemo }) {
+	const platforms = useLedger((state) => state.platforms);
+	const [open, setOpen] = (0, import_react.useState)(false);
+	const [editingId, setEditingId] = (0, import_react.useState)(null);
+	const editing = platforms.find((platform) => platform.id === editingId) ?? null;
+	function addPlatform() {
+		setEditingId(null);
+		setOpen(true);
+	}
+	function editPlatform(id) {
+		setEditingId(id);
+		setOpen(true);
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [selectedId ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PlatformsPanel, {
+		selectedId,
+		onOpen,
+		onClose,
+		onAdd: addPlatform,
+		onEdit: editPlatform,
+		onGoMonth
+	}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Catalog, {
+		onOpen,
+		onAdd: addPlatform,
+		onEdit: editPlatform,
+		onDemo
+	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PlatformDialog, {
+		open,
+		platform: editing,
+		onOpenChange: (next) => {
+			setOpen(next);
+			if (!next) setEditingId(null);
+		}
+	})] });
+}
+function Catalog({ onOpen, onAdd, onEdit, onDemo }) {
+	const platforms = useLedger((state) => state.platforms);
+	const sources = useLedger((state) => state.incomeSources);
+	const types = useLedger((state) => state.expenseTypes);
+	const cards = useLedger((state) => state.cashbackCards);
+	const currency = useLedger((state) => state.currency);
+	const empty = platforms.length + sources.length + types.length + cards.length === 0;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-4",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+						className: "font-serif text-2xl",
+						children: "Tabelas"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-2 text-sm text-muted",
+						children: "Crias isto uma vez: onde está o dinheiro, o que ganhas, os tipos de despesa e os cartões. No fecho só apontas os valores do mês."
+					}),
+					empty ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						className: "mt-4",
+						variant: "ghost",
+						onClick: onDemo,
+						children: "Ver um exemplo"
+					}) : null
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PlatformTable, {
+				currency,
+				onOpen,
+				onAdd,
+				onEdit
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(IncomeTable, {}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SimpleTable, {
+				title: "Despesas",
+				hint: "Renda, alimentação, transportes.",
+				placeholder: "Novo tipo",
+				empty: "Ainda sem tipos.",
+				rows: types,
+				onAdd: (name) => useLedger.getState().addExpenseType(name),
+				onRename: (id, name) => useLedger.getState().renameExpenseType(id, name),
+				onDelete: (id) => useLedger.getState().deleteExpenseType(id)
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SimpleTable, {
+				title: "Cartões",
+				hint: "Os cartões com cashback.",
+				placeholder: "Novo cartão",
+				empty: "Ainda sem cartões.",
+				rows: cards,
+				onAdd: (name) => useLedger.getState().addCashbackCard(name),
+				onRename: (id, name) => useLedger.getState().renameCashbackCard(id, name),
+				onDelete: (id) => useLedger.getState().deleteCashbackCard(id)
+			})
+		]
+	});
+}
+function PlatformTable({ currency, onOpen, onAdd, onEdit }) {
+	const platforms = useLedger((state) => state.platforms);
+	const deletePlatform = useLedger((state) => state.deletePlatform);
+	const [confirmId, setConfirmId] = (0, import_react.useState)(null);
+	const ranked = [...platforms].sort((a, b) => a.name.localeCompare(b.name, "pt"));
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "font-serif text-2xl",
+				children: "Plataformas"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted",
+				children: "O capital inicial é o que já tinhas investido antes do primeiro mês."
+			})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+				onClick: onAdd,
+				children: "Nova"
+			})]
+		}), ranked.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "mt-4 text-sm text-muted",
+			children: "Ainda sem plataformas."
+		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+			className: "mt-4 space-y-2",
+			children: ranked.map((platform) => {
+				const kind = PLATFORM_KINDS.find((item) => item.id === platform.kind)?.label;
+				return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
+					className: "rounded-lg border border-line p-3",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex items-center gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							onClick: () => onOpen(platform.id),
+							className: "flex min-w-0 flex-1 items-center gap-3 text-left",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(KindMark, { kind: platform.kind }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "min-w-0",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "block truncate font-medium",
+									children: platform.name
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+									className: "block text-sm text-muted",
+									children: [
+										kind,
+										" · inicial ",
+										formatMoney(platform.openingInvested, currency)
+									]
+								})]
+							})]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: "h-11 px-2 text-sm font-medium text-forest",
+							onClick: () => onEdit(platform.id),
+							children: "Editar"
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-2",
+						children: confirmId === platform.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "danger",
+								onClick: () => deletePlatform(platform.id),
+								children: "Apagar"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								onClick: () => setConfirmId(null),
+								children: "Cancelar"
+							})]
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "ghost",
+							onClick: () => setConfirmId(platform.id),
+							children: "Eliminar"
+						})
+					})]
+				}, platform.id);
+			})
+		})]
+	});
+}
+function IncomeTable() {
+	const sources = useLedger((state) => state.incomeSources);
+	const addIncomeSource = useLedger((state) => state.addIncomeSource);
+	const renameIncomeSource = useLedger((state) => state.renameIncomeSource);
+	const setIncomeKind = useLedger((state) => state.setIncomeKind);
+	const deleteIncomeSource = useLedger((state) => state.deleteIncomeSource);
+	const [name, setName] = (0, import_react.useState)("");
+	const [kind, setKind] = (0, import_react.useState)("ordenado");
+	const [error, setError] = (0, import_react.useState)("");
+	const [editingId, setEditingId] = (0, import_react.useState)(null);
+	const [editingName, setEditingName] = (0, import_react.useState)("");
+	const [confirmId, setConfirmId] = (0, import_react.useState)(null);
+	const ordered = [...sources].sort((a, b) => {
+		if (a.kind !== b.kind) return a.kind === "ordenado" ? -1 : 1;
+		return a.name.localeCompare(b.name, "pt");
+	});
+	function add() {
+		const trimmed = name.trim();
+		if (trimmed.length < 1) {
+			setError("Dá um nome, por exemplo Empresa.");
+			return;
+		}
+		if (sources.some((source) => source.name.toLocaleLowerCase("pt") === trimmed.toLocaleLowerCase("pt"))) {
+			setError("Já existe um ganho com esse nome.");
+			return;
+		}
+		addIncomeSource(trimmed, kind);
+		setName("");
+		setError("");
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "font-serif text-2xl",
+				children: "Ganhos"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted",
+				children: "Ordenados e extras. O valor de cada mês fica no separador Ganhos."
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-4 grid grid-cols-2 gap-1 rounded-md bg-paper-2 p-1",
+				children: INCOME_KINDS.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+					type: "button",
+					"aria-pressed": kind === item.id,
+					onClick: () => setKind(item.id),
+					className: cn("h-11 rounded-md text-sm font-medium", kind === item.id ? "bg-card text-ink" : "text-muted"),
+					children: item.label
+				}, item.id))
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				className: "mt-3 flex flex-col gap-2 sm:flex-row",
+				onSubmit: (event) => {
+					event.preventDefault();
+					add();
+				},
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+					value: name,
+					onChange: (event) => setName(event.target.value),
+					placeholder: kind === "ordenado" ? "Nome do ordenado" : "Nome do extra",
+					maxLength: 40,
+					className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					children: "Adicionar"
+				})]
+			}),
+			error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-2 text-sm text-loss",
+				children: error
+			}) : null,
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+				className: "mt-4 space-y-2",
+				children: ordered.map((source) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
+					className: "rounded-lg border border-line p-3",
+					children: [
+						editingId === source.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+							className: "flex flex-col gap-2 sm:flex-row",
+							onSubmit: (event) => {
+								event.preventDefault();
+								const trimmed = editingName.trim();
+								if (trimmed.length < 1) return;
+								renameIncomeSource(source.id, trimmed);
+								setEditingId(null);
+							},
+							children: [
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+									value: editingName,
+									onChange: (event) => setEditingName(event.target.value),
+									maxLength: 40,
+									className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									type: "submit",
+									children: "Guardar"
+								}),
+								/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									onClick: () => setEditingId(null),
+									children: "Cancelar"
+								})
+							]
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex items-center justify-between gap-3",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "font-medium",
+								children: source.name
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-sm text-muted",
+								children: source.kind === "ordenado" ? "Ordenado" : "Extra"
+							})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+								type: "button",
+								className: "h-11 px-2 text-sm font-medium text-forest",
+								onClick: () => {
+									setEditingId(source.id);
+									setEditingName(source.name);
+								},
+								children: "Renomear"
+							})]
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "mt-3 grid grid-cols-2 gap-1 rounded-md bg-paper-2 p-1",
+							children: INCOME_KINDS.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+								type: "button",
+								"aria-pressed": source.kind === item.id,
+								onClick: () => setIncomeKind(source.id, item.id),
+								className: cn("h-10 rounded-md text-sm font-medium", source.kind === item.id ? "bg-card text-ink" : "text-muted"),
+								children: item.label
+							}, item.id))
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "mt-2",
+							children: confirmId === source.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+								className: "flex gap-2",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "danger",
+									onClick: () => deleteIncomeSource(source.id),
+									children: "Apagar"
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "ghost",
+									onClick: () => setConfirmId(null),
+									children: "Cancelar"
+								})]
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								onClick: () => setConfirmId(source.id),
+								children: "Eliminar"
+							})
+						})
+					]
+				}, source.id))
+			})
+		]
+	});
+}
+function SimpleTable({ title, hint, placeholder, empty, rows, onAdd, onRename, onDelete }) {
+	const [name, setName] = (0, import_react.useState)("");
+	const [error, setError] = (0, import_react.useState)("");
+	const [editingId, setEditingId] = (0, import_react.useState)(null);
+	const [editingName, setEditingName] = (0, import_react.useState)("");
+	const [confirmId, setConfirmId] = (0, import_react.useState)(null);
+	function add() {
+		const trimmed = name.trim();
+		if (trimmed.length < 1) {
+			setError("Dá um nome.");
+			return;
+		}
+		if (rows.some((row) => row.name.toLocaleLowerCase("pt") === trimmed.toLocaleLowerCase("pt"))) {
+			setError("Já existe um com esse nome.");
+			return;
+		}
+		onAdd(trimmed);
+		setName("");
+		setError("");
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "font-serif text-2xl",
+				children: title
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted",
+				children: hint
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				className: "mt-4 flex flex-col gap-2 sm:flex-row",
+				onSubmit: (event) => {
+					event.preventDefault();
+					add();
+				},
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+					value: name,
+					onChange: (event) => setName(event.target.value),
+					placeholder,
+					maxLength: 40,
+					className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					children: "Adicionar"
+				})]
+			}),
+			error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-2 text-sm text-loss",
+				children: error
+			}) : null,
+			rows.length === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-4 text-sm text-muted",
+				children: empty
+			}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+				className: "mt-4 space-y-2",
+				children: rows.map((row) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
+					className: "rounded-lg border border-line p-3",
+					children: [editingId === row.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+						className: "flex flex-col gap-2 sm:flex-row",
+						onSubmit: (event) => {
+							event.preventDefault();
+							const trimmed = editingName.trim();
+							if (trimmed.length < 1) return;
+							onRename(row.id, trimmed);
+							setEditingId(null);
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+								value: editingName,
+								onChange: (event) => setEditingName(event.target.value),
+								maxLength: 40,
+								className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								type: "submit",
+								children: "Guardar"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								onClick: () => setEditingId(null),
+								children: "Cancelar"
+							})
+						]
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex items-center justify-between gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "font-medium",
+							children: row.name
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+							type: "button",
+							className: "h-11 px-2 text-sm font-medium text-forest",
+							onClick: () => {
+								setEditingId(row.id);
+								setEditingName(row.name);
+							},
+							children: "Renomear"
+						})]
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "mt-2",
+						children: confirmId === row.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "flex gap-2",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "danger",
+								onClick: () => onDelete(row.id),
+								children: "Apagar"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								variant: "ghost",
+								onClick: () => setConfirmId(null),
+								children: "Cancelar"
+							})]
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "ghost",
+							onClick: () => setConfirmId(row.id),
+							children: "Eliminar"
+						})
+					})]
+				}, row.id))
+			})
+		]
+	});
+}
 var TABS = [
 	{
 		id: "resumo",
@@ -3265,6 +4283,10 @@ var TABS = [
 		label: "Mês"
 	},
 	{
+		id: "ganhos",
+		label: "Ganhos"
+	},
+	{
 		id: "despesas",
 		label: "Despesas"
 	},
@@ -3273,8 +4295,8 @@ var TABS = [
 		label: "Cartões"
 	},
 	{
-		id: "plataformas",
-		label: "Plataformas"
+		id: "tabelas",
+		label: "Tabelas"
 	}
 ];
 function LastroApp() {
@@ -3285,37 +4307,35 @@ function LastroApp() {
 	const platforms = useLedger((state) => state.platforms);
 	const expenseTypes = useLedger((state) => state.expenseTypes);
 	const cashbackCards = useLedger((state) => state.cashbackCards);
-	const addCashbackCard = useLedger((state) => state.addCashbackCard);
+	const incomeSources = useLedger((state) => state.incomeSources);
 	const demo = useLedger((state) => state.demo);
 	const currency = useLedger((state) => state.currency);
 	const closingDay = useLedger((state) => state.closingDay);
-	const addExpenseType = useLedger((state) => state.addExpenseType);
 	const keepDemo = useLedger((state) => state.keepDemo);
 	const reset = useLedger((state) => state.reset);
 	const loadDemo = useLedger((state) => state.loadDemo);
 	const [tab, setTab] = (0, import_react.useState)("resumo");
 	const [month, setMonth] = (0, import_react.useState)(() => dueMonth(1));
 	const monthTouched = (0, import_react.useRef)(false);
+	const routedEmpty = (0, import_react.useRef)(false);
 	const [platformId, setPlatformId] = (0, import_react.useState)(null);
-	const [platformOpen, setPlatformOpen] = (0, import_react.useState)(false);
-	const [editingId, setEditingId] = (0, import_react.useState)(null);
 	const [settingsOpen, setSettingsOpen] = (0, import_react.useState)(false);
-	const editing = platforms.find((platform) => platform.id === editingId) ?? null;
-	const empty = platforms.length === 0 && expenseTypes.length === 0 && cashbackCards.length === 0;
+	const empty = platforms.length === 0 && expenseTypes.length === 0 && cashbackCards.length === 0 && incomeSources.length === 0;
 	(0, import_react.useEffect)(() => {
 		if (ready && !monthTouched.current) setMonth(dueMonth(closingDay));
 	}, [ready, closingDay]);
+	(0, import_react.useEffect)(() => {
+		if (!ready || routedEmpty.current) return;
+		routedEmpty.current = true;
+		if (empty) setTab("tabelas");
+	}, [ready, empty]);
 	function changeMonth(next) {
 		monthTouched.current = true;
 		setMonth(next);
 	}
-	function openCreate() {
-		setEditingId(null);
-		setPlatformOpen(true);
-	}
-	function openEdit(id) {
-		setEditingId(id);
-		setPlatformOpen(true);
+	function openTables() {
+		setPlatformId(null);
+		setTab("tabelas");
 	}
 	if (!ready) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 		className: "min-h-dvh",
@@ -3341,289 +4361,144 @@ function LastroApp() {
 	});
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "min-h-dvh",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "mx-auto w-full max-w-5xl px-4 pt-6 pb-16 sm:px-6",
-				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", {
-						className: "flex items-center justify-between gap-3",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "flex min-w-0 items-center gap-3",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-								className: "grid h-12 w-12 shrink-0 place-items-center rounded-md bg-forest font-serif text-2xl text-card",
-								children: "L"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-								className: "min-w-0",
-								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
-									className: "font-serif text-2xl leading-none",
-									children: "Lastro"
-								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-									className: "mt-1 text-sm text-muted",
-									children: "O que investes, o que fica e o que gastas"
-								})]
-							})]
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
-							type: "button",
-							onClick: () => setSettingsOpen(true),
-							"aria-label": "Definições e moeda",
-							className: "inline-flex h-12 items-center gap-2 rounded-md bg-chip px-3 text-sm font-medium text-ink",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Settings, {
-								className: "size-4",
-								"aria-hidden": "true"
-							}), currency]
-						})]
-					}),
-					demo ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-						className: "mt-4 flex flex-col gap-3 rounded-lg bg-brass-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-							className: "text-sm",
-							children: "Isto é um exemplo, não são os teus números."
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "mx-auto w-full max-w-5xl px-4 pt-6 pb-16 sm:px-6",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("header", {
+					className: "flex items-center justify-between gap-3",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex min-w-0 items-center gap-3",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+							className: "grid h-12 w-12 shrink-0 place-items-center rounded-md bg-forest font-serif text-2xl text-card",
+							children: "L"
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "flex gap-2",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-								variant: "soft",
-								onClick: keepDemo,
-								children: "Ficar com estes dados"
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-								variant: "ghost",
-								onClick: reset,
-								children: "Apagar"
+							className: "min-w-0",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
+								className: "font-serif text-2xl leading-none",
+								children: "Lastro"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "mt-1 text-sm text-muted",
+								children: "O que investes, o que fica e o que gastas"
 							})]
 						})]
-					}) : null,
-					empty ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(EmptyLedger, {
-						onAdd: openCreate,
-						onDemo: () => {
-							loadDemo();
-							setTab("resumo");
-							monthTouched.current = false;
-							setMonth(dueMonth(25));
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+						type: "button",
+						onClick: () => setSettingsOpen(true),
+						"aria-label": "Definições e moeda",
+						className: "inline-flex h-12 items-center gap-2 rounded-md bg-chip px-3 text-sm font-medium text-ink",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Settings, {
+							className: "size-4",
+							"aria-hidden": "true"
+						}), currency]
+					})]
+				}),
+				demo ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mt-4 flex flex-col gap-3 rounded-lg bg-brass-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "text-sm",
+						children: "Isto é um exemplo, não são os teus números."
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex gap-2",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "soft",
+							onClick: keepDemo,
+							children: "Ficar com estes dados"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "ghost",
+							onClick: reset,
+							children: "Apagar"
+						})]
+					})]
+				}) : null,
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					role: "tablist",
+					"aria-label": "Secções",
+					className: "mt-6 flex flex-wrap gap-1 rounded-md bg-paper-2 p-1",
+					children: TABS.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
+						type: "button",
+						role: "tab",
+						"aria-selected": tab === item.id,
+						onClick: () => {
+							setTab(item.id);
+							if (item.id !== "tabelas") setPlatformId(null);
 						},
-						onCreateType: (label) => {
-							addExpenseType(label);
-							setTab("despesas");
-						},
-						onCreateCard: (label) => {
-							addCashbackCard(label);
-							setTab("cashback");
-						}
-					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-							role: "tablist",
-							"aria-label": "Secções",
-							className: "mt-6 flex flex-wrap gap-1 rounded-md bg-paper-2 p-1",
-							children: TABS.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("button", {
-								type: "button",
-								role: "tab",
-								"aria-selected": tab === item.id,
-								onClick: () => {
-									setTab(item.id);
-									if (item.id !== "plataformas") setPlatformId(null);
-								},
-								className: cn("h-11 min-w-24 flex-1 rounded-md px-2 text-xs font-medium sm:text-sm", tab === item.id ? "bg-card text-ink" : "text-muted"),
-								children: item.label
-							}, item.id))
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-							className: "mt-3 text-sm text-muted",
-							children: [
-								isClosingToday(closingDay) ? `Hoje é o dia de atualizar.` : `Atualizas sempre no dia ${closingDay}.`,
-								" ",
-								"Este fecho é ",
-								formatCloseDay(month, closingDay),
-								"."
-							]
-						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "mt-4",
-							children: [
-								tab === "resumo" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SummaryView, {
-									month,
-									onMonth: changeMonth,
-									onRegister: () => setTab("mes"),
-									onExpenses: () => setTab("despesas"),
-									onCashback: () => setTab("cashback"),
-									onOpenPlatform: (id) => {
-										setPlatformId(id);
-										setTab("plataformas");
-									}
-								}) : null,
-								tab === "mes" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthPanel, {
-									month,
-									onMonth: changeMonth,
-									onAddPlatform: openCreate
-								}) : null,
-								tab === "despesas" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExpensesPanel, {
-									month,
-									onMonth: changeMonth
-								}) : null,
-								tab === "cashback" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CashbackPanel, {
-									month,
-									onMonth: changeMonth
-								}) : null,
-								tab === "plataformas" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PlatformsPanel, {
-									selectedId: platformId,
-									onOpen: setPlatformId,
-									onClose: () => setPlatformId(null),
-									onAdd: openCreate,
-									onEdit: openEdit,
-									onGoMonth: (next) => {
-										changeMonth(next);
-										setTab("mes");
-									}
-								}) : null
-							]
-						})
-					] }),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						className: "mt-10 text-sm text-muted",
-						children: syncError ? syncError : saving ? "A guardar na tua conta…" : "Os números ficam na tua conta. Nas definições podes exportar uma cópia."
-					})
-				]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PlatformDialog, {
-				open: platformOpen,
-				platform: editing,
-				onOpenChange: (open) => {
-					setPlatformOpen(open);
-					if (!open) setEditingId(null);
-				}
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsDialog, {
-				open: settingsOpen,
-				onOpenChange: setSettingsOpen
-			})
-		]
+						className: cn("h-11 min-w-24 flex-1 rounded-md px-2 text-xs font-medium sm:text-sm", tab === item.id ? "bg-card text-ink" : "text-muted"),
+						children: item.label
+					}, item.id))
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+					className: "mt-3 text-sm text-muted",
+					children: [
+						isClosingToday(closingDay) ? `Hoje é o dia de atualizar.` : `Atualizas sempre no dia ${closingDay}.`,
+						" ",
+						"Este fecho é ",
+						formatCloseDay(month, closingDay),
+						"."
+					]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mt-4",
+					children: [
+						tab === "resumo" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SummaryView, {
+							month,
+							onMonth: changeMonth,
+							onRegister: () => setTab("mes"),
+							onExpenses: () => setTab("despesas"),
+							onCashback: () => setTab("cashback"),
+							onIncome: () => setTab("ganhos"),
+							onOpenPlatform: (id) => {
+								setPlatformId(id);
+								setTab("tabelas");
+							}
+						}) : null,
+						tab === "mes" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthPanel, {
+							month,
+							onMonth: changeMonth,
+							onSetup: openTables
+						}) : null,
+						tab === "ganhos" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(IncomePanel, {
+							month,
+							onMonth: changeMonth,
+							onSetup: openTables
+						}) : null,
+						tab === "despesas" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ExpensesPanel, {
+							month,
+							onMonth: changeMonth,
+							onSetup: openTables
+						}) : null,
+						tab === "cashback" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CashbackPanel, {
+							month,
+							onMonth: changeMonth,
+							onSetup: openTables
+						}) : null,
+						tab === "tabelas" ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TablesPanel, {
+							selectedId: platformId,
+							onOpen: setPlatformId,
+							onClose: () => setPlatformId(null),
+							onGoMonth: (next) => {
+								changeMonth(next);
+								setTab("mes");
+							},
+							onDemo: () => {
+								loadDemo();
+								setTab("resumo");
+								monthTouched.current = false;
+								setMonth(dueMonth(25));
+							}
+						}) : null
+					]
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "mt-10 text-sm text-muted",
+					children: syncError ? syncError : saving ? "A guardar…" : "Os números ficam neste dispositivo. Nas definições podes exportar uma cópia."
+				})
+			]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SettingsDialog, {
+			open: settingsOpen,
+			onOpenChange: setSettingsOpen
+		})]
 	});
 }
-function EmptyLedger({ onAdd, onDemo, onCreateType, onCreateCard }) {
-	const [name, setName] = (0, import_react.useState)("");
-	const [error, setError] = (0, import_react.useState)("");
-	const [cardName, setCardName] = (0, import_react.useState)("");
-	const [cardError, setCardError] = (0, import_react.useState)("");
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-		className: "mt-8 rounded-lg border border-line bg-card px-5 py-8 sm:px-8",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-				className: "font-serif text-3xl sm:text-4xl",
-				children: "O mesmo dia, todos os meses."
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "mt-3 max-w-xl text-base leading-relaxed text-muted",
-				children: "Escolhes o dia de fecho. Nesse dia apontas investimentos, despesas e o cashback de cada cartão."
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("ol", {
-				className: "mt-6 max-w-xl space-y-3 text-sm",
-				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
-						className: "flex gap-3",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "font-serif text-forest",
-							children: "01"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Crias plataformas, tipos de despesa e cartões." })]
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
-						className: "flex gap-3",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "font-serif text-forest",
-							children: "02"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "No dia de fecho, registas aportes, valores e gastos." })]
-					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
-						className: "flex gap-3",
-						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-							className: "font-serif text-forest",
-							children: "03"
-						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: "Vês a carteira, as despesas e qual o cartão que deu mais cashback." })]
-					})
-				]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-				className: "mt-8 flex max-w-xl flex-col gap-2 sm:flex-row",
-				onSubmit: (event) => {
-					event.preventDefault();
-					const trimmed = name.trim();
-					if (trimmed.length < 1) {
-						setError("Dá um nome ao primeiro tipo, por exemplo Renda.");
-						return;
-					}
-					onCreateType(trimmed);
-				},
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-					value: name,
-					onChange: (event) => setName(event.target.value),
-					placeholder: "Primeiro tipo de despesa",
-					maxLength: 40,
-					className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					type: "submit",
-					children: "Criar tipo"
-				})]
-			}),
-			error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "mt-2 text-sm text-loss",
-				children: error
-			}) : null,
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-				className: "mt-3 flex max-w-xl flex-col gap-2 sm:flex-row",
-				onSubmit: (event) => {
-					event.preventDefault();
-					const trimmed = cardName.trim();
-					if (trimmed.length < 1) {
-						setCardError("Dá um nome ao cartão, por exemplo Universo.");
-						return;
-					}
-					onCreateCard(trimmed);
-				},
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-					value: cardName,
-					onChange: (event) => setCardName(event.target.value),
-					placeholder: "Primeiro cartão de cashback",
-					maxLength: 40,
-					className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					type: "submit",
-					variant: "soft",
-					children: "Criar cartão"
-				})]
-			}),
-			cardError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "mt-2 text-sm text-loss",
-				children: cardError
-			}) : null,
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-				className: "mt-3 flex flex-col gap-3 sm:flex-row",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					variant: "soft",
-					onClick: onAdd,
-					children: "Adicionar plataforma"
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					variant: "ghost",
-					onClick: onDemo,
-					children: "Ver um exemplo"
-				})]
-			})
-		]
-	});
-}
-var createSsrRpc = (functionId) => {
-	const url = "/_serverFn/" + functionId;
-	const serverFnMeta = { id: functionId };
-	const fn = async (...args) => {
-		return (await getServerFnById(functionId, { origin: "server" }))(...args);
-	};
-	return Object.assign(fn, {
-		url,
-		serverFnMeta,
-		[TSS_SERVER_FUNCTION]: true
-	});
-};
-var loadLedger = createServerFn({ method: "GET" }).middleware([authMiddleware]).handler(createSsrRpc("b1169f5b85e3d12f18a4ae8bfa2efe3c74a72d6fa29cb184412a323254a7101b"));
-var saveLedger = createServerFn({ method: "POST" }).validator((input) => {
-	const parsed = parseBackup(input);
-	if (typeof parsed === "string") throw new Error("Caderneta inválida.");
-	return parsed;
-}).middleware([authMiddleware]).handler(createSsrRpc("94336ba60ad5fd3d3e26c0a812bda93c8cfff06ef5eb6a9fdc20d41278839862"));
 var LEGACY_KEY = "lastro-ledger-v1";
 function readLegacyLocal() {
 	if (typeof window === "undefined") return null;
@@ -3644,100 +4519,38 @@ function readLegacyLocal() {
 			expenses: state.expenses ?? [],
 			cashbackCards: state.cashbackCards ?? [],
 			cashbacks: state.cashbacks ?? [],
+			incomeSources: state.incomeSources ?? [],
+			incomes: state.incomes ?? [],
 			demo: state.demo === true
 		});
 		if (typeof result === "string") return null;
-		return result.platforms.length === 0 && result.entries.length === 0 && result.expenseTypes.length === 0 && result.expenses.length === 0 && result.cashbackCards.length === 0 && result.cashbacks.length === 0 && result.monthlyGoal == null && result.fireGoal == null ? null : result;
+		return result.platforms.length === 0 && result.entries.length === 0 && result.expenseTypes.length === 0 && result.expenses.length === 0 && result.cashbackCards.length === 0 && result.cashbacks.length === 0 && result.incomeSources.length === 0 && result.incomes.length === 0 && result.monthlyGoal == null && result.fireGoal == null ? null : result;
 	} catch {
 		return null;
 	}
 }
-function LedgerSync({ userId }) {
+function LocalLedger() {
 	const loadAttempt = useLedger((state) => state.loadAttempt);
 	const ready = useLedger((state) => state.ready);
 	(0, import_react.useLayoutEffect)(() => {
-		useLedger.getState().prepareAccount();
-	}, [userId, loadAttempt]);
-	(0, import_react.useEffect)(() => {
-		let cancelled = false;
-		(async () => {
-			try {
-				const remote = await loadLedger();
-				if (cancelled) return;
-				if (remote) {
-					useLedger.getState().adopt(remote);
-					return;
-				}
-				const local = readLegacyLocal();
-				if (local) {
-					useLedger.getState().adopt(local);
-					try {
-						await saveLedger({ data: toBackup(local) });
-						window.localStorage.removeItem(LEGACY_KEY);
-					} catch {
-						useLedger.setState({ syncError: "Encontrei os números neste telemóvel, mas ainda não os guardei na conta." });
-					}
-					return;
-				}
-				useLedger.getState().adopt(null);
-			} catch {
-				if (!cancelled) useLedger.getState().failLoad("Não consegui abrir a tua caderneta.");
-			}
-		})();
-		return () => {
-			cancelled = true;
-		};
-	}, [userId, loadAttempt]);
+		useLedger.getState().adopt(readLegacyLocal());
+	}, [loadAttempt]);
 	(0, import_react.useEffect)(() => {
 		if (!ready) return;
-		let timer = 0;
-		let last = JSON.stringify(selectData(useLedger.getState()));
-		const flush = () => {
-			const data = selectData(useLedger.getState());
-			const sent = JSON.stringify(data);
-			last = sent;
-			useLedger.setState({ saving: true });
-			saveLedger({ data: toBackup(data) }).then(() => {
-				if (JSON.stringify(selectData(useLedger.getState())) === sent) useLedger.setState({
-					saving: false,
-					syncError: null
-				});
-			}).catch(() => {
-				useLedger.setState({
-					saving: false,
-					syncError: "Não guardei esta alteração. Os números continuam neste ecrã."
-				});
-			});
+		const persist = () => {
+			try {
+				window.localStorage.setItem(LEGACY_KEY, JSON.stringify({ state: selectData(useLedger.getState()) }));
+				if (useLedger.getState().syncError) useLedger.setState({ syncError: null });
+			} catch {
+				useLedger.setState({ syncError: "Não consegui guardar neste dispositivo." });
+			}
 		};
-		const unsub = useLedger.subscribe((state) => {
-			if (JSON.stringify(selectData(state)) === last) return;
-			window.clearTimeout(timer);
-			timer = window.setTimeout(flush, 450);
-		});
-		const onHide = () => {
-			if (JSON.stringify(selectData(useLedger.getState())) === last) return;
-			window.clearTimeout(timer);
-			flush();
-		};
-		window.addEventListener("pagehide", onHide);
-		return () => {
-			unsub();
-			window.clearTimeout(timer);
-			window.removeEventListener("pagehide", onHide);
-		};
-	}, [ready, userId]);
+		return useLedger.subscribe(persist);
+	}, [ready]);
 	return null;
 }
 function Home() {
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignInGate, {
-		fallback: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AccountGate, {}),
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthedLedger, {})
-	});
-}
-function AuthedLedger() {
-	const user = useCurrentUser();
-	if (!user) return null;
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LedgerSync, { userId: user.id }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LastroApp, {})] });
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(LocalLedger, {}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(LastroApp, {})] });
 }
 //#endregion
 export { Home as component };

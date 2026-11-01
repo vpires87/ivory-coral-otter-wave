@@ -1,1 +1,0 @@
-import{i as e,r as t}from"./index-lS2DD7Ls.js";import{n,r}from"./use-current-user-Bllw7roX.js";var i=e();function a(){let{user:e,isPending:a}=n();return a?(0,i.jsx)(`div`,{className:`min-h-dvh`}):e?(0,i.jsx)(t,{to:`/`}):(0,i.jsx)(r,{})}export{a as component};

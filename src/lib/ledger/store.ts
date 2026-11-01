@@ -72,7 +72,7 @@ const empty: LedgerData = {
 
 export const useLedger = create<Store>()((set) => ({
   ...empty,
-  ready: false,
+  ready: true,
   saving: false,
   syncError: null,
   loadAttempt: 0,
