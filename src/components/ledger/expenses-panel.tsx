@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { expenseFor, expenseSeries, expenseTotal } from "@/lib/ledger/calc";
+import { expenseFor, expenseSeries, expenseTotal, latestBefore } from "@/lib/ledger/calc";
 import { formatMoney, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { ExpenseChart } from "@/components/ledger/chart";
@@ -49,6 +49,55 @@ export function ExpensesPanel({
   const series = expenseSeries(types, expenses);
   const monthTotal = expenseTotal(expenses, month);
   const recorded = types.filter((type) => expenseFor(expenses, type.id, month)).length;
+  const dirtyCount = types.filter((type) => {
+    const draft = drafts[type.id] ?? "";
+    const saved = expenseFor(expenses, type.id, month);
+    const parsed = parseAmount(draft);
+    return saved ? parsed !== saved.amount : draft.trim() !== "";
+  }).length;
+  const canCopy = types.some((type) => {
+    if ((drafts[type.id] ?? "").trim() !== "") return false;
+    return latestBefore(
+      expenses.filter((entry) => entry.typeId === type.id),
+      month,
+    );
+  });
+
+  function copyPrevious() {
+    setDrafts((current) => {
+      const next = { ...current };
+      for (const type of types) {
+        if ((next[type.id] ?? "").trim() !== "") continue;
+        const earlier = latestBefore(
+          expenses.filter((entry) => entry.typeId === type.id),
+          month,
+        );
+        if (earlier) next[type.id] = formatPlain(earlier.amount);
+      }
+      return next;
+    });
+  }
+
+  function saveAll() {
+    const updates: Record<string, string> = {};
+    const nextErrors: Record<string, string> = {};
+    for (const type of types) {
+      const draft = drafts[type.id] ?? "";
+      const saved = expenseFor(expenses, type.id, month);
+      const parsed = parseAmount(draft);
+      const dirty = saved ? parsed !== saved.amount : draft.trim() !== "";
+      if (!dirty) continue;
+      if (draft.trim() === "" || parsed == null || parsed < 0) {
+        nextErrors[type.id] = "Indica o valor. Se não gastaste, escreve 0.";
+        continue;
+      }
+      upsertExpense({ typeId: type.id, month, amount: parsed });
+      updates[type.id] = formatPlain(parsed);
+      nextErrors[type.id] = "";
+    }
+    setDrafts((current) => ({ ...current, ...updates }));
+    setErrors((current) => ({ ...current, ...nextErrors }));
+  }
   const shares = types
     .map((type) => ({
       id: type.id,
@@ -73,6 +122,15 @@ export function ExpensesPanel({
           <Button className="mt-4" variant="soft" onClick={onSetup}>
             Criar nas tabelas
           </Button>
+        ) : dirtyCount >= 2 || canCopy ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {dirtyCount >= 2 ? <Button onClick={saveAll}>Guardar este mês</Button> : null}
+            {canCopy ? (
+              <Button variant="soft" onClick={copyPrevious}>
+                Trazer o mês anterior
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </section>
 

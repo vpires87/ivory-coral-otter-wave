@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { buildSeries, cashbackFor, cashbackRows, cashbackTotal, contributedIn, entryFor, expenseFor, expenseTotal, incomeFor, incomeTotal, kindShares, platformSnapshot, pointFor, savingsRate, savingsSeries, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
+import { buildSeries, cashbackFor, cashbackRows, cashbackTotal, contributedIn, entryFor, expenseFor, expenseTotal, incomeFor, incomeTotal, kindShares, platformSnapshot, pointFor, savingsRate, savingsSeries, sumByMonth, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
 import { cents, formatMoney, formatMonth, formatPercent, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { PLATFORM_KINDS, type CurrencyCode } from "@/lib/ledger/types";
-import { ValueChart } from "@/components/ledger/chart";
+import { ValueChart, YearCompareChart } from "@/components/ledger/chart";
 import { Button, CompareBars, GoalMeter, KindMark, MonthSwitcher, ShareList, SignedMoney } from "@/components/ledger/ui";
 
 export function SummaryView({
@@ -85,6 +85,58 @@ export function SummaryView({
 
       <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
         <MonthSwitcher month={month} onChange={onMonth} />
+        <MonthBalance
+          earned={earned}
+          spent={spent}
+          invested={monthContributed}
+          incomeKnown={incomeSources.length === 0 || pendingIncome.length === 0}
+          spendKnown={expenseTypes.length === 0 || pendingExpenses.length === 0}
+          investKnown={platforms.length === 0 || Boolean(focus && focus.recorded > 0)}
+          incomeRecorded={incomeSources.length > 0 && pendingIncome.length < incomeSources.length}
+          spendRecorded={expenseTypes.length > 0 && pendingExpenses.length < expenseTypes.length}
+          investRecorded={Boolean(focus && focus.recorded > 0)}
+          currency={currency}
+        />
+        <CloseSteps
+          steps={[
+            platforms.length > 0
+              ? {
+                  id: "mes",
+                  label: "Investimentos",
+                  done: pending.length === 0,
+                  detail: `${platforms.length - pending.length} de ${platforms.length}`,
+                  go: onRegister,
+                }
+              : null,
+            incomeSources.length > 0
+              ? {
+                  id: "ganhos",
+                  label: "Ganhos",
+                  done: pendingIncome.length === 0,
+                  detail: `${incomeSources.length - pendingIncome.length} de ${incomeSources.length}`,
+                  go: onIncome,
+                }
+              : null,
+            expenseTypes.length > 0
+              ? {
+                  id: "despesas",
+                  label: "Despesas",
+                  done: pendingExpenses.length === 0,
+                  detail: `${expenseTypes.length - pendingExpenses.length} de ${expenseTypes.length}`,
+                  go: onExpenses,
+                }
+              : null,
+            cashbackCards.length > 0
+              ? {
+                  id: "cartoes",
+                  label: "Cartões",
+                  done: pendingCash.length === 0,
+                  detail: `${cashbackCards.length - pendingCash.length} de ${cashbackCards.length}`,
+                  go: onCashback,
+                }
+              : null,
+          ].filter((step) => step != null)}
+        />
         <p className="mt-4 text-sm leading-relaxed">{monthStory(focus, platforms.length, currency)}</p>
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Mini
@@ -186,6 +238,28 @@ export function SummaryView({
 
       <ValueChart points={series} currency={currency} />
 
+      <YearCompareChart
+        currency={currency}
+        metrics={[
+          {
+            id: "valor",
+            label: "Carteira",
+            points: series
+              .filter((point) => point.recorded > 0)
+              .map((point) => ({ month: point.month, amount: point.value })),
+          },
+          {
+            id: "aportes",
+            label: "Aportes",
+            points: series
+              .filter((point) => point.recorded > 0)
+              .map((point) => ({ month: point.month, amount: point.contributed })),
+          },
+          { id: "ganhos", label: "Ganhos", points: sumByMonth(incomes) },
+          { id: "despesas", label: "Despesas", points: sumByMonth(expenses) },
+        ]}
+      />
+
       {shares.length > 1 ? (
         <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
           <h2 className="mb-4 font-serif text-2xl">Onde está o dinheiro</h2>
@@ -267,6 +341,100 @@ function Mini({ label, value }: { label: string; value: ReactNode }) {
     <div className="rounded-md bg-paper px-3 py-3">
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 text-base font-medium">{value}</p>
+    </div>
+  );
+}
+
+function MonthBalance({
+  earned,
+  spent,
+  invested,
+  incomeKnown,
+  spendKnown,
+  investKnown,
+  incomeRecorded,
+  spendRecorded,
+  investRecorded,
+  currency,
+}: {
+  earned: number;
+  spent: number;
+  invested: number;
+  incomeKnown: boolean;
+  spendKnown: boolean;
+  investKnown: boolean;
+  incomeRecorded: boolean;
+  spendRecorded: boolean;
+  investRecorded: boolean;
+  currency: CurrencyCode;
+}) {
+  if (!incomeRecorded && !spendRecorded && !investRecorded) return null;
+  const missing = [
+    !incomeKnown && incomeRecorded ? "ganhos" : null,
+    !spendKnown && spendRecorded ? "despesas" : null,
+    !investKnown && investRecorded ? "investimentos" : null,
+  ].filter((item) => item != null);
+  const blocked =
+    (!incomeRecorded && !incomeKnown) || (!spendRecorded && !spendKnown) || (!investRecorded && !investKnown);
+  const leftover = cents(earned - spent - invested);
+  const leftoverText =
+    leftover > 0
+      ? `Sobrou ${formatMoney(leftover, currency)} depois das despesas e do que meteste a investir.`
+      : leftover < 0
+        ? `Saíram ${formatMoney(Math.abs(leftover), currency)} a mais do que entrou.`
+        : "O que entrou foi para despesas e investimentos.";
+  return (
+    <div className="mt-4">
+      <div className="grid grid-cols-2 gap-3">
+        <Mini label="Ganhaste" value={incomeRecorded ? formatMoney(earned, currency) : "—"} />
+        <Mini label="Gastaste" value={spendRecorded ? formatMoney(spent, currency) : "—"} />
+        <Mini label="Investiste" value={investRecorded ? formatMoney(invested, currency) : "—"} />
+        <Mini
+          label="Sobrou"
+          value={blocked ? "—" : <SignedMoney value={leftover} currency={currency} />}
+        />
+      </div>
+      <p className="mt-3 text-sm leading-relaxed text-muted">
+        {blocked
+          ? "A sobra fecha quando ganhos, despesas e investimentos deste mês estiverem apontados."
+          : missing.length > 0
+            ? `${leftoverText} Ainda falta fechar ${missing.join(" e ")}.`
+            : leftoverText}
+      </p>
+    </div>
+  );
+}
+
+function CloseSteps({
+  steps,
+}: {
+  steps: { id: string; label: string; done: boolean; detail: string; go: () => void }[];
+}) {
+  if (steps.length === 0) return null;
+  const open = steps.find((step) => !step.done);
+  return (
+    <div className="mt-4">
+      <ul className="overflow-hidden rounded-md border border-line">
+        {steps.map((step) => (
+          <li key={step.id} className="border-t border-line first:border-t-0">
+            <button
+              type="button"
+              onClick={step.go}
+              className="flex h-12 w-full items-center justify-between gap-3 px-3 text-left text-sm"
+            >
+              <span className="font-medium">{step.label}</span>
+              <span className="text-muted">{step.done ? "Feito" : step.detail}</span>
+            </button>
+          </li>
+        ))}
+      </ul>
+      {open ? (
+        <Button className="mt-3 w-full sm:w-auto" onClick={open.go}>
+          Continuar o fecho
+        </Button>
+      ) : (
+        <p className="mt-3 text-sm text-muted">Fecho deste mês completo.</p>
+      )}
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { compareByYear } from "@/lib/ledger/calc";
 import { formatCompact, formatMoney, formatMonth, formatShare } from "@/lib/ledger/money";
 import type { CashbackCard, CurrencyCode, ExpenseMonth, ExpenseType, MonthPoint, SavingsPoint } from "@/lib/ledger/types";
 
@@ -442,6 +443,104 @@ export function SavingsChart({ series, currency }: { series: SavingsPoint[]; cur
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
         <Legend swatch="bg-forest" label="Ganho" />
         <Legend swatch="bg-brass" label="Investido" />
+      </div>
+    </section>
+  );
+}
+
+const YEAR_COLORS = [
+  { stroke: "var(--color-forest)", swatch: "bg-forest" },
+  { stroke: "var(--color-brass)", swatch: "bg-brass" },
+  { stroke: "var(--color-ink)", swatch: "bg-ink" },
+  { stroke: "var(--color-muted)", swatch: "bg-muted" },
+];
+
+export function YearCompareChart({
+  currency,
+  metrics,
+}: {
+  currency: CurrencyCode;
+  metrics: { id: string; label: string; points: { month: string; amount: number }[] }[];
+}) {
+  const reduced = useReducedMotion();
+  const available = metrics.filter((metric) => metric.points.length > 0);
+  const [metricId, setMetricId] = useState(available[0]?.id ?? "");
+  const selected = available.find((metric) => metric.id === metricId) ?? available[0];
+  if (!selected) return null;
+  const compared = compareByYear(selected.points);
+  if (compared.years.length === 0) return null;
+
+  return (
+    <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+      <h2 className="font-serif text-2xl">Entre anos</h2>
+      <p className="mt-1 text-sm text-muted">
+        {compared.years.length < 2
+          ? "O mesmo mês, em cada ano. A segunda linha aparece quando houver outro ano."
+          : "O mesmo mês, lado a lado, em cada ano."}
+      </p>
+      {available.length > 1 ? (
+        <div className="mt-4 grid grid-cols-2 gap-1 rounded-md bg-paper-2 p-1 sm:grid-cols-4">
+          {available.map((metric) => (
+            <SpanButton key={metric.id} active={metric.id === selected.id} onClick={() => setMetricId(metric.id)}>
+              {metric.label}
+            </SpanButton>
+          ))}
+        </div>
+      ) : null}
+      <div className="mt-4 h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={compared.rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="var(--color-line)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              minTickGap={16}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              width={48}
+              tickFormatter={(value: number) => formatCompact(value)}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                return (
+                  <div className="rounded-md border border-line bg-card px-3 py-2 text-sm">
+                    <p className="font-medium">{label}</p>
+                    {payload.map((item) => (
+                      <p key={String(item.dataKey)} className="mt-1 tabular-nums">
+                        {item.dataKey}{" "}
+                        {typeof item.value === "number" ? formatMoney(item.value, currency) : "—"}
+                      </p>
+                    ))}
+                  </div>
+                );
+              }}
+            />
+            {compared.years.map((year, index) => (
+              <Line
+                key={year}
+                type="monotone"
+                dataKey={year}
+                name={year}
+                stroke={YEAR_COLORS[index % YEAR_COLORS.length].stroke}
+                strokeWidth={2}
+                dot={false}
+                connectNulls={false}
+                isAnimationActive={!reduced}
+              />
+            ))}
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">
+        {compared.years.map((year, index) => (
+          <Legend key={year} swatch={YEAR_COLORS[index % YEAR_COLORS.length].swatch} label={year} />
+        ))}
       </div>
     </section>
   );

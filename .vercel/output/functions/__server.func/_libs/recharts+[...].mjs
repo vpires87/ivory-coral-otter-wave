@@ -14114,6 +14114,23 @@ var generateCategoricalChart = function generateCategoricalChart(_ref6) {
 	return CategoricalChart;
 };
 //#endregion
+//#region node_modules/recharts/es6/chart/LineChart.js
+/**
+* @fileOverview Line Chart
+*/
+var LineChart = generateCategoricalChart({
+	chartName: "LineChart",
+	GraphicalChild: Line,
+	axisComponents: [{
+		axisType: "xAxis",
+		AxisComp: XAxis
+	}, {
+		axisType: "yAxis",
+		AxisComp: YAxis
+	}],
+	formatAxisMap
+});
+//#endregion
 //#region node_modules/recharts/es6/chart/BarChart.js
 /**
 * @fileOverview Bar Chart
@@ -14162,4 +14179,4 @@ var ComposedChart = generateCategoricalChart({
 	formatAxisMap
 });
 //#endregion
-export { Area as a, Bar as c, Tooltip as d, XAxis as i, Cell as l, BarChart as n, Line as o, YAxis as r, CartesianGrid as s, ComposedChart as t, ResponsiveContainer as u };
+export { XAxis as a, CartesianGrid as c, ResponsiveContainer as d, Tooltip as f, YAxis as i, Bar as l, BarChart as n, Area as o, LineChart as r, Line as s, ComposedChart as t, Cell as u };

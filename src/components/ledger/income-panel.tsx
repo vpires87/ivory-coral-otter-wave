@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { SavingsChart } from "@/components/ledger/chart";
-import { incomeFor, incomeTotal, savingsRate, savingsSeries, contributedIn } from "@/lib/ledger/calc";
+import { incomeFor, incomeTotal, latestBefore, savingsRate, savingsSeries, contributedIn } from "@/lib/ledger/calc";
 import { formatMoney, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { Button, MonthSwitcher } from "@/components/ledger/ui";
@@ -59,6 +59,55 @@ export function IncomePanel({
   const investedAll = entries.reduce((sum, entry) => sum + entry.contributed, 0);
   const rateAll = savingsRate(investedAll, earnedAll);
   const recorded = sources.filter((source) => incomeFor(incomes, source.id, month)).length;
+  const dirtyCount = sources.filter((source) => {
+    const draft = drafts[source.id] ?? "";
+    const saved = incomeFor(incomes, source.id, month);
+    const parsed = parseAmount(draft);
+    return saved ? parsed !== saved.amount : draft.trim() !== "";
+  }).length;
+  const canCopy = sources.some((source) => {
+    if ((drafts[source.id] ?? "").trim() !== "") return false;
+    return latestBefore(
+      incomes.filter((entry) => entry.sourceId === source.id),
+      month,
+    );
+  });
+
+  function copyPrevious() {
+    setDrafts((current) => {
+      const next = { ...current };
+      for (const source of sources) {
+        if ((next[source.id] ?? "").trim() !== "") continue;
+        const earlier = latestBefore(
+          incomes.filter((entry) => entry.sourceId === source.id),
+          month,
+        );
+        if (earlier) next[source.id] = formatPlain(earlier.amount);
+      }
+      return next;
+    });
+  }
+
+  function saveAll() {
+    const updates: Record<string, string> = {};
+    const nextErrors: Record<string, string> = {};
+    for (const source of sources) {
+      const draft = drafts[source.id] ?? "";
+      const saved = incomeFor(incomes, source.id, month);
+      const parsed = parseAmount(draft);
+      const dirty = saved ? parsed !== saved.amount : draft.trim() !== "";
+      if (!dirty) continue;
+      if (draft.trim() === "" || parsed == null || parsed < 0) {
+        nextErrors[source.id] = "Indica o valor. Se não entrou nada, escreve 0.";
+        continue;
+      }
+      upsertIncome({ sourceId: source.id, month, amount: parsed });
+      updates[source.id] = formatPlain(parsed);
+      nextErrors[source.id] = "";
+    }
+    setDrafts((current) => ({ ...current, ...updates }));
+    setErrors((current) => ({ ...current, ...nextErrors }));
+  }
 
   return (
     <div className="space-y-4">
@@ -73,6 +122,15 @@ export function IncomePanel({
           <Button className="mt-4" variant="soft" onClick={onSetup}>
             Criar nas tabelas
           </Button>
+        ) : dirtyCount >= 2 || canCopy ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {dirtyCount >= 2 ? <Button onClick={saveAll}>Guardar este mês</Button> : null}
+            {canCopy ? (
+              <Button variant="soft" onClick={copyPrevious}>
+                Trazer o mês anterior
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </section>
 

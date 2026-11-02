@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { cashbackFor, cashbackRows, cashbackSeries, cashbackTotal } from "@/lib/ledger/calc";
+import { cashbackFor, cashbackRows, cashbackSeries, cashbackTotal, latestBefore } from "@/lib/ledger/calc";
 import { formatMoney, formatMonth, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { CashbackHistory, CashbackMonthChart } from "@/components/ledger/chart";
@@ -50,6 +50,55 @@ export function CashbackPanel({
   const series = cashbackSeries(cards, cashbacks);
   const total = cashbackTotal(cashbacks, month);
   const recorded = cards.filter((card) => cashbackFor(cashbacks, card.id, month)).length;
+  const dirtyCount = cards.filter((card) => {
+    const draft = drafts[card.id] ?? "";
+    const saved = cashbackFor(cashbacks, card.id, month);
+    const parsed = parseAmount(draft);
+    return saved ? parsed !== saved.amount : draft.trim() !== "";
+  }).length;
+  const canCopy = cards.some((card) => {
+    if ((drafts[card.id] ?? "").trim() !== "") return false;
+    return latestBefore(
+      cashbacks.filter((entry) => entry.cardId === card.id),
+      month,
+    );
+  });
+
+  function copyPrevious() {
+    setDrafts((current) => {
+      const next = { ...current };
+      for (const card of cards) {
+        if ((next[card.id] ?? "").trim() !== "") continue;
+        const earlier = latestBefore(
+          cashbacks.filter((entry) => entry.cardId === card.id),
+          month,
+        );
+        if (earlier) next[card.id] = formatPlain(earlier.amount);
+      }
+      return next;
+    });
+  }
+
+  function saveAll() {
+    const updates: Record<string, string> = {};
+    const nextErrors: Record<string, string> = {};
+    for (const card of cards) {
+      const draft = drafts[card.id] ?? "";
+      const saved = cashbackFor(cashbacks, card.id, month);
+      const parsed = parseAmount(draft);
+      const dirty = saved ? parsed !== saved.amount : draft.trim() !== "";
+      if (!dirty) continue;
+      if (draft.trim() === "" || parsed == null || parsed < 0) {
+        nextErrors[card.id] = "Indica o cashback. Se não houve, escreve 0.";
+        continue;
+      }
+      upsertCashback({ cardId: card.id, month, amount: parsed });
+      updates[card.id] = formatPlain(parsed);
+      nextErrors[card.id] = "";
+    }
+    setDrafts((current) => ({ ...current, ...updates }));
+    setErrors((current) => ({ ...current, ...nextErrors }));
+  }
   const leaders = rows.filter((row) => row.amount > 0 && row.amount === rows[0]?.amount);
   const fallback = [...series].reverse().find((point) => point.total > 0);
   const chartRows = leaders.length > 0 ? rows : (fallback?.rows ?? []);
@@ -77,6 +126,15 @@ export function CashbackPanel({
           <Button className="mt-4" variant="soft" onClick={onSetup}>
             Criar nas tabelas
           </Button>
+        ) : dirtyCount >= 2 || canCopy ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {dirtyCount >= 2 ? <Button onClick={saveAll}>Guardar este mês</Button> : null}
+            {canCopy ? (
+              <Button variant="soft" onClick={copyPrevious}>
+                Trazer o mês anterior
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </section>
 

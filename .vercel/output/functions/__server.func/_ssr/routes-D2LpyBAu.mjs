@@ -7,8 +7,8 @@ import { t as create } from "../_libs/zustand.mjs";
 import { t as clsx } from "../_libs/clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
 import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
-import { a as Area, c as Bar, d as Tooltip, i as XAxis, l as Cell, n as BarChart, o as Line, r as YAxis, s as CartesianGrid, t as ComposedChart, u as ResponsiveContainer } from "../_libs/recharts+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-BeRm01Xx.js
+import { a as XAxis, c as CartesianGrid, d as ResponsiveContainer, f as Tooltip, i as YAxis, l as Bar, n as BarChart, o as Area, r as LineChart, s as Line, t as ComposedChart, u as Cell } from "../_libs/recharts+[...].mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-D2LpyBAu.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function cents(n) {
@@ -402,13 +402,13 @@ var platforms = [
 		id: "demo-xtb",
 		name: "XTB",
 		kind: "corretora",
-		openingInvested: 4200
+		openingInvested: 2700
 	},
 	{
 		id: "demo-tr",
 		name: "Trade Republic",
 		kind: "corretora",
-		openingInvested: 1500
+		openingInvested: 700
 	},
 	{
 		id: "demo-ctt",
@@ -420,7 +420,7 @@ var platforms = [
 		id: "demo-binance",
 		name: "Binance",
 		kind: "cripto",
-		openingInvested: 800
+		openingInvested: 400
 	}
 ];
 function row(platformId, month, contributed, endValue) {
@@ -462,6 +462,13 @@ var entries = [
 	row("demo-binance", "2026-08", 0, 910),
 	row("demo-binance", "2026-09", 100, 1180)
 ];
+function climb(from, to, steps, index) {
+	return Math.round(from + (to - from) * (index + 1) / steps);
+}
+for (let index = 0; index < 10; index += 1) {
+	const month = `2025-${String(index + 3).padStart(2, "0")}`;
+	entries.push(row("demo-xtb", month, 150, climb(2900, 4200, 10, index)), row("demo-tr", month, 80, climb(780, 1500, 10, index)), row("demo-binance", month, 40, climb(420, 800, 10, index)));
+}
 var expenseTypes = [
 	{
 		id: "demo-renda",
@@ -605,6 +612,12 @@ for (let index = 0; index < 7; index += 1) {
 	const month = `2026-${String(index + 3).padStart(2, "0")}`;
 	incomes.push(earned("demo-ordenado", month, 2100));
 	if (extras[index] > 0) incomes.push(earned("demo-extra", month, extras[index]));
+}
+for (let index = 0; index < 10; index += 1) {
+	const month = `2025-${String(index + 3).padStart(2, "0")}`;
+	expenses.push(spent("demo-renda", month, 750), spent("demo-comida", month, 240 + index % 3 * 10), spent("demo-transp", month, 55), spent("demo-lazer", month, index % 2 === 0 ? 30 : 90));
+	incomes.push(earned("demo-ordenado", month, 1950));
+	if (index % 4 === 0) incomes.push(earned("demo-extra", month, 120));
 }
 function demoLedger() {
 	return {
@@ -1591,6 +1604,11 @@ function previousEntry(entries, platformId, month) {
 	const older = entries.filter((entry) => entry.platformId === platformId && entry.month < month).sort(byMonth);
 	return older.length > 0 ? older[older.length - 1] : null;
 }
+function latestBefore(rows, month) {
+	let best = null;
+	for (const row of rows) if (row.month < month && (best == null || row.month > best.month)) best = row;
+	return best;
+}
 function yearlyRollup(series) {
 	const years = /* @__PURE__ */ new Map();
 	for (const point of series) {
@@ -1607,6 +1625,56 @@ function yearlyRollup(series) {
 		years.set(year, current);
 	}
 	return [...years.values()];
+}
+var MONTH_LABELS = [
+	"Jan",
+	"Fev",
+	"Mar",
+	"Abr",
+	"Mai",
+	"Jun",
+	"Jul",
+	"Ago",
+	"Set",
+	"Out",
+	"Nov",
+	"Dez"
+];
+function sumByMonth(rows) {
+	const totals = /* @__PURE__ */ new Map();
+	for (const row of rows) {
+		if (!isMonth(row.month)) continue;
+		totals.set(row.month, cents((totals.get(row.month) ?? 0) + row.amount));
+	}
+	return [...totals.entries()].sort((left, right) => left[0] < right[0] ? -1 : 1).map(([month, amount]) => ({
+		month,
+		amount
+	}));
+}
+function compareByYear(points) {
+	const years = [...new Set(points.filter((point) => isMonth(point.month)).map((point) => point.month.slice(0, 4)))].sort();
+	const rows = MONTH_LABELS.map((label) => {
+		const row = { label };
+		for (const year of years) row[year] = null;
+		return row;
+	});
+	for (const point of points) {
+		if (!isMonth(point.month)) continue;
+		const year = point.month.slice(0, 4);
+		const month = Number(point.month.slice(5, 7));
+		rows[month - 1][year] = point.amount;
+	}
+	const first = rows.findIndex((row) => years.some((year) => row[year] != null));
+	if (first < 0) return {
+		years: [],
+		rows: []
+	};
+	let last = rows.length - 1;
+	while (last > first && years.every((year) => rows[last]?.[year] == null)) last -= 1;
+	return {
+		years,
+		rows: rows.slice(first, last + 1)
+	};
 }
 function entryFor(entries, platformId, month) {
 	return entries.find((entry) => entry.platformId === platformId && entry.month === month) ?? null;
@@ -2321,6 +2389,130 @@ function SavingsChart({ series, currency }) {
 		]
 	});
 }
+var YEAR_COLORS = [
+	{
+		stroke: "var(--color-forest)",
+		swatch: "bg-forest"
+	},
+	{
+		stroke: "var(--color-brass)",
+		swatch: "bg-brass"
+	},
+	{
+		stroke: "var(--color-ink)",
+		swatch: "bg-ink"
+	},
+	{
+		stroke: "var(--color-muted)",
+		swatch: "bg-muted"
+	}
+];
+function YearCompareChart({ currency, metrics }) {
+	const reduced = useReducedMotion();
+	const available = metrics.filter((metric) => metric.points.length > 0);
+	const [metricId, setMetricId] = (0, import_react.useState)(available[0]?.id ?? "");
+	const selected = available.find((metric) => metric.id === metricId) ?? available[0];
+	if (!selected) return null;
+	const compared = compareByYear(selected.points);
+	if (compared.years.length === 0) return null;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "font-serif text-2xl",
+				children: "Entre anos"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted",
+				children: compared.years.length < 2 ? "O mesmo mês, em cada ano. A segunda linha aparece quando houver outro ano." : "O mesmo mês, lado a lado, em cada ano."
+			}),
+			available.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-4 grid grid-cols-2 gap-1 rounded-md bg-paper-2 p-1 sm:grid-cols-4",
+				children: available.map((metric) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SpanButton, {
+					active: metric.id === selected.id,
+					onClick: () => setMetricId(metric.id),
+					children: metric.label
+				}, metric.id))
+			}) : null,
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-4 h-64",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
+					width: "100%",
+					height: "100%",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(LineChart, {
+						data: compared.rows,
+						margin: {
+							top: 8,
+							right: 4,
+							left: 0,
+							bottom: 0
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+								stroke: "var(--color-line)",
+								vertical: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+								dataKey: "label",
+								minTickGap: 16,
+								tick: {
+									fill: "var(--color-muted)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+								width: 48,
+								tickFormatter: (value) => formatCompact(value),
+								tick: {
+									fill: "var(--color-muted)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Tooltip, { content: ({ active, payload, label }) => {
+								if (!active || !payload?.length) return null;
+								return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-md border border-line bg-card px-3 py-2 text-sm",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "font-medium",
+										children: label
+									}), payload.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+										className: "mt-1 tabular-nums",
+										children: [
+											item.dataKey,
+											" ",
+											typeof item.value === "number" ? formatMoney(item.value, currency) : "—"
+										]
+									}, String(item.dataKey)))]
+								});
+							} }),
+							compared.years.map((year, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+								type: "monotone",
+								dataKey: year,
+								name: year,
+								stroke: YEAR_COLORS[index % YEAR_COLORS.length].stroke,
+								strokeWidth: 2,
+								dot: false,
+								connectNulls: false,
+								isAnimationActive: !reduced
+							}, year))
+						]
+					})
+				})
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm",
+				children: compared.years.map((year, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Legend, {
+					swatch: YEAR_COLORS[index % YEAR_COLORS.length].swatch,
+					label: year
+				}, year))
+			})
+		]
+	});
+}
 function ExpensesPanel({ month, onMonth, onSetup }) {
 	const types = useLedger((state) => state.expenseTypes);
 	const expenses = useLedger((state) => state.expenses);
@@ -2356,6 +2548,56 @@ function ExpensesPanel({ month, onMonth, onSetup }) {
 	const series = expenseSeries(types, expenses);
 	const monthTotal = expenseTotal(expenses, month);
 	const recorded = types.filter((type) => expenseFor(expenses, type.id, month)).length;
+	const dirtyCount = types.filter((type) => {
+		const draft = drafts[type.id] ?? "";
+		const saved = expenseFor(expenses, type.id, month);
+		const parsed = parseAmount(draft);
+		return saved ? parsed !== saved.amount : draft.trim() !== "";
+	}).length;
+	const canCopy = types.some((type) => {
+		if ((drafts[type.id] ?? "").trim() !== "") return false;
+		return latestBefore(expenses.filter((entry) => entry.typeId === type.id), month);
+	});
+	function copyPrevious() {
+		setDrafts((current) => {
+			const next = { ...current };
+			for (const type of types) {
+				if ((next[type.id] ?? "").trim() !== "") continue;
+				const earlier = latestBefore(expenses.filter((entry) => entry.typeId === type.id), month);
+				if (earlier) next[type.id] = formatPlain(earlier.amount);
+			}
+			return next;
+		});
+	}
+	function saveAll() {
+		const updates = {};
+		const nextErrors = {};
+		for (const type of types) {
+			const draft = drafts[type.id] ?? "";
+			const saved = expenseFor(expenses, type.id, month);
+			const parsed = parseAmount(draft);
+			if (!(saved ? parsed !== saved.amount : draft.trim() !== "")) continue;
+			if (draft.trim() === "" || parsed == null || parsed < 0) {
+				nextErrors[type.id] = "Indica o valor. Se não gastaste, escreve 0.";
+				continue;
+			}
+			upsertExpense({
+				typeId: type.id,
+				month,
+				amount: parsed
+			});
+			updates[type.id] = formatPlain(parsed);
+			nextErrors[type.id] = "";
+		}
+		setDrafts((current) => ({
+			...current,
+			...updates
+		}));
+		setErrors((current) => ({
+			...current,
+			...nextErrors
+		}));
+	}
 	const shares = types.map((type) => ({
 		id: type.id,
 		label: type.name,
@@ -2385,6 +2627,16 @@ function ExpensesPanel({ month, onMonth, onSetup }) {
 						variant: "soft",
 						onClick: onSetup,
 						children: "Criar nas tabelas"
+					}) : dirtyCount >= 2 || canCopy ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-4 flex flex-wrap gap-2",
+						children: [dirtyCount >= 2 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							onClick: saveAll,
+							children: "Guardar este mês"
+						}) : null, canCopy ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "soft",
+							onClick: copyPrevious,
+							children: "Trazer o mês anterior"
+						}) : null]
 					}) : null
 				]
 			}),
@@ -2522,6 +2774,56 @@ function IncomePanel({ month, onMonth, onSetup }) {
 	const earnedAll = incomes.reduce((sum, entry) => sum + entry.amount, 0);
 	const rateAll = savingsRate(entries.reduce((sum, entry) => sum + entry.contributed, 0), earnedAll);
 	const recorded = sources.filter((source) => incomeFor(incomes, source.id, month)).length;
+	const dirtyCount = sources.filter((source) => {
+		const draft = drafts[source.id] ?? "";
+		const saved = incomeFor(incomes, source.id, month);
+		const parsed = parseAmount(draft);
+		return saved ? parsed !== saved.amount : draft.trim() !== "";
+	}).length;
+	const canCopy = sources.some((source) => {
+		if ((drafts[source.id] ?? "").trim() !== "") return false;
+		return latestBefore(incomes.filter((entry) => entry.sourceId === source.id), month);
+	});
+	function copyPrevious() {
+		setDrafts((current) => {
+			const next = { ...current };
+			for (const source of sources) {
+				if ((next[source.id] ?? "").trim() !== "") continue;
+				const earlier = latestBefore(incomes.filter((entry) => entry.sourceId === source.id), month);
+				if (earlier) next[source.id] = formatPlain(earlier.amount);
+			}
+			return next;
+		});
+	}
+	function saveAll() {
+		const updates = {};
+		const nextErrors = {};
+		for (const source of sources) {
+			const draft = drafts[source.id] ?? "";
+			const saved = incomeFor(incomes, source.id, month);
+			const parsed = parseAmount(draft);
+			if (!(saved ? parsed !== saved.amount : draft.trim() !== "")) continue;
+			if (draft.trim() === "" || parsed == null || parsed < 0) {
+				nextErrors[source.id] = "Indica o valor. Se não entrou nada, escreve 0.";
+				continue;
+			}
+			upsertIncome({
+				sourceId: source.id,
+				month,
+				amount: parsed
+			});
+			updates[source.id] = formatPlain(parsed);
+			nextErrors[source.id] = "";
+		}
+		setDrafts((current) => ({
+			...current,
+			...updates
+		}));
+		setErrors((current) => ({
+			...current,
+			...nextErrors
+		}));
+	}
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "space-y-4",
 		children: [
@@ -2541,6 +2843,16 @@ function IncomePanel({ month, onMonth, onSetup }) {
 						variant: "soft",
 						onClick: onSetup,
 						children: "Criar nas tabelas"
+					}) : dirtyCount >= 2 || canCopy ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-4 flex flex-wrap gap-2",
+						children: [dirtyCount >= 2 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							onClick: saveAll,
+							children: "Guardar este mês"
+						}) : null, canCopy ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "soft",
+							onClick: copyPrevious,
+							children: "Trazer o mês anterior"
+						}) : null]
 					}) : null
 				]
 			}),
@@ -2690,6 +3002,56 @@ function CashbackPanel({ month, onMonth, onSetup }) {
 	const series = cashbackSeries(cards, cashbacks);
 	const total = cashbackTotal(cashbacks, month);
 	const recorded = cards.filter((card) => cashbackFor(cashbacks, card.id, month)).length;
+	const dirtyCount = cards.filter((card) => {
+		const draft = drafts[card.id] ?? "";
+		const saved = cashbackFor(cashbacks, card.id, month);
+		const parsed = parseAmount(draft);
+		return saved ? parsed !== saved.amount : draft.trim() !== "";
+	}).length;
+	const canCopy = cards.some((card) => {
+		if ((drafts[card.id] ?? "").trim() !== "") return false;
+		return latestBefore(cashbacks.filter((entry) => entry.cardId === card.id), month);
+	});
+	function copyPrevious() {
+		setDrafts((current) => {
+			const next = { ...current };
+			for (const card of cards) {
+				if ((next[card.id] ?? "").trim() !== "") continue;
+				const earlier = latestBefore(cashbacks.filter((entry) => entry.cardId === card.id), month);
+				if (earlier) next[card.id] = formatPlain(earlier.amount);
+			}
+			return next;
+		});
+	}
+	function saveAll() {
+		const updates = {};
+		const nextErrors = {};
+		for (const card of cards) {
+			const draft = drafts[card.id] ?? "";
+			const saved = cashbackFor(cashbacks, card.id, month);
+			const parsed = parseAmount(draft);
+			if (!(saved ? parsed !== saved.amount : draft.trim() !== "")) continue;
+			if (draft.trim() === "" || parsed == null || parsed < 0) {
+				nextErrors[card.id] = "Indica o cashback. Se não houve, escreve 0.";
+				continue;
+			}
+			upsertCashback({
+				cardId: card.id,
+				month,
+				amount: parsed
+			});
+			updates[card.id] = formatPlain(parsed);
+			nextErrors[card.id] = "";
+		}
+		setDrafts((current) => ({
+			...current,
+			...updates
+		}));
+		setErrors((current) => ({
+			...current,
+			...nextErrors
+		}));
+	}
 	const leaders = rows.filter((row) => row.amount > 0 && row.amount === rows[0]?.amount);
 	const fallback = [...series].reverse().find((point) => point.total > 0);
 	const chartRows = leaders.length > 0 ? rows : fallback?.rows ?? [];
@@ -2713,6 +3075,16 @@ function CashbackPanel({ month, onMonth, onSetup }) {
 						variant: "soft",
 						onClick: onSetup,
 						children: "Criar nas tabelas"
+					}) : dirtyCount >= 2 || canCopy ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-4 flex flex-wrap gap-2",
+						children: [dirtyCount >= 2 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							onClick: saveAll,
+							children: "Guardar este mês"
+						}) : null, canCopy ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "soft",
+							onClick: copyPrevious,
+							children: "Trazer o mês anterior"
+						}) : null]
 					}) : null
 				]
 			}),
@@ -2893,6 +3265,30 @@ function MonthPanel({ month, onMonth, onSetup }) {
 		contributed: "",
 		endValue: ""
 	}, entryFor(entries, platform.id, month))).length;
+	const canRepeat = platforms.some((platform) => {
+		const draft = drafts[platform.id];
+		if (draft && draft.contributed.trim() !== "") return false;
+		return previousEntry(entries, platform.id, month) != null;
+	});
+	function repeatContributions() {
+		setDrafts((current) => {
+			const next = { ...current };
+			for (const platform of platforms) {
+				const draft = next[platform.id] ?? {
+					contributed: "",
+					endValue: ""
+				};
+				if (draft.contributed.trim() !== "") continue;
+				const earlier = previousEntry(entries, platform.id, month);
+				if (!earlier) continue;
+				next[platform.id] = {
+					...draft,
+					contributed: formatPlain(earlier.contributed)
+				};
+			}
+			return next;
+		});
+	}
 	function commit(platformId, contributed, endValue) {
 		upsertEntry({
 			platformId,
@@ -2970,10 +3366,16 @@ function MonthPanel({ month, onMonth, onSetup }) {
 					currency,
 					recorded: recorded > 0
 				}),
-				dirtyCount >= 2 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-					className: "mt-4",
-					onClick: saveAll,
-					children: "Guardar este mês"
+				dirtyCount >= 2 || canRepeat ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					className: "mt-4 flex flex-wrap gap-2",
+					children: [dirtyCount >= 2 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						onClick: saveAll,
+						children: "Guardar este mês"
+					}) : null, canRepeat ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+						variant: "soft",
+						onClick: repeatContributions,
+						children: "Repetir aportes"
+					}) : null]
 				}) : null
 			]
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
@@ -3209,6 +3611,48 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 						month,
 						onChange: onMonth
 					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthBalance, {
+						earned,
+						spent,
+						invested: monthContributed,
+						incomeKnown: incomeSources.length === 0 || pendingIncome.length === 0,
+						spendKnown: expenseTypes.length === 0 || pendingExpenses.length === 0,
+						investKnown: platforms.length === 0 || Boolean(focus && focus.recorded > 0),
+						incomeRecorded: incomeSources.length > 0 && pendingIncome.length < incomeSources.length,
+						spendRecorded: expenseTypes.length > 0 && pendingExpenses.length < expenseTypes.length,
+						investRecorded: Boolean(focus && focus.recorded > 0),
+						currency
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CloseSteps, { steps: [
+						platforms.length > 0 ? {
+							id: "mes",
+							label: "Investimentos",
+							done: pending.length === 0,
+							detail: `${platforms.length - pending.length} de ${platforms.length}`,
+							go: onRegister
+						} : null,
+						incomeSources.length > 0 ? {
+							id: "ganhos",
+							label: "Ganhos",
+							done: pendingIncome.length === 0,
+							detail: `${incomeSources.length - pendingIncome.length} de ${incomeSources.length}`,
+							go: onIncome
+						} : null,
+						expenseTypes.length > 0 ? {
+							id: "despesas",
+							label: "Despesas",
+							done: pendingExpenses.length === 0,
+							detail: `${expenseTypes.length - pendingExpenses.length} de ${expenseTypes.length}`,
+							go: onExpenses
+						} : null,
+						cashbackCards.length > 0 ? {
+							id: "cartoes",
+							label: "Cartões",
+							done: pendingCash.length === 0,
+							detail: `${cashbackCards.length - pendingCash.length} de ${cashbackCards.length}`,
+							go: onCashback
+						} : null
+					].filter((step) => step != null) }),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "mt-4 text-sm leading-relaxed",
 						children: monthStory(focus, platforms.length, currency)
@@ -3360,6 +3804,37 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 				points: series,
 				currency
 			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YearCompareChart, {
+				currency,
+				metrics: [
+					{
+						id: "valor",
+						label: "Carteira",
+						points: series.filter((point) => point.recorded > 0).map((point) => ({
+							month: point.month,
+							amount: point.value
+						}))
+					},
+					{
+						id: "aportes",
+						label: "Aportes",
+						points: series.filter((point) => point.recorded > 0).map((point) => ({
+							month: point.month,
+							amount: point.contributed
+						}))
+					},
+					{
+						id: "ganhos",
+						label: "Ganhos",
+						points: sumByMonth(incomes)
+					},
+					{
+						id: "despesas",
+						label: "Despesas",
+						points: sumByMonth(expenses)
+					}
+				]
+			}),
 			shares.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
 				children: [
@@ -3466,6 +3941,79 @@ function Mini({ label, value }) {
 		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 			className: "mt-1 text-base font-medium",
 			children: value
+		})]
+	});
+}
+function MonthBalance({ earned, spent, invested, incomeKnown, spendKnown, investKnown, incomeRecorded, spendRecorded, investRecorded, currency }) {
+	if (!incomeRecorded && !spendRecorded && !investRecorded) return null;
+	const missing = [
+		!incomeKnown && incomeRecorded ? "ganhos" : null,
+		!spendKnown && spendRecorded ? "despesas" : null,
+		!investKnown && investRecorded ? "investimentos" : null
+	].filter((item) => item != null);
+	const blocked = !incomeRecorded && !incomeKnown || !spendRecorded && !spendKnown || !investRecorded && !investKnown;
+	const leftover = cents(earned - spent - invested);
+	const leftoverText = leftover > 0 ? `Sobrou ${formatMoney(leftover, currency)} depois das despesas e do que meteste a investir.` : leftover < 0 ? `Saíram ${formatMoney(Math.abs(leftover), currency)} a mais do que entrou.` : "O que entrou foi para despesas e investimentos.";
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "mt-4",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "grid grid-cols-2 gap-3",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Mini, {
+					label: "Ganhaste",
+					value: incomeRecorded ? formatMoney(earned, currency) : "—"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Mini, {
+					label: "Gastaste",
+					value: spendRecorded ? formatMoney(spent, currency) : "—"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Mini, {
+					label: "Investiste",
+					value: investRecorded ? formatMoney(invested, currency) : "—"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Mini, {
+					label: "Sobrou",
+					value: blocked ? "—" : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
+						value: leftover,
+						currency
+					})
+				})
+			]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "mt-3 text-sm leading-relaxed text-muted",
+			children: blocked ? "A sobra fecha quando ganhos, despesas e investimentos deste mês estiverem apontados." : missing.length > 0 ? `${leftoverText} Ainda falta fechar ${missing.join(" e ")}.` : leftoverText
+		})]
+	});
+}
+function CloseSteps({ steps }) {
+	if (steps.length === 0) return null;
+	const open = steps.find((step) => !step.done);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "mt-4",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+			className: "overflow-hidden rounded-md border border-line",
+			children: steps.map((step) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", {
+				className: "border-t border-line first:border-t-0",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					type: "button",
+					onClick: step.go,
+					className: "flex h-12 w-full items-center justify-between gap-3 px-3 text-left text-sm",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "font-medium",
+						children: step.label
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "text-muted",
+						children: step.done ? "Feito" : step.detail
+					})]
+				})
+			}, step.id))
+		}), open ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+			className: "mt-3 w-full sm:w-auto",
+			onClick: open.go,
+			children: "Continuar o fecho"
+		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "mt-3 text-sm text-muted",
+			children: "Fecho deste mês completo."
 		})]
 	});
 }

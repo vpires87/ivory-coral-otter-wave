@@ -11,10 +11,10 @@ import type {
 } from "@/lib/ledger/types";
 
 const platforms: Platform[] = [
-  { id: "demo-xtb", name: "XTB", kind: "corretora", openingInvested: 4200 },
-  { id: "demo-tr", name: "Trade Republic", kind: "corretora", openingInvested: 1500 },
+  { id: "demo-xtb", name: "XTB", kind: "corretora", openingInvested: 2700 },
+  { id: "demo-tr", name: "Trade Republic", kind: "corretora", openingInvested: 700 },
   { id: "demo-ctt", name: "Banco CTT", kind: "poupanca", openingInvested: 0 },
-  { id: "demo-binance", name: "Binance", kind: "cripto", openingInvested: 800 },
+  { id: "demo-binance", name: "Binance", kind: "cripto", openingInvested: 400 },
 ];
 
 function row(platformId: string, month: string, contributed: number, endValue: number): MonthEntry {
@@ -51,6 +51,19 @@ const entries: MonthEntry[] = [
   row("demo-binance", "2026-08", 0, 910),
   row("demo-binance", "2026-09", 100, 1180),
 ];
+
+function climb(from: number, to: number, steps: number, index: number): number {
+  return Math.round(from + ((to - from) * (index + 1)) / steps);
+}
+
+for (let index = 0; index < 10; index += 1) {
+  const month = `2025-${String(index + 3).padStart(2, "0")}`;
+  entries.push(
+    row("demo-xtb", month, 150, climb(2900, 4200, 10, index)),
+    row("demo-tr", month, 80, climb(780, 1500, 10, index)),
+    row("demo-binance", month, 40, climb(420, 800, 10, index)),
+  );
+}
 
 const expenseTypes: ExpenseType[] = [
   { id: "demo-renda", name: "Renda" },
@@ -118,6 +131,18 @@ for (let index = 0; index < 7; index += 1) {
   const month = `2026-${String(index + 3).padStart(2, "0")}`;
   incomes.push(earned("demo-ordenado", month, 2100));
   if (extras[index] > 0) incomes.push(earned("demo-extra", month, extras[index]));
+}
+
+for (let index = 0; index < 10; index += 1) {
+  const month = `2025-${String(index + 3).padStart(2, "0")}`;
+  expenses.push(
+    spent("demo-renda", month, 750),
+    spent("demo-comida", month, 240 + (index % 3) * 10),
+    spent("demo-transp", month, 55),
+    spent("demo-lazer", month, index % 2 === 0 ? 30 : 90),
+  );
+  incomes.push(earned("demo-ordenado", month, 1950));
+  if (index % 4 === 0) incomes.push(earned("demo-extra", month, 120));
 }
 
 export function demoLedger(): LedgerData {

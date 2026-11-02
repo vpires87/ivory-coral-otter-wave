@@ -1,4 +1,4 @@
-import { cents, eachMonth } from "@/lib/ledger/money";
+import { cents, eachMonth, isMonth } from "@/lib/ledger/money";
 import { PLATFORM_KINDS } from "@/lib/ledger/types";
 import type {
   CashbackCard,
@@ -137,6 +137,14 @@ export function previousEntry(
   return older.length > 0 ? older[older.length - 1] : null;
 }
 
+export function latestBefore<T extends { month: string }>(rows: T[], month: string): T | null {
+  let best: T | null = null;
+  for (const row of rows) {
+    if (row.month < month && (best == null || row.month > best.month)) best = row;
+  }
+  return best;
+}
+
 export function yearlyRollup(series: MonthPoint[]): YearRollup[] {
   const years = new Map<string, YearRollup>();
   for (const point of series) {
@@ -148,6 +156,42 @@ export function yearlyRollup(series: MonthPoint[]): YearRollup[] {
     years.set(year, current);
   }
   return [...years.values()];
+}
+
+const MONTH_LABELS = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+export function sumByMonth(rows: { month: string; amount: number }[]): { month: string; amount: number }[] {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    if (!isMonth(row.month)) continue;
+    totals.set(row.month, cents((totals.get(row.month) ?? 0) + row.amount));
+  }
+  return [...totals.entries()]
+    .sort((left, right) => (left[0] < right[0] ? -1 : 1))
+    .map(([month, amount]) => ({ month, amount }));
+}
+
+export function compareByYear(points: { month: string; amount: number }[]): {
+  years: string[];
+  rows: ({ label: string } & Record<string, string | number | null>)[];
+} {
+  const years = [...new Set(points.filter((point) => isMonth(point.month)).map((point) => point.month.slice(0, 4)))].sort();
+  const rows = MONTH_LABELS.map((label) => {
+    const row: { label: string } & Record<string, string | number | null> = { label };
+    for (const year of years) row[year] = null;
+    return row;
+  });
+  for (const point of points) {
+    if (!isMonth(point.month)) continue;
+    const year = point.month.slice(0, 4);
+    const month = Number(point.month.slice(5, 7));
+    rows[month - 1][year] = point.amount;
+  }
+  const first = rows.findIndex((row) => years.some((year) => row[year] != null));
+  if (first < 0) return { years: [], rows: [] };
+  let last = rows.length - 1;
+  while (last > first && years.every((year) => rows[last]?.[year] == null)) last -= 1;
+  return { years, rows: rows.slice(first, last + 1) };
 }
 
 export function entryFor(entries: MonthEntry[], platformId: string, month: string): MonthEntry | null {

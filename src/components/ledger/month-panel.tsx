@@ -118,6 +118,25 @@ export function MonthPanel({
   const dirtyCount = platforms.filter((platform) =>
     isDirty(drafts[platform.id] ?? { contributed: "", endValue: "" }, entryFor(entries, platform.id, month)),
   ).length;
+  const canRepeat = platforms.some((platform) => {
+    const draft = drafts[platform.id];
+    if (draft && draft.contributed.trim() !== "") return false;
+    return previousEntry(entries, platform.id, month) != null;
+  });
+
+  function repeatContributions() {
+    setDrafts((current) => {
+      const next = { ...current };
+      for (const platform of platforms) {
+        const draft = next[platform.id] ?? { contributed: "", endValue: "" };
+        if (draft.contributed.trim() !== "") continue;
+        const earlier = previousEntry(entries, platform.id, month);
+        if (!earlier) continue;
+        next[platform.id] = { ...draft, contributed: formatPlain(earlier.contributed) };
+      }
+      return next;
+    });
+  }
 
   function commit(platformId: string, contributed: number, endValue: number) {
     upsertEntry({ platformId, month, contributed, endValue });
@@ -168,10 +187,15 @@ export function MonthPanel({
           currency={currency}
           recorded={recorded > 0}
         />
-        {dirtyCount >= 2 ? (
-          <Button className="mt-4" onClick={saveAll}>
-            Guardar este mês
-          </Button>
+        {dirtyCount >= 2 || canRepeat ? (
+          <div className="mt-4 flex flex-wrap gap-2">
+            {dirtyCount >= 2 ? <Button onClick={saveAll}>Guardar este mês</Button> : null}
+            {canRepeat ? (
+              <Button variant="soft" onClick={repeatContributions}>
+                Repetir aportes
+              </Button>
+            ) : null}
+          </div>
         ) : null}
       </section>
       <ul className="grid gap-3 lg:grid-cols-2">
