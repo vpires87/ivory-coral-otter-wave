@@ -8,6 +8,8 @@ import type {
   LedgerData,
   MonthEntry,
   Platform,
+  Product,
+  ProductEntry,
 } from "@/lib/ledger/types";
 
 const platforms: Platform[] = [
@@ -145,10 +147,22 @@ for (let index = 0; index < 10; index += 1) {
   if (index % 4 === 0) incomes.push(earned("demo-extra", month, 120));
 }
 
+const products: Product[] = [
+  { id: "demo-vwce", platformId: "demo-xtb", name: "VWCE" },
+  { id: "demo-sxr8", platformId: "demo-xtb", name: "SXR8" },
+];
+
+const productEntries: ProductEntry[] = [
+  { id: "demo-vwce-2026-09", productId: "demo-vwce", month: "2026-09", contributed: 200, endValue: 4200 },
+  { id: "demo-sxr8-2026-09", productId: "demo-sxr8", month: "2026-09", contributed: 100, endValue: 2510 },
+];
+
 export function demoLedger(): LedgerData {
   return {
     platforms: platforms.map((platform) => ({ ...platform })),
     entries: entries.map((entry) => ({ ...entry })),
+    products: products.map((product) => ({ ...product })),
+    productEntries: productEntries.map((entry) => ({ ...entry })),
     expenseTypes: expenseTypes.map((type) => ({ ...type })),
     expenses: expenses.map((entry) => ({ ...entry })),
     cashbackCards: cashbackCards.map((card) => ({ ...card })),

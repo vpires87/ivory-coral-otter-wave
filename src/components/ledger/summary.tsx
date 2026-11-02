@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { buildSeries, cashbackFor, cashbackRows, cashbackTotal, contributedIn, entryFor, expenseFor, expenseTotal, incomeFor, incomeTotal, kindShares, platformSnapshot, pointFor, savingsRate, savingsSeries, sumByMonth, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
+import { buildSeries, cashbackFor, cashbackRows, cashbackTotal, contributedIn, entryFor, expenseFor, expenseTotal, incomeFor, incomeTotal, kindShares, platformSnapshot, pointFor, productShares, savingsRate, savingsSeries, sumByMonth, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
 import { cents, formatMoney, formatMonth, formatPercent, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { PLATFORM_KINDS, type CurrencyCode } from "@/lib/ledger/types";
@@ -25,6 +25,8 @@ export function SummaryView({
 }) {
   const platforms = useLedger((state) => state.platforms);
   const entries = useLedger((state) => state.entries);
+  const products = useLedger((state) => state.products);
+  const productEntries = useLedger((state) => state.productEntries);
   const expenseTypes = useLedger((state) => state.expenseTypes);
   const expenses = useLedger((state) => state.expenses);
   const cashbackCards = useLedger((state) => state.cashbackCards);
@@ -39,6 +41,7 @@ export function SummaryView({
   const years = yearlyRollup(series);
   const shares = valueShares(platforms, entries);
   const kinds = kindShares(platforms, entries);
+  const portfolio = productShares(platforms, products, entries, productEntries);
   const pending = platforms.filter((platform) => !entryFor(entries, platform.id, month));
   const pendingExpenses = expenseTypes.filter((type) => !expenseFor(expenses, type.id, month));
   const spent = expenseTotal(expenses, month);
@@ -260,13 +263,21 @@ export function SummaryView({
         ]}
       />
 
-      {shares.length > 1 ? (
+      {shares.length > 1 || (products.length > 0 && portfolio.length > 1) ? (
         <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
           <h2 className="mb-4 font-serif text-2xl">Onde está o dinheiro</h2>
-          <ShareList title="Por plataforma" slices={shares} currency={currency} />
+          {shares.length > 1 ? <ShareList title="Por plataforma" slices={shares} currency={currency} /> : null}
           {kinds.length > 1 ? (
             <div className="mt-6">
               <ShareList title="Por tipo" slices={kinds} currency={currency} />
+            </div>
+          ) : null}
+          {products.length > 0 && portfolio.length > 1 ? (
+            <div className="mt-6">
+              <ShareList title="Por produto" slices={portfolio} currency={currency} />
+              <p className="mt-3 text-sm text-muted">
+                A percentagem é o último valor de cada produto. O que não dividiste fica com o nome da plataforma.
+              </p>
             </div>
           ) : null}
         </section>

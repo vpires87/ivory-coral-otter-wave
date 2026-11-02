@@ -1,14 +1,15 @@
 import { o as __toESM } from "../_runtime.mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
+import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
 import { a as Settings, c as ChevronRight, d as Bitcoin, i as Shapes, l as ChevronLeft, n as Wallet, o as PiggyBank, s as Landmark, t as X, u as ChartLine } from "../_libs/lucide-react.mjs";
+import { i as storeTheme, n as THEMES, r as readTheme } from "./router-HCa245sB.mjs";
 import { n as parse, r as format, t as pt } from "../_libs/date-fns.mjs";
 import { t as create } from "../_libs/zustand.mjs";
 import { t as clsx } from "../_libs/clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
-import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
 import { a as XAxis, c as CartesianGrid, d as ResponsiveContainer, f as Tooltip, i as YAxis, l as Bar, n as BarChart, o as Area, r as LineChart, s as Line, t as ComposedChart, u as Cell } from "../_libs/recharts+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-D2LpyBAu.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-S6Q8TTqN.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function cents(n) {
@@ -361,10 +362,56 @@ function parseBackup(raw) {
 			amount
 		});
 	}
+	const products = [];
+	const seenProducts = /* @__PURE__ */ new Set();
+	const productRows = data.products == null ? [] : data.products;
+	if (!Array.isArray(productRows)) return "Os produtos do ficheiro são inválidos.";
+	if (productRows.length > 400) return "Há produtos a mais.";
+	for (const item of productRows) {
+		const row = asRecord(item);
+		if (!row) return "Há um produto inválido.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um produto sem identificador válido.";
+		if (seenProducts.has(row.id)) return "Há produtos repetidos.";
+		seenProducts.add(row.id);
+		if (typeof row.platformId !== "string" || !seenPlatforms.has(row.platformId)) return "Há um produto ligado a uma plataforma que não existe.";
+		if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) return "Há um produto com nome inválido.";
+		products.push({
+			id: row.id,
+			platformId: row.platformId,
+			name: row.name.trim()
+		});
+	}
+	const productEntries = [];
+	const seenProductMonths = /* @__PURE__ */ new Set();
+	const productEntryRows = data.productEntries == null ? [] : data.productEntries;
+	if (!Array.isArray(productEntryRows)) return "Os meses dos produtos são inválidos.";
+	if (productEntryRows.length > 8e3) return "O ficheiro é demasiado grande.";
+	for (const item of productEntryRows) {
+		const row = asRecord(item);
+		if (!row) return "Há um mês de produto inválido.";
+		if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) return "Há um mês de produto sem identificador válido.";
+		if (typeof row.productId !== "string" || !seenProducts.has(row.productId)) return "Há um mês ligado a um produto que não existe.";
+		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há um produto com mês inválido.";
+		const key = `${row.productId}|${row.month}`;
+		if (seenProductMonths.has(key)) return "Há dois registos do mesmo produto no mesmo mês.";
+		seenProductMonths.add(key);
+		const contributed = asMoney(row.contributed);
+		const endValue = asMoney(row.endValue);
+		if (contributed == null || endValue == null || endValue < 0) return "Há um valor de produto inválido.";
+		productEntries.push({
+			id: row.id,
+			productId: row.productId,
+			month: row.month,
+			contributed,
+			endValue
+		});
+	}
 	return {
 		currency: data.currency,
 		platforms,
 		entries,
+		products,
+		productEntries,
 		expenseTypes,
 		expenses,
 		cashbackCards,
@@ -388,6 +435,8 @@ function toBackup(data) {
 		closingDay: data.closingDay,
 		platforms: data.platforms,
 		entries: data.entries,
+		products: data.products,
+		productEntries: data.productEntries,
 		expenseTypes: data.expenseTypes,
 		expenses: data.expenses,
 		cashbackCards: data.cashbackCards,
@@ -619,10 +668,34 @@ for (let index = 0; index < 10; index += 1) {
 	incomes.push(earned("demo-ordenado", month, 1950));
 	if (index % 4 === 0) incomes.push(earned("demo-extra", month, 120));
 }
+var products = [{
+	id: "demo-vwce",
+	platformId: "demo-xtb",
+	name: "VWCE"
+}, {
+	id: "demo-sxr8",
+	platformId: "demo-xtb",
+	name: "SXR8"
+}];
+var productEntries = [{
+	id: "demo-vwce-2026-09",
+	productId: "demo-vwce",
+	month: "2026-09",
+	contributed: 200,
+	endValue: 4200
+}, {
+	id: "demo-sxr8-2026-09",
+	productId: "demo-sxr8",
+	month: "2026-09",
+	contributed: 100,
+	endValue: 2510
+}];
 function demoLedger() {
 	return {
 		platforms: platforms.map((platform) => ({ ...platform })),
 		entries: entries.map((entry) => ({ ...entry })),
+		products: products.map((product) => ({ ...product })),
+		productEntries: productEntries.map((entry) => ({ ...entry })),
 		expenseTypes: expenseTypes.map((type) => ({ ...type })),
 		expenses: expenses.map((entry) => ({ ...entry })),
 		cashbackCards: cashbackCards.map((card) => ({ ...card })),
@@ -639,6 +712,8 @@ function demoLedger() {
 var empty = {
 	platforms: [],
 	entries: [],
+	products: [],
+	productEntries: [],
 	expenseTypes: [],
 	expenses: [],
 	cashbackCards: [],
@@ -679,7 +754,9 @@ var useLedger = create()((set) => ({
 	} : platform) })),
 	deletePlatform: (id) => set((state) => ({
 		platforms: state.platforms.filter((platform) => platform.id !== id),
-		entries: state.entries.filter((entry) => entry.platformId !== id)
+		entries: state.entries.filter((entry) => entry.platformId !== id),
+		products: state.products.filter((product) => product.platformId !== id),
+		productEntries: state.productEntries.filter((entry) => state.products.some((product) => product.platformId !== id && product.id === entry.productId))
 	})),
 	upsertEntry: (input) => set((state) => {
 		const index = state.entries.findIndex((entry) => entry.platformId === input.platformId && entry.month === input.month);
@@ -702,7 +779,75 @@ var useLedger = create()((set) => ({
 			...next
 		}] };
 	}),
-	deleteEntry: (id) => set((state) => ({ entries: state.entries.filter((entry) => entry.id !== id) })),
+	deleteEntry: (id) => set((state) => {
+		const entry = state.entries.find((item) => item.id === id);
+		const productIds = new Set(entry ? state.products.filter((product) => product.platformId === entry.platformId).map((product) => product.id) : []);
+		return {
+			entries: state.entries.filter((item) => item.id !== id),
+			productEntries: entry ? state.productEntries.filter((item) => item.month !== entry.month || !productIds.has(item.productId)) : state.productEntries
+		};
+	}),
+	addProduct: (platformId, name) => {
+		const trimmed = name.trim();
+		const created = crypto.randomUUID();
+		let result = created;
+		set((state) => {
+			const existing = state.products.find((product) => product.platformId === platformId && product.name.toLowerCase() === trimmed.toLowerCase());
+			if (existing) {
+				result = existing.id;
+				return {};
+			}
+			return { products: [...state.products, {
+				id: created,
+				platformId,
+				name: trimmed
+			}] };
+		});
+		return result;
+	},
+	renameProduct: (id, name) => set((state) => ({ products: state.products.map((product) => product.id === id ? {
+		...product,
+		name: name.trim()
+	} : product) })),
+	deleteProduct: (id) => set((state) => ({
+		products: state.products.filter((product) => product.id !== id),
+		productEntries: state.productEntries.filter((entry) => entry.productId !== id)
+	})),
+	saveProductMonth: (platformId, month, lines) => set((state) => {
+		const ids = new Set(state.products.filter((product) => product.platformId === platformId).map((product) => product.id));
+		const kept = state.productEntries.filter((entry) => entry.month !== month || !ids.has(entry.productId));
+		let contributed = 0;
+		let endValue = 0;
+		const nextLines = lines.filter((line) => ids.has(line.productId)).map((line) => {
+			contributed = cents(contributed + line.contributed);
+			endValue = cents(endValue + line.endValue);
+			return {
+				id: state.productEntries.find((entry) => entry.productId === line.productId && entry.month === month)?.id ?? crypto.randomUUID(),
+				productId: line.productId,
+				month,
+				contributed: cents(line.contributed),
+				endValue: cents(line.endValue)
+			};
+		});
+		const entryIndex = state.entries.findIndex((entry) => entry.platformId === platformId && entry.month === month);
+		const entries = state.entries.slice();
+		if (entryIndex >= 0) entries[entryIndex] = {
+			...entries[entryIndex],
+			contributed,
+			endValue
+		};
+		else entries.push({
+			id: crypto.randomUUID(),
+			platformId,
+			month,
+			contributed,
+			endValue
+		});
+		return {
+			productEntries: [...kept, ...nextLines],
+			entries
+		};
+	}),
 	addExpenseType: (name) => {
 		const id = crypto.randomUUID();
 		set((state) => ({ expenseTypes: [...state.expenseTypes, {
@@ -856,6 +1001,8 @@ function selectData(state) {
 	return {
 		platforms: state.platforms,
 		entries: state.entries,
+		products: state.products,
+		productEntries: state.productEntries,
 		expenseTypes: state.expenseTypes,
 		expenses: state.expenses,
 		cashbackCards: state.cashbackCards,
@@ -1082,7 +1229,7 @@ function Sheet({ open, onOpenChange, title, description, children }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
 		open,
 		onOpenChange,
-		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogPortal, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogOverlay, { className: "fixed inset-0 z-40 bg-ink/40" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
+		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogPortal, { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(DialogOverlay, { className: "fixed inset-0 z-40 bg-black/50" }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(DialogContent, {
 			className: "fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-lg border border-line bg-card p-5 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:max-h-[85dvh] sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg",
 			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "mb-5 flex items-start justify-between gap-3",
@@ -1209,6 +1356,10 @@ function SettingsDialog({ open, onOpenChange }) {
 	const [message, setMessage] = (0, import_react.useState)("");
 	const [confirmWipe, setConfirmWipe] = (0, import_react.useState)(false);
 	const [confirmDemo, setConfirmDemo] = (0, import_react.useState)(false);
+	const [theme, setTheme] = (0, import_react.useState)("papel");
+	(0, import_react.useEffect)(() => {
+		if (open) setTheme(readTheme());
+	}, [open]);
 	function exportFile() {
 		const payload = toBackup(selectData(useLedger.getState()));
 		const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -1245,6 +1396,38 @@ function SettingsDialog({ open, onOpenChange }) {
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 			className: "space-y-5",
 			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mb-2 text-sm font-medium",
+						children: "Aparência"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+						className: "grid grid-cols-3 gap-2",
+						children: THEMES.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+							type: "button",
+							"aria-pressed": theme === item.id,
+							onClick: () => {
+								setTheme(item.id);
+								storeTheme(item.id);
+							},
+							className: cn("flex min-h-16 flex-col items-center justify-center gap-2 rounded-md border px-2 py-3 text-sm font-medium", theme === item.id ? "border-forest bg-forest-soft" : "border-line bg-card"),
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "flex h-6 w-10 overflow-hidden rounded border border-line",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "flex-1",
+									style: { background: item.paper }
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+									className: "flex-1",
+									style: { background: item.accent }
+								})]
+							}), item.label]
+						}, item.id))
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-2 text-sm text-muted",
+						children: "Sistema segue o claro ou o escuro do telemóvel."
+					})
+				] }),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "mb-2 text-sm font-medium",
 					children: "Moeda"
@@ -1320,7 +1503,7 @@ function SettingsDialog({ open, onOpenChange }) {
 				}),
 				confirmWipe ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "rounded-md bg-loss-soft p-3 text-sm",
-					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Isto apaga a caderneta da tua conta. Não dá para desfazer." }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", { children: "Isto apaga a caderneta neste dispositivo. Não dá para desfazer." }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "mt-3 flex gap-2",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 							variant: "danger",
@@ -1698,6 +1881,50 @@ function kindShares(platforms, entries) {
 		label: PLATFORM_KINDS.find((kind) => kind.id === id)?.label ?? id,
 		value
 	}));
+	rows.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt"));
+	return withShares(rows);
+}
+function productEntryFor(entries, productId, month) {
+	return entries.find((entry) => entry.productId === productId && entry.month === month) ?? null;
+}
+function latestProductEntry(entries, productId) {
+	const mine = entries.filter((entry) => entry.productId === productId).sort(byMonth);
+	return mine.length > 0 ? mine[mine.length - 1] : null;
+}
+function productShares(platforms, products, entries, productEntries) {
+	const rows = [];
+	for (const platform of platforms) {
+		const value = platformSnapshot(platform, entries).value ?? 0;
+		if (value <= 0) continue;
+		const valued = products.filter((product) => product.platformId === platform.id).map((product) => ({
+			product,
+			latest: latestProductEntry(productEntries, product.id)
+		})).filter((item) => item.latest != null && item.latest.endValue > 0);
+		if (valued.length === 0) {
+			rows.push({
+				id: platform.id,
+				label: platform.name,
+				value
+			});
+			continue;
+		}
+		let used = 0;
+		for (const item of valued) {
+			const amount = item.latest?.endValue ?? 0;
+			rows.push({
+				id: item.product.id,
+				label: item.product.name,
+				value: amount
+			});
+			used = cents(used + amount);
+		}
+		const rest = cents(value - used);
+		if (rest > 0) rows.push({
+			id: `${platform.id}-rest`,
+			label: `${platform.name} por atribuir`,
+			value: rest
+		});
+	}
 	rows.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt"));
 	return withShares(rows);
 }
@@ -3188,6 +3415,17 @@ function initialDrafts(platforms, entries, month) {
 	for (const platform of platforms) drafts[platform.id] = draftFrom(platform.id, entries, month);
 	return drafts;
 }
+function productDraftFrom(productId, entries, month) {
+	const saved = productEntryFor(entries, productId, month);
+	if (!saved) return {
+		contributed: "",
+		endValue: ""
+	};
+	return {
+		contributed: formatPlain(saved.contributed),
+		endValue: formatPlain(saved.endValue)
+	};
+}
 function parsedDraft(draft) {
 	if (draft.contributed.trim() === "" || parseAmount(draft.contributed) == null) return "Indica o aporte. Se não meteste dinheiro, escreve 0.";
 	const contributed = parseAmount(draft.contributed);
@@ -3209,15 +3447,28 @@ function isDirty(draft, saved) {
 function MonthPanel({ month, onMonth, onSetup }) {
 	const platforms = useLedger((state) => state.platforms);
 	const entries = useLedger((state) => state.entries);
+	const products = useLedger((state) => state.products);
+	const productEntries = useLedger((state) => state.productEntries);
 	const currency = useLedger((state) => state.currency);
 	const upsertEntry = useLedger((state) => state.upsertEntry);
 	const deleteEntry = useLedger((state) => state.deleteEntry);
+	const addProduct = useLedger((state) => state.addProduct);
+	const saveProductMonth = useLedger((state) => state.saveProductMonth);
 	const monthlyGoal = useLedger((state) => state.monthlyGoal);
 	const [drafts, setDrafts] = (0, import_react.useState)(() => initialDrafts(platforms, entries, month));
+	const [productDrafts, setProductDrafts] = (0, import_react.useState)({});
+	const [splitting, setSplitting] = (0, import_react.useState)({});
+	const [productNames, setProductNames] = (0, import_react.useState)({});
 	const [errors, setErrors] = (0, import_react.useState)({});
 	const [confirmId, setConfirmId] = (0, import_react.useState)(null);
 	(0, import_react.useEffect)(() => {
-		setDrafts(initialDrafts(platforms, entries, month));
+		const state = useLedger.getState();
+		setDrafts(initialDrafts(state.platforms, state.entries, month));
+		const next = {};
+		for (const product of state.products) next[product.id] = productDraftFrom(product.id, state.productEntries, month);
+		setProductDrafts(next);
+		setSplitting({});
+		setProductNames({});
 		setErrors({});
 		setConfirmId(null);
 	}, [month]);
@@ -3234,6 +3485,21 @@ function MonthPanel({ month, onMonth, onSetup }) {
 	}, [
 		platforms,
 		entries,
+		month
+	]);
+	(0, import_react.useEffect)(() => {
+		setProductDrafts((current) => {
+			let changed = false;
+			const next = { ...current };
+			for (const product of products) if (!next[product.id]) {
+				next[product.id] = productDraftFrom(product.id, productEntries, month);
+				changed = true;
+			}
+			return changed ? next : current;
+		});
+	}, [
+		products,
+		productEntries,
 		month
 	]);
 	if (platforms.length === 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
@@ -3261,11 +3527,61 @@ function MonthPanel({ month, onMonth, onSetup }) {
 	});
 	const recorded = platforms.filter((platform) => entryFor(entries, platform.id, month)).length;
 	const monthContributed = entries.reduce((sum, entry) => entry.month === month ? cents(sum + entry.contributed) : sum, 0);
-	const dirtyCount = platforms.filter((platform) => isDirty(drafts[platform.id] ?? {
-		contributed: "",
-		endValue: ""
-	}, entryFor(entries, platform.id, month))).length;
+	function mine(platformId) {
+		return products.filter((product) => product.platformId === platformId);
+	}
+	function isSplit(platformId) {
+		const lines = mine(platformId);
+		if (lines.length === 0) return false;
+		const saved = entryFor(entries, platformId, month);
+		const recordedProducts = lines.some((product) => productEntryFor(productEntries, product.id, month));
+		return Boolean(splitting[platformId] || recordedProducts || !saved);
+	}
+	function productIsDirty(productId) {
+		const draft = productDrafts[productId] ?? {
+			contributed: "",
+			endValue: ""
+		};
+		const saved = productEntryFor(productEntries, productId, month);
+		if (!saved) return draft.contributed.trim() !== "" || draft.endValue.trim() !== "";
+		return parseAmount(draft.contributed) !== saved.contributed || parseAmount(draft.endValue) !== saved.endValue;
+	}
+	function platformIsDirty(platformId) {
+		if (isSplit(platformId)) return mine(platformId).some((product) => productIsDirty(product.id));
+		return isDirty(drafts[platformId] ?? {
+			contributed: "",
+			endValue: ""
+		}, entryFor(entries, platformId, month));
+	}
+	function parsedProducts(platformId) {
+		const lines = [];
+		for (const product of mine(platformId)) {
+			const draft = productDrafts[product.id] ?? {
+				contributed: "",
+				endValue: ""
+			};
+			if (draft.contributed.trim() === "" && draft.endValue.trim() === "") continue;
+			if (draft.contributed.trim() === "" || parseAmount(draft.contributed) == null) return `Em ${product.name}, indica o aporte. Se não meteste dinheiro, escreve 0.`;
+			const contributed = parseAmount(draft.contributed);
+			if (draft.endValue.trim() === "" || parseAmount(draft.endValue) == null) return `Em ${product.name}, indica o valor que ficou.`;
+			const endValue = parseAmount(draft.endValue);
+			if (contributed == null || endValue == null || endValue < 0) return `Em ${product.name}, indica o valor que ficou.`;
+			lines.push({
+				productId: product.id,
+				contributed,
+				endValue
+			});
+		}
+		if (lines.length === 0) return "Indica pelo menos um produto. Se não meteste dinheiro, escreve 0.";
+		return lines;
+	}
+	const dirtyCount = platforms.filter((platform) => platformIsDirty(platform.id)).length;
 	const canRepeat = platforms.some((platform) => {
+		if (isSplit(platform.id)) return mine(platform.id).some((product) => {
+			const draft = productDrafts[product.id];
+			if (draft && draft.contributed.trim() !== "") return false;
+			return latestBefore(productEntries.filter((entry) => entry.productId === product.id), month);
+		});
 		const draft = drafts[platform.id];
 		if (draft && draft.contributed.trim() !== "") return false;
 		return previousEntry(entries, platform.id, month) != null;
@@ -3274,6 +3590,7 @@ function MonthPanel({ month, onMonth, onSetup }) {
 		setDrafts((current) => {
 			const next = { ...current };
 			for (const platform of platforms) {
+				if (isSplit(platform.id)) continue;
 				const draft = next[platform.id] ?? {
 					contributed: "",
 					endValue: ""
@@ -3282,6 +3599,23 @@ function MonthPanel({ month, onMonth, onSetup }) {
 				const earlier = previousEntry(entries, platform.id, month);
 				if (!earlier) continue;
 				next[platform.id] = {
+					...draft,
+					contributed: formatPlain(earlier.contributed)
+				};
+			}
+			return next;
+		});
+		setProductDrafts((current) => {
+			const next = { ...current };
+			for (const product of products) {
+				const draft = next[product.id] ?? {
+					contributed: "",
+					endValue: ""
+				};
+				if (draft.contributed.trim() !== "") continue;
+				const earlier = latestBefore(productEntries.filter((entry) => entry.productId === product.id), month);
+				if (!earlier) continue;
+				next[product.id] = {
 					...draft,
 					contributed: formatPlain(earlier.contributed)
 				};
@@ -3308,16 +3642,40 @@ function MonthPanel({ month, onMonth, onSetup }) {
 			[platformId]: ""
 		}));
 	}
+	function commitProducts(platformId, lines) {
+		saveProductMonth(platformId, month, lines);
+		setProductDrafts((current) => {
+			const next = { ...current };
+			for (const line of lines) next[line.productId] = {
+				contributed: formatPlain(line.contributed),
+				endValue: formatPlain(line.endValue)
+			};
+			return next;
+		});
+		setErrors((current) => ({
+			...current,
+			[platformId]: ""
+		}));
+	}
 	function saveAll() {
 		const updates = {};
 		const nextErrors = {};
 		for (const platform of platforms) {
-			const draft = drafts[platform.id] ?? {
+			if (!platformIsDirty(platform.id)) continue;
+			if (isSplit(platform.id)) {
+				const parsed = parsedProducts(platform.id);
+				if (typeof parsed === "string") {
+					nextErrors[platform.id] = parsed;
+					continue;
+				}
+				commitProducts(platform.id, parsed);
+				nextErrors[platform.id] = "";
+				continue;
+			}
+			const parsed = parsedDraft(drafts[platform.id] ?? {
 				contributed: "",
 				endValue: ""
-			};
-			if (!isDirty(draft, entryFor(entries, platform.id, month))) continue;
-			const parsed = parsedDraft(draft);
+			});
 			if (typeof parsed === "string") {
 				nextErrors[platform.id] = parsed;
 				continue;
@@ -3387,11 +3745,11 @@ function MonthPanel({ month, onMonth, onSetup }) {
 				};
 				const saved = entryFor(entries, platform.id, month);
 				const previous = previousEntry(entries, platform.id, month);
-				const contributed = parseAmount(draft.contributed);
-				const endValue = parseAmount(draft.endValue);
-				const dirty = saved ? contributed !== saved.contributed || endValue !== saved.endValue : draft.contributed.trim() !== "" || draft.endValue.trim() !== "";
+				const dirty = platformIsDirty(platform.id);
+				const split = isSplit(platform.id);
+				const lines = mine(platform.id);
 				const kind = PLATFORM_KINDS.find((item) => item.id === platform.kind)?.label;
-				const market = saved && !dirty ? previous ? cents(saved.endValue - previous.endValue - saved.contributed) : cents(saved.endValue - (platform.openingInvested + saved.contributed)) : null;
+				const market = saved && !dirty && !split ? previous ? cents(saved.endValue - previous.endValue - saved.contributed) : cents(saved.endValue - (platform.openingInvested + saved.contributed)) : null;
 				function update(patch) {
 					setDrafts((current) => ({
 						...current,
@@ -3401,7 +3759,31 @@ function MonthPanel({ month, onMonth, onSetup }) {
 						}
 					}));
 				}
+				function updateProduct(productId, patch) {
+					setProductDrafts((current) => ({
+						...current,
+						[productId]: {
+							...current[productId] ?? {
+								contributed: "",
+								endValue: ""
+							},
+							...patch
+						}
+					}));
+				}
 				function save() {
+					if (split) {
+						const parsed = parsedProducts(platform.id);
+						if (typeof parsed === "string") {
+							setErrors((current) => ({
+								...current,
+								[platform.id]: parsed
+							}));
+							return;
+						}
+						commitProducts(platform.id, parsed);
+						return;
+					}
 					const parsed = parsedDraft(draft);
 					if (typeof parsed === "string") {
 						setErrors((current) => ({
@@ -3411,6 +3793,26 @@ function MonthPanel({ month, onMonth, onSetup }) {
 						return;
 					}
 					commit(platform.id, parsed.contributed, parsed.endValue);
+				}
+				function addNamedProduct() {
+					const name = (productNames[platform.id] ?? "").trim();
+					if (!name) return;
+					const id = addProduct(platform.id, name);
+					setSplitting((current) => ({
+						...current,
+						[platform.id]: true
+					}));
+					setProductNames((current) => ({
+						...current,
+						[platform.id]: ""
+					}));
+					setProductDrafts((current) => current[id] ? current : {
+						...current,
+						[id]: {
+							contributed: "",
+							endValue: ""
+						}
+					});
 				}
 				return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
 					className: "rounded-lg border border-line bg-card p-4",
@@ -3424,11 +3826,62 @@ function MonthPanel({ month, onMonth, onSetup }) {
 									children: platform.name
 								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 									className: "text-sm text-muted",
-									children: [kind, saved && !dirty ? " · registado" : dirty ? " · por guardar" : " · por registar"]
+									children: [
+										kind,
+										split ? " · por produto" : "",
+										saved && !dirty ? " · registado" : dirty ? " · por guardar" : " · por registar"
+									]
 								})]
 							})]
 						}),
-						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						split ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+							className: "mt-4 space-y-4",
+							children: lines.map((product) => {
+								const line = productDrafts[product.id] ?? {
+									contributed: "",
+									endValue: ""
+								};
+								const earlier = latestBefore(productEntries.filter((entry) => entry.productId === product.id), month);
+								return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+									className: "font-medium",
+									children: product.name
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+										className: "block",
+										children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+											className: "mb-1.5 block text-sm font-medium",
+											children: "Aporte"
+										}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+											inputMode: "decimal",
+											value: line.contributed,
+											placeholder: "0,00",
+											onChange: (event) => updateProduct(product.id, { contributed: event.target.value }),
+											className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
+										})]
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+										className: "block",
+										children: [
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+												className: "mb-1.5 block text-sm font-medium",
+												children: "Valor no fim"
+											}),
+											/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+												inputMode: "decimal",
+												value: line.endValue,
+												placeholder: "0,00",
+												onChange: (event) => updateProduct(product.id, { endValue: event.target.value }),
+												className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
+											}),
+											earlier ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+												className: "mt-1.5 block text-sm text-muted",
+												children: ["Mês anterior: ", formatMoney(earlier.endValue, currency)]
+											}) : null
+										]
+									})]
+								})] }, product.id);
+							})
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 							className: "mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2",
 							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
 								className: "block",
@@ -3470,6 +3923,40 @@ function MonthPanel({ month, onMonth, onSetup }) {
 								]
 							})]
 						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+							className: "mt-4 flex flex-col gap-2 sm:flex-row",
+							onSubmit: (event) => {
+								event.preventDefault();
+								addNamedProduct();
+							},
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+								value: productNames[platform.id] ?? "",
+								placeholder: "Nome do produto",
+								maxLength: 40,
+								onChange: (event) => setProductNames((current) => ({
+									...current,
+									[platform.id]: event.target.value
+								})),
+								className: "h-12 min-w-0 flex-1 rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								type: "submit",
+								variant: "soft",
+								disabled: (productNames[platform.id] ?? "").trim() === "",
+								children: "Adicionar produto"
+							})]
+						}),
+						split ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "mt-3 text-sm text-muted",
+							children: "O total da plataforma é a soma destes produtos."
+						}) : lines.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							className: "mt-3",
+							variant: "ghost",
+							onClick: () => setSplitting((current) => ({
+								...current,
+								[platform.id]: true
+							})),
+							children: "Dividir este mês por produto"
+						}) : null,
 						errors[platform.id] ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 							className: "mt-3 text-sm text-loss",
 							children: errors[platform.id]
@@ -3489,11 +3976,31 @@ function MonthPanel({ month, onMonth, onSetup }) {
 									disabled: !dirty,
 									children: saved ? "Atualizar" : "Guardar"
 								}),
-								previous ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+								!split && previous ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 									variant: "soft",
 									onClick: () => update({
 										contributed: draft.contributed.trim() === "" ? formatPlain(0) : draft.contributed,
 										endValue: formatPlain(previous.endValue)
+									}),
+									children: "Usar último valor"
+								}) : null,
+								split && lines.some((product) => latestBefore(productEntries.filter((entry) => entry.productId === product.id), month)) ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+									variant: "soft",
+									onClick: () => setProductDrafts((current) => {
+										const next = { ...current };
+										for (const product of lines) {
+											const earlier = latestBefore(productEntries.filter((entry) => entry.productId === product.id), month);
+											if (!earlier) continue;
+											const line = next[product.id] ?? {
+												contributed: "",
+												endValue: ""
+											};
+											next[product.id] = {
+												contributed: line.contributed.trim() === "" ? formatPlain(0) : line.contributed,
+												endValue: formatPlain(earlier.endValue)
+											};
+										}
+										return next;
 									}),
 									children: "Usar último valor"
 								}) : null,
@@ -3531,6 +4038,8 @@ function MonthPanel({ month, onMonth, onSetup }) {
 function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onIncome, onOpenPlatform }) {
 	const platforms = useLedger((state) => state.platforms);
 	const entries = useLedger((state) => state.entries);
+	const products = useLedger((state) => state.products);
+	const productEntries = useLedger((state) => state.productEntries);
 	const expenseTypes = useLedger((state) => state.expenseTypes);
 	const expenses = useLedger((state) => state.expenses);
 	const cashbackCards = useLedger((state) => state.cashbackCards);
@@ -3545,6 +4054,7 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 	const years = yearlyRollup(series);
 	const shares = valueShares(platforms, entries);
 	const kinds = kindShares(platforms, entries);
+	const portfolio = productShares(platforms, products, entries, productEntries);
 	const pending = platforms.filter((platform) => !entryFor(entries, platform.id, month));
 	const pendingExpenses = expenseTypes.filter((type) => !expenseFor(expenses, type.id, month));
 	const spent = expenseTotal(expenses, month);
@@ -3835,18 +4345,18 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 					}
 				]
 			}),
-			shares.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+			shares.length > 1 || products.length > 0 && portfolio.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
 				children: [
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
 						className: "mb-4 font-serif text-2xl",
 						children: "Onde está o dinheiro"
 					}),
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShareList, {
+					shares.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShareList, {
 						title: "Por plataforma",
 						slices: shares,
 						currency
-					}),
+					}) : null,
 					kinds.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 						className: "mt-6",
 						children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShareList, {
@@ -3854,6 +4364,17 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 							slices: kinds,
 							currency
 						})
+					}) : null,
+					products.length > 0 && portfolio.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "mt-6",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShareList, {
+							title: "Por produto",
+							slices: portfolio,
+							currency
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+							className: "mt-3 text-sm text-muted",
+							children: "A percentagem é o último valor de cada produto. O que não dividiste fica com o nome da plataforma."
+						})]
 					}) : null
 				]
 			}) : null,
@@ -4300,6 +4821,7 @@ function PlatformDetail({ platformId, onClose, onEdit, onGoMonth }) {
 					})
 				]
 			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ProductList, { platformId: platform.id }),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card px-4 py-2 sm:px-5",
 				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
@@ -4369,6 +4891,86 @@ function Stat({ label, value }) {
 			className: "mt-1 font-medium tabular-nums",
 			children: value
 		})]
+	});
+}
+function ProductList({ platformId }) {
+	const products = useLedger((state) => state.products.filter((product) => product.platformId === platformId));
+	const addProduct = useLedger((state) => state.addProduct);
+	const renameProduct = useLedger((state) => state.renameProduct);
+	const deleteProduct = useLedger((state) => state.deleteProduct);
+	const [name, setName] = (0, import_react.useState)("");
+	const [editing, setEditing] = (0, import_react.useState)(null);
+	const [draft, setDraft] = (0, import_react.useState)("");
+	const [confirmId, setConfirmId] = (0, import_react.useState)(null);
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+				className: "font-serif text-2xl",
+				children: "Produtos"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted",
+				children: "Opcional. No fecho do mês divides o aporte e o valor que ficou por produto."
+			}),
+			products.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+				className: "mt-4 divide-y divide-line border-t border-line",
+				children: products.map((product) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", {
+					className: "flex flex-col gap-2 py-3 sm:flex-row sm:items-center",
+					children: [editing === product.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+						value: draft,
+						maxLength: 40,
+						onChange: (event) => setDraft(event.target.value),
+						className: "h-12 min-w-0 flex-1 rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "min-w-0 flex-1 truncate font-medium",
+						children: product.name
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex gap-2",
+						children: [editing === product.id ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "soft",
+							onClick: () => {
+								if (draft.trim() === "") return;
+								renameProduct(product.id, draft);
+								setEditing(null);
+							},
+							children: "Guardar"
+						}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "ghost",
+							onClick: () => {
+								setEditing(product.id);
+								setDraft(product.name);
+							},
+							children: "Mudar nome"
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+							variant: "ghost",
+							onClick: () => confirmId === product.id ? deleteProduct(product.id) : setConfirmId(product.id),
+							children: confirmId === product.id ? "Confirmar" : "Tirar"
+						})]
+					})]
+				}, product.id))
+			}) : null,
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+				className: "mt-4 flex flex-col gap-2 sm:flex-row",
+				onSubmit: (event) => {
+					event.preventDefault();
+					if (name.trim() === "") return;
+					addProduct(platformId, name);
+					setName("");
+				},
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+					value: name,
+					maxLength: 40,
+					placeholder: "Nome do produto",
+					onChange: (event) => setName(event.target.value),
+					className: "h-12 min-w-0 flex-1 rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					disabled: name.trim() === "",
+					children: "Adicionar"
+				})]
+			})
+		]
 	});
 }
 function TablesPanel({ selectedId, onOpen, onClose, onGoMonth, onDemo }) {
@@ -4932,7 +5534,7 @@ function LastroApp() {
 					}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
 						type: "button",
 						onClick: () => setSettingsOpen(true),
-						"aria-label": "Definições e moeda",
+						"aria-label": "Definições",
 						className: "inline-flex h-12 items-center gap-2 rounded-md bg-chip px-3 text-sm font-medium text-ink",
 						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Settings, {
 							className: "size-4",
@@ -5063,6 +5665,8 @@ function readLegacyLocal() {
 			closingDay: state.closingDay ?? 1,
 			platforms: state.platforms ?? [],
 			entries: state.entries ?? [],
+			products: state.products ?? [],
+			productEntries: state.productEntries ?? [],
 			expenseTypes: state.expenseTypes ?? [],
 			expenses: state.expenses ?? [],
 			cashbackCards: state.cashbackCards ?? [],

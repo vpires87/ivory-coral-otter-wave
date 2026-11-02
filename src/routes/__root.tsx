@@ -1,6 +1,7 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
+import { ThemeBoot } from "@/components/ledger/theme-boot";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "Lastro";
@@ -59,6 +60,13 @@ export const Route = createRootRoute({
         <HeadContent />
       </head>
       <body>
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              '(function(){try{var c=localStorage.getItem("lastro-theme");var d=c==="escuro"||(c==="sistema"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d){document.documentElement.dataset.theme="escuro";document.documentElement.style.colorScheme="dark";var m=document.querySelector(\'meta[name="theme-color"]\');if(m)m.setAttribute("content","#161410");}}catch(e){}})();',
+          }}
+        />
+        <ThemeBoot />
         <PreviewHostBridge />
         <AuthProvider>
           <Outlet />

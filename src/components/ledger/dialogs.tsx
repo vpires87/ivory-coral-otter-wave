@@ -1,11 +1,12 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toBackup } from "@/lib/ledger/backup";
 import { clampClosingDay, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { selectData, useLedger } from "@/lib/ledger/store";
 import { CURRENCIES, PLATFORM_KINDS, type CurrencyCode, type Platform, type PlatformKind } from "@/lib/ledger/types";
 import { Button, Field, inputClassName } from "@/components/ledger/ui";
+import { THEMES, readTheme, storeTheme, type ThemeChoice } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 function Sheet({
@@ -24,7 +25,7 @@ function Sheet({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-ink/40" />
+        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" />
         <Dialog.Content className="fixed inset-x-0 bottom-0 z-50 max-h-[92dvh] overflow-y-auto rounded-t-lg border border-line bg-card p-5 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:max-h-[85dvh] sm:w-full sm:max-w-lg sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-lg">
           <div className="mb-5 flex items-start justify-between gap-3">
             <div>
@@ -185,6 +186,11 @@ export function SettingsDialog({
   const [message, setMessage] = useState("");
   const [confirmWipe, setConfirmWipe] = useState(false);
   const [confirmDemo, setConfirmDemo] = useState(false);
+  const [theme, setTheme] = useState<ThemeChoice>("papel");
+
+  useEffect(() => {
+    if (open) setTheme(readTheme());
+  }, [open]);
 
   function exportFile() {
     const payload = toBackup(selectData(useLedger.getState()));
@@ -224,6 +230,33 @@ export function SettingsDialog({
       description="Os números ficam neste dispositivo. Exporta uma cópia se quiseres um ficheiro teu."
     >
       <div className="space-y-5">
+        <div>
+          <p className="mb-2 text-sm font-medium">Aparência</p>
+          <div className="grid grid-cols-3 gap-2">
+            {THEMES.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                aria-pressed={theme === item.id}
+                onClick={() => {
+                  setTheme(item.id);
+                  storeTheme(item.id);
+                }}
+                className={cn(
+                  "flex min-h-16 flex-col items-center justify-center gap-2 rounded-md border px-2 py-3 text-sm font-medium",
+                  theme === item.id ? "border-forest bg-forest-soft" : "border-line bg-card",
+                )}
+              >
+                <span className="flex h-6 w-10 overflow-hidden rounded border border-line">
+                  <span className="flex-1" style={{ background: item.paper }} />
+                  <span className="flex-1" style={{ background: item.accent }} />
+                </span>
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-sm text-muted">Sistema segue o claro ou o escuro do telemóvel.</p>
+        </div>
         <div>
           <p className="mb-2 text-sm font-medium">Moeda</p>
           <div className="grid grid-cols-1 gap-2">
@@ -300,7 +333,7 @@ export function SettingsDialog({
         )}
         {confirmWipe ? (
           <div className="rounded-md bg-loss-soft p-3 text-sm">
-            <p>Isto apaga a caderneta da tua conta. Não dá para desfazer.</p>
+            <p>Isto apaga a caderneta neste dispositivo. Não dá para desfazer.</p>
             <div className="mt-3 flex gap-2">
               <Button
                 variant="danger"

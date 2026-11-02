@@ -12,6 +12,8 @@ import {
   type IncomeSource,
   type LedgerData,
   type PlatformKind,
+  type Product,
+  type ProductEntry,
 } from "@/lib/ledger/types";
 
 const kinds = new Set<string>(PLATFORM_KINDS.map((kind) => kind.id));
@@ -245,10 +247,64 @@ export function parseBackup(raw: unknown): LedgerData | string {
     incomes.push({ id: row.id, sourceId: row.sourceId, month: row.month, amount });
   }
 
+  const products: Product[] = [];
+  const seenProducts = new Set<string>();
+  const productRows = data.products == null ? [] : data.products;
+  if (!Array.isArray(productRows)) return "Os produtos do ficheiro são inválidos.";
+  if (productRows.length > 400) return "Há produtos a mais.";
+  for (const item of productRows) {
+    const row = asRecord(item);
+    if (!row) return "Há um produto inválido.";
+    if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) {
+      return "Há um produto sem identificador válido.";
+    }
+    if (seenProducts.has(row.id)) return "Há produtos repetidos.";
+    seenProducts.add(row.id);
+    if (typeof row.platformId !== "string" || !seenPlatforms.has(row.platformId)) {
+      return "Há um produto ligado a uma plataforma que não existe.";
+    }
+    if (typeof row.name !== "string" || row.name.trim().length < 1 || row.name.trim().length > 40) {
+      return "Há um produto com nome inválido.";
+    }
+    products.push({ id: row.id, platformId: row.platformId, name: row.name.trim() });
+  }
+
+  const productEntries: ProductEntry[] = [];
+  const seenProductMonths = new Set<string>();
+  const productEntryRows = data.productEntries == null ? [] : data.productEntries;
+  if (!Array.isArray(productEntryRows)) return "Os meses dos produtos são inválidos.";
+  if (productEntryRows.length > 8000) return "O ficheiro é demasiado grande.";
+  for (const item of productEntryRows) {
+    const row = asRecord(item);
+    if (!row) return "Há um mês de produto inválido.";
+    if (typeof row.id !== "string" || row.id.length < 1 || row.id.length > 80) {
+      return "Há um mês de produto sem identificador válido.";
+    }
+    if (typeof row.productId !== "string" || !seenProducts.has(row.productId)) {
+      return "Há um mês ligado a um produto que não existe.";
+    }
+    if (typeof row.month !== "string" || !isMonth(row.month)) return "Há um produto com mês inválido.";
+    const key = `${row.productId}|${row.month}`;
+    if (seenProductMonths.has(key)) return "Há dois registos do mesmo produto no mesmo mês.";
+    seenProductMonths.add(key);
+    const contributed = asMoney(row.contributed);
+    const endValue = asMoney(row.endValue);
+    if (contributed == null || endValue == null || endValue < 0) return "Há um valor de produto inválido.";
+    productEntries.push({
+      id: row.id,
+      productId: row.productId,
+      month: row.month,
+      contributed,
+      endValue,
+    });
+  }
+
   return {
     currency: data.currency as CurrencyCode,
     platforms,
     entries,
+    products,
+    productEntries,
     expenseTypes,
     expenses,
     cashbackCards,
@@ -273,6 +329,8 @@ export function toBackup(data: LedgerData) {
     closingDay: data.closingDay,
     platforms: data.platforms,
     entries: data.entries,
+    products: data.products,
+    productEntries: data.productEntries,
     expenseTypes: data.expenseTypes,
     expenses: data.expenses,
     cashbackCards: data.cashbackCards,

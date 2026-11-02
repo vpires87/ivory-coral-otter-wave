@@ -21,6 +21,8 @@ function readLegacyLocal(): LedgerData | null {
       closingDay: state.closingDay ?? 1,
       platforms: state.platforms ?? [],
       entries: state.entries ?? [],
+      products: state.products ?? [],
+      productEntries: state.productEntries ?? [],
       expenseTypes: state.expenseTypes ?? [],
       expenses: state.expenses ?? [],
       cashbackCards: state.cashbackCards ?? [],

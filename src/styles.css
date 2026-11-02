@@ -23,6 +23,23 @@
   --radius-lg: 1.25rem;
 }
 
+html[data-theme="escuro"] {
+  color-scheme: dark;
+  --color-paper: #161410;
+  --color-paper-2: #221f1a;
+  --color-card: #1e1b17;
+  --color-ink: #f3eee6;
+  --color-muted: #b7aea2;
+  --color-line: #3c362e;
+  --color-chip: #2a261f;
+  --color-forest: #8fceb0;
+  --color-forest-soft: #1c3328;
+  --color-brass: #e0b27a;
+  --color-brass-soft: #3a2c1e;
+  --color-loss: #f0a097;
+  --color-loss-soft: #3c2422;
+}
+
 @layer base {
   html {
     -webkit-font-smoothing: antialiased;

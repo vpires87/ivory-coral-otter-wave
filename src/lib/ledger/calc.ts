@@ -11,6 +11,8 @@ import type {
   MonthPoint,
   Platform,
   PlatformSnapshot,
+  Product,
+  ProductEntry,
   ShareSlice,
   SavingsPoint,
   Totals,
@@ -222,6 +224,46 @@ export function kindShares(platforms: Platform[], entries: MonthEntry[]): ShareS
     label: PLATFORM_KINDS.find((kind) => kind.id === id)?.label ?? id,
     value,
   }));
+  rows.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt"));
+  return withShares(rows);
+}
+
+export function productEntryFor(entries: ProductEntry[], productId: string, month: string): ProductEntry | null {
+  return entries.find((entry) => entry.productId === productId && entry.month === month) ?? null;
+}
+
+export function latestProductEntry(entries: ProductEntry[], productId: string): ProductEntry | null {
+  const mine = entries.filter((entry) => entry.productId === productId).sort(byMonth);
+  return mine.length > 0 ? mine[mine.length - 1] : null;
+}
+
+export function productShares(
+  platforms: Platform[],
+  products: Product[],
+  entries: MonthEntry[],
+  productEntries: ProductEntry[],
+): ShareSlice[] {
+  const rows: { id: string; label: string; value: number }[] = [];
+  for (const platform of platforms) {
+    const value = platformSnapshot(platform, entries).value ?? 0;
+    if (value <= 0) continue;
+    const mine = products.filter((product) => product.platformId === platform.id);
+    const valued = mine
+      .map((product) => ({ product, latest: latestProductEntry(productEntries, product.id) }))
+      .filter((item) => item.latest != null && item.latest.endValue > 0);
+    if (valued.length === 0) {
+      rows.push({ id: platform.id, label: platform.name, value });
+      continue;
+    }
+    let used = 0;
+    for (const item of valued) {
+      const amount = item.latest?.endValue ?? 0;
+      rows.push({ id: item.product.id, label: item.product.name, value: amount });
+      used = cents(used + amount);
+    }
+    const rest = cents(value - used);
+    if (rest > 0) rows.push({ id: `${platform.id}-rest`, label: `${platform.name} por atribuir`, value: rest });
+  }
   rows.sort((a, b) => b.value - a.value || a.label.localeCompare(b.label, "pt"));
   return withShares(rows);
 }

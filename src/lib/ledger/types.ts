@@ -34,6 +34,20 @@ export type MonthEntry = {
   endValue: number;
 };
 
+export type Product = {
+  id: string;
+  platformId: string;
+  name: string;
+};
+
+export type ProductEntry = {
+  id: string;
+  productId: string;
+  month: string;
+  contributed: number;
+  endValue: number;
+};
+
 export type ExpenseType = {
   id: string;
   name: string;
@@ -81,6 +95,8 @@ export type IncomeEntry = {
 export type LedgerData = {
   platforms: Platform[];
   entries: MonthEntry[];
+  products: Product[];
+  productEntries: ProductEntry[];
   expenseTypes: ExpenseType[];
   expenses: ExpenseEntry[];
   cashbackCards: CashbackCard[];

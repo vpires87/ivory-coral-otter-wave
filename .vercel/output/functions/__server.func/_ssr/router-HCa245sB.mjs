@@ -1,9 +1,10 @@
-import { o as __toESM, r as __exportAll } from "../_runtime.mjs";
+import { o as __toESM } from "../_runtime.mjs";
 import { a as PostgresIntrospector, c as sql, i as PostgresAdapter, n as getKyselyDatabaseType, o as PostgresQueryCompiler, s as CompiledQuery, t as createKyselyAdapter } from "../_libs/@better-auth/kysely-adapter+[...].mjs";
 import { $t as getBetterAuthVersion, A as decodeProtectedHeader, At as literal, C as toResponse, Dt as array, E as filterOutputFields, Et as any, Ft as record, Gt as ATTR_OPERATION_ID, Ht as createWithSpan, It as string, Jt as getAuthTables, Kt as import_src, Lt as union, M as jwtVerify, Mt as number, Nt as object, O as base64Url, Ot as boolean, Pt as optional, Qt as runWithTransaction, S as createRouter$1, T as serializeSignedCookie, Ut as ATTR_CONTEXT, Wt as ATTR_HOOK_TYPE, Xt as queueAfterTransactionHook, Yt as getCurrentAdapter, Zt as runWithAdapter, _ as defineRequestState, _n as BASE_ERROR_CODES, a as betterFetch, an as logger, b as getCurrentAuthContext, c as isLoopbackHost, cn as env, d as getIp, dn as isDevelopment, en as initGetModelName, f as deprecate, fn as isProduction, g as isAPIError, gn as kAPIErrorHeaderSymbol, h as createAuthMiddleware, hn as BetterAuthError, i as refreshAccessToken, in as createLogger, j as importJWK, jt as looseObject, k as decodeJwt, kt as email, l as createRateLimitKey, m as createAuthEndpoint, mn as APIError, n as socialProviders, nn as generateId, o as createAuthorizationURL, on as shouldPublishLog, p as normalizePathname, pn as isTest, pt as JWTExpired, qt as safeJSONParse, r as validateAuthorizationCode, rn as createRandomStringGenerator, s as applyDefaultAccessTokenExpiry, t as SocialProviderListEnum, tn as initGetFieldName, tt as encode, u as findInvalidTrustedProxies, v as hasRequestState, vn as defineErrorCodes, w as serializeCookie, x as runWithEndpointContext, y as runWithRequestState } from "../_libs/@better-auth/core+[...].mjs";
 import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
 import { _ as createFileRoute, b as useRouter, d as Scripts, f as HeadContent, g as lazyRouteComponent, h as Outlet, m as createRouter, v as createRootRoute } from "../_libs/@tanstack/react-router+[...].mjs";
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
+import { n as __exportAll } from "./ssr.mjs";
 import { r as TriangleAlert } from "../_libs/lucide-react.mjs";
 import { n as string$1, t as boolean$1 } from "../_libs/zod.mjs";
 import { n as hkdf, t as sha256 } from "../_libs/noble__hashes.mjs";
@@ -14,8 +15,7 @@ import { a as utf8ToBytes, i as managedNonce, n as bytesToHex, r as hexToBytes, 
 import { n as defu, t as createDefu } from "../_libs/defu.mjs";
 import { t as Pool } from "../_libs/pg.mjs";
 import { randomBytes } from "node:crypto";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-FepuWj49.js
-var router_FepuWj49_exports = /* @__PURE__ */ __exportAll({ getRouter: () => getRouter });
+//#region node_modules/.nitro/vite/services/ssr/assets/router-HCa245sB.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
@@ -343,7 +343,69 @@ function PreviewHostBridge() {
 	}, [router]);
 	return null;
 }
-var styles_default = "/assets/styles-BNhPuY5B.css";
+var THEMES = [
+	{
+		id: "papel",
+		label: "Papel",
+		paper: "#f3eee6",
+		accent: "#1e5c40"
+	},
+	{
+		id: "escuro",
+		label: "Escuro",
+		paper: "#161410",
+		accent: "#8fceb0"
+	},
+	{
+		id: "sistema",
+		label: "Sistema",
+		paper: "#f3eee6",
+		accent: "#161410"
+	}
+];
+var KEY = "lastro-theme";
+function readTheme() {
+	if (typeof window === "undefined") return "papel";
+	try {
+		const stored = window.localStorage.getItem(KEY);
+		if (stored === "papel" || stored === "escuro" || stored === "sistema") return stored;
+	} catch {}
+	return "papel";
+}
+function resolvedTheme(choice) {
+	if (choice === "sistema" && typeof window !== "undefined") return window.matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "papel";
+	return choice === "escuro" ? "escuro" : "papel";
+}
+function applyTheme(choice) {
+	if (typeof document === "undefined") return;
+	const resolved = resolvedTheme(choice);
+	document.documentElement.dataset.theme = resolved;
+	document.documentElement.style.colorScheme = resolved === "escuro" ? "dark" : "light";
+	const meta = document.querySelector("meta[name=\"theme-color\"]");
+	if (meta) meta.setAttribute("content", resolved === "escuro" ? "#161410" : "#f3eee6");
+}
+function storeTheme(choice) {
+	try {
+		window.localStorage.setItem(KEY, choice);
+	} catch {}
+	applyTheme(choice);
+	window.dispatchEvent(new Event("lastro-theme"));
+}
+function ThemeBoot() {
+	(0, import_react.useLayoutEffect)(() => {
+		const sync = () => applyTheme(readTheme());
+		sync();
+		const query = window.matchMedia("(prefers-color-scheme: dark)");
+		query.addEventListener("change", sync);
+		window.addEventListener("lastro-theme", sync);
+		return () => {
+			query.removeEventListener("change", sync);
+			window.removeEventListener("lastro-theme", sync);
+		};
+	}, []);
+	return null;
+}
+var styles_default = "/assets/styles-C_MO13gh.css";
 var APP_NAME = "Lastro";
 function shareHost(raw) {
 	const host = String(raw ?? "").split(",")[0].trim().split(":")[0].toLowerCase();
@@ -413,13 +475,15 @@ var Route$3 = createRootRoute({
 		lang: "pt",
 		suppressHydrationWarning: true,
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("head", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(HeadContent, {}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("body", { children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("script", { dangerouslySetInnerHTML: { __html: "(function(){try{var c=localStorage.getItem(\"lastro-theme\");var d=c===\"escuro\"||(c===\"sistema\"&&matchMedia(\"(prefers-color-scheme: dark)\").matches);if(d){document.documentElement.dataset.theme=\"escuro\";document.documentElement.style.colorScheme=\"dark\";var m=document.querySelector('meta[name=\"theme-color\"]');if(m)m.setAttribute(\"content\",\"#161410\");}}catch(e){}})();" } }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ThemeBoot, {}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PreviewHostBridge, {}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Outlet, {}) }),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Scripts, {})
 		] })]
 	})
 });
-var $$splitComponentImporter$1 = () => import("./routes-D2LpyBAu.mjs");
+var $$splitComponentImporter$1 = () => import("./routes-S6Q8TTqN.mjs");
 var Route$2 = createFileRoute("/")({ component: lazyRouteComponent($$splitComponentImporter$1, "component") });
 var $$splitComponentImporter = () => import("./login-BNJmYgn_.mjs");
 var Route$1 = createFileRoute("/login")({ component: lazyRouteComponent($$splitComponentImporter, "component") });
@@ -9132,7 +9196,7 @@ var tanstackStartCookies = () => {
 					const setCookies = returned?.get("set-cookie");
 					if (!setCookies) return;
 					const parsed = parseSetCookieHeader(setCookies);
-					const { setCookie } = await import("./ssr.mjs").then((n) => n.n).then((n) => n.t);
+					const { setCookie } = await import("./ssr.mjs").then((n) => n.r).then((n) => n.t);
 					parsed.forEach((value, key) => {
 						if (!key) return;
 						try {
@@ -9518,7 +9582,7 @@ async function emitSessionCookie(ctx, sessionTokenName, sessionToken) {
 		return null;
 	}
 	try {
-		const { setCookie } = await import("./ssr.mjs").then((n) => n.n).then((n) => n.t);
+		const { setCookie } = await import("./ssr.mjs").then((n) => n.r).then((n) => n.t);
 		setCookie(sessionTokenName, sessionValue, {
 			path: cookieOptions.path ?? "/",
 			httpOnly: cookieOptions.httpOnly ?? true,
@@ -9550,7 +9614,7 @@ async function expireSessionDataCookie(ctx, cookie) {
 	const path = cookie.attributes.path ?? "/";
 	const secure = cookie.attributes.secure ?? true;
 	try {
-		const { setCookie } = await import("./ssr.mjs").then((n) => n.n).then((n) => n.t);
+		const { setCookie } = await import("./ssr.mjs").then((n) => n.r).then((n) => n.t);
 		setCookie(cookie.name, "", {
 			path,
 			httpOnly: true,
@@ -9578,7 +9642,7 @@ async function writeGateMarkerCookie(ctx, clear) {
 	const maxAge = clear ? 0 : typeof sessionMaxAge === "number" ? sessionMaxAge : void 0;
 	const value = clear ? "" : "1";
 	try {
-		const { setCookie } = await import("./ssr.mjs").then((n) => n.n).then((n) => n.t);
+		const { setCookie } = await import("./ssr.mjs").then((n) => n.r).then((n) => n.t);
 		setCookie(GATE_SESSION_MARKER_COOKIE, value, {
 			path: "/",
 			httpOnly: false,
@@ -9951,6 +10015,7 @@ var rootRouteChildren = {
 	})
 };
 var routeTree = Route$3._addFileChildren(rootRouteChildren)._addFileTypes();
+var router_exports = /* @__PURE__ */ __exportAll({ getRouter: () => getRouter });
 function getRouter() {
 	return createRouter({
 		routeTree,
@@ -9959,4 +10024,4 @@ function getRouter() {
 	});
 }
 //#endregion
-export { getRouter, router_FepuWj49_exports as t };
+export { storeTheme as i, THEMES as n, readTheme as r, router_exports as t };

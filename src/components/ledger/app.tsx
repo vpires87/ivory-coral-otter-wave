@@ -111,7 +111,7 @@ export function LastroApp() {
           <button
             type="button"
             onClick={() => setSettingsOpen(true)}
-            aria-label="Definições e moeda"
+            aria-label="Definições"
             className="inline-flex h-12 items-center gap-2 rounded-md bg-chip px-3 text-sm font-medium text-ink"
           >
             <Settings className="size-4" aria-hidden="true" />

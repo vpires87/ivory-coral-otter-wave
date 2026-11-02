@@ -186,6 +186,8 @@ function PlatformDetail({
         </div>
       </section>
 
+      <ProductList platformId={platform.id} />
+
       <section className="rounded-lg border border-line bg-card px-4 py-2 sm:px-5">
         <h3 className="py-3 font-serif text-2xl">Meses</h3>
         {rows.length === 0 ? (
@@ -247,5 +249,91 @@ function Stat({ label, value }: { label: string; value: ReactNode }) {
       <p className="text-sm text-muted">{label}</p>
       <p className="mt-1 font-medium tabular-nums">{value}</p>
     </div>
+  );
+}
+
+function ProductList({ platformId }: { platformId: string }) {
+  const allProducts = useLedger((state) => state.products);
+  const products = allProducts.filter((product) => product.platformId === platformId);
+  const addProduct = useLedger((state) => state.addProduct);
+  const renameProduct = useLedger((state) => state.renameProduct);
+  const deleteProduct = useLedger((state) => state.deleteProduct);
+  const [name, setName] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [draft, setDraft] = useState("");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
+
+  return (
+    <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
+      <h3 className="font-serif text-2xl">Produtos</h3>
+      <p className="mt-1 text-sm text-muted">
+        Opcional. No fecho do mês divides o aporte e o valor que ficou por produto.
+      </p>
+      {products.length > 0 ? (
+        <ul className="mt-4 divide-y divide-line border-t border-line">
+          {products.map((product) => (
+            <li key={product.id} className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center">
+              {editing === product.id ? (
+                <input
+                  value={draft}
+                  maxLength={40}
+                  onChange={(event) => setDraft(event.target.value)}
+                  className="h-12 min-w-0 flex-1 rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+                />
+              ) : (
+                <p className="min-w-0 flex-1 truncate font-medium">{product.name}</p>
+              )}
+              <div className="flex gap-2">
+                {editing === product.id ? (
+                  <Button
+                    variant="soft"
+                    onClick={() => {
+                      if (draft.trim() === "") return;
+                      renameProduct(product.id, draft);
+                      setEditing(null);
+                    }}
+                  >
+                    Guardar
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setEditing(product.id);
+                      setDraft(product.name);
+                    }}
+                  >
+                    Mudar nome
+                  </Button>
+                )}
+                <Button variant="ghost" onClick={() => (confirmId === product.id ? deleteProduct(product.id) : setConfirmId(product.id))}>
+                  {confirmId === product.id ? "Confirmar" : "Tirar"}
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      <form
+        className="mt-4 flex flex-col gap-2 sm:flex-row"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (name.trim() === "") return;
+          addProduct(platformId, name);
+          setName("");
+        }}
+      >
+        <input
+          value={name}
+          maxLength={40}
+          placeholder="Nome do produto"
+          onChange={(event) => setName(event.target.value)}
+          className="h-12 min-w-0 flex-1 rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+        />
+        <Button type="submit" disabled={name.trim() === ""}>
+          Adicionar
+        </Button>
+      </form>
+    </section>
   );
 }

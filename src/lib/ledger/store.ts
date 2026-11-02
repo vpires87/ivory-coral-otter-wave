@@ -31,6 +31,14 @@ type Store = LedgerData & {
   deletePlatform: (id: string) => void;
   upsertEntry: (input: EntryInput) => void;
   deleteEntry: (id: string) => void;
+  addProduct: (platformId: string, name: string) => string;
+  renameProduct: (id: string, name: string) => void;
+  deleteProduct: (id: string) => void;
+  saveProductMonth: (
+    platformId: string,
+    month: string,
+    lines: { productId: string; contributed: number; endValue: number }[],
+  ) => void;
   addExpenseType: (name: string) => string;
   renameExpenseType: (id: string, name: string) => void;
   deleteExpenseType: (id: string) => void;
@@ -57,6 +65,8 @@ type Store = LedgerData & {
 const empty: LedgerData = {
   platforms: [],
   entries: [],
+  products: [],
+  productEntries: [],
   expenseTypes: [],
   expenses: [],
   cashbackCards: [],
@@ -112,6 +122,10 @@ export const useLedger = create<Store>()((set) => ({
     set((state) => ({
       platforms: state.platforms.filter((platform) => platform.id !== id),
       entries: state.entries.filter((entry) => entry.platformId !== id),
+      products: state.products.filter((product) => product.platformId !== id),
+      productEntries: state.productEntries.filter((entry) =>
+        state.products.some((product) => product.platformId !== id && product.id === entry.productId),
+      ),
     })),
   upsertEntry: (input) =>
     set((state) => {
@@ -140,9 +154,80 @@ export const useLedger = create<Store>()((set) => ({
       };
     }),
   deleteEntry: (id) =>
+    set((state) => {
+      const entry = state.entries.find((item) => item.id === id);
+      const productIds = new Set(
+        entry ? state.products.filter((product) => product.platformId === entry.platformId).map((product) => product.id) : [],
+      );
+      return {
+        entries: state.entries.filter((item) => item.id !== id),
+        productEntries: entry
+          ? state.productEntries.filter((item) => item.month !== entry.month || !productIds.has(item.productId))
+          : state.productEntries,
+      };
+    }),
+  addProduct: (platformId, name) => {
+    const trimmed = name.trim();
+    const created = crypto.randomUUID();
+    let result: string = created;
+    set((state) => {
+      const existing = state.products.find(
+        (product) => product.platformId === platformId && product.name.toLowerCase() === trimmed.toLowerCase(),
+      );
+      if (existing) {
+        result = existing.id;
+        return {};
+      }
+      return { products: [...state.products, { id: created, platformId, name: trimmed }] };
+    });
+    return result;
+  },
+  renameProduct: (id, name) =>
     set((state) => ({
-      entries: state.entries.filter((entry) => entry.id !== id),
+      products: state.products.map((product) => (product.id === id ? { ...product, name: name.trim() } : product)),
     })),
+  deleteProduct: (id) =>
+    set((state) => ({
+      products: state.products.filter((product) => product.id !== id),
+      productEntries: state.productEntries.filter((entry) => entry.productId !== id),
+    })),
+  saveProductMonth: (platformId, month, lines) =>
+    set((state) => {
+      const ids = new Set(state.products.filter((product) => product.platformId === platformId).map((product) => product.id));
+      const kept = state.productEntries.filter((entry) => entry.month !== month || !ids.has(entry.productId));
+      let contributed = 0;
+      let endValue = 0;
+      const nextLines = lines
+        .filter((line) => ids.has(line.productId))
+        .map((line) => {
+          contributed = cents(contributed + line.contributed);
+          endValue = cents(endValue + line.endValue);
+          const previous = state.productEntries.find(
+            (entry) => entry.productId === line.productId && entry.month === month,
+          );
+          return {
+            id: previous?.id ?? crypto.randomUUID(),
+            productId: line.productId,
+            month,
+            contributed: cents(line.contributed),
+            endValue: cents(line.endValue),
+          };
+        });
+      const entryIndex = state.entries.findIndex((entry) => entry.platformId === platformId && entry.month === month);
+      const entries = state.entries.slice();
+      if (entryIndex >= 0) {
+        entries[entryIndex] = { ...entries[entryIndex], contributed, endValue };
+      } else {
+        entries.push({
+          id: crypto.randomUUID(),
+          platformId,
+          month,
+          contributed,
+          endValue,
+        });
+      }
+      return { productEntries: [...kept, ...nextLines], entries };
+    }),
   addExpenseType: (name) => {
     const id = crypto.randomUUID();
     set((state) => ({
@@ -274,6 +359,8 @@ export function selectData(state: Store): LedgerData {
   return {
     platforms: state.platforms,
     entries: state.entries,
+    products: state.products,
+    productEntries: state.productEntries,
     expenseTypes: state.expenseTypes,
     expenses: state.expenses,
     cashbackCards: state.cashbackCards,
