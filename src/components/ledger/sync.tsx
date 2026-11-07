@@ -80,62 +80,98 @@ export function LocalLedger() {
 function PostgresLedger() {
   const loadAttempt = useLedger((state) => state.loadAttempt);
 
-  useLayoutEffect(() => {
-    useLedger.getState().setRemote(true);
-    useLedger.getState().prepareAccount();
-  }, [loadAttempt]);
-
   useEffect(() => {
     let stop = false;
     let unsub = () => {};
     let timer = 0;
+    let writing = false;
+    let dirty = false;
     let last = "";
-    let failed = "";
-    let pending = "";
+    let seen = "";
+    let retries = 0;
     const snapshot = () => JSON.stringify(selectData(useLedger.getState()));
-    const push = (payload: string) => {
-      pending = payload;
+
+    const flush = () => {
+      if (stop) return;
+      if (writing) {
+        dirty = true;
+        return;
+      }
+      const payload = snapshot();
+      writing = true;
+      dirty = false;
       useLedger.setState({ saving: true });
       void saveLedger({ data: toBackup(JSON.parse(payload) as LedgerData) })
         .then(() => {
           if (stop) return;
           last = payload;
-          pending = "";
-          failed = "";
+          writing = false;
+          retries = 0;
           useLedger.setState({ saving: false, syncError: null });
+          if (dirty || snapshot() !== last) flush();
         })
-        .catch(() => {
+        .catch((err: unknown) => {
           if (stop) return;
-          failed = payload;
-          pending = "";
-          useLedger.setState({ saving: false, syncError: "Não consegui guardar na base de dados." });
+          writing = false;
+          retries += 1;
+          const detail = err instanceof Error ? err.message.slice(0, 180) : "";
+          useLedger.setState({
+            saving: false,
+            syncError: detail
+              ? `Não consegui guardar na base de dados. ${detail}`
+              : "Não consegui guardar na base de dados.",
+          });
+          if (retries >= 3) return;
+          window.clearTimeout(timer);
+          timer = window.setTimeout(() => {
+            if (!stop && snapshot() !== last) flush();
+          }, 1200);
         });
     };
 
+    const schedule = () => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(flush, 250);
+    };
+
     void (async () => {
+      useLedger.getState().setRemote(true);
+      useLedger.getState().prepareAccount();
       try {
         const remote = await loadLedger();
         if (stop) return;
         const local = readLegacyLocal();
         useLedger.getState().adopt(remote ?? local);
-        if (!remote && local) await saveLedger({ data: toBackup(local) });
         if (stop) return;
         last = snapshot();
+        seen = last;
         unsub = useLedger.subscribe(() => {
           const next = snapshot();
-          if (next === last || next === failed || next === pending) return;
-          window.clearTimeout(timer);
-          timer = window.setTimeout(() => push(next), 500);
+          if (next === seen) return;
+          seen = next;
+          retries = 0;
+          schedule();
         });
-      } catch {
-        if (!stop) useLedger.getState().failLoad("Não consegui ler a caderneta na base de dados.");
+        if (!remote && local) schedule();
+      } catch (err: unknown) {
+        if (stop) return;
+        const detail = err instanceof Error ? err.message : "";
+        useLedger.getState().failLoad(
+          detail ? `Não consegui ler a caderneta na base de dados. ${detail}` : "Não consegui ler a caderneta na base de dados.",
+        );
       }
     })();
+
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    document.addEventListener("visibilitychange", onHide);
 
     return () => {
       stop = true;
       unsub();
       window.clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onHide);
     };
   }, [loadAttempt]);
 

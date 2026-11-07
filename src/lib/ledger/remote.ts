@@ -3,6 +3,19 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { parseBackup, toBackup } from "@/lib/ledger/backup";
 import type { LedgerData } from "@/lib/ledger/types";
 
+async function ensureLedgers() {
+  const { getSql } = await import("@/lib/db");
+  const sql = await getSql();
+  await sql`
+    create table if not exists ledgers (
+      user_id text primary key,
+      data jsonb not null,
+      updated_at timestamptz not null default now()
+    )
+  `;
+  return sql;
+}
+
 export const ledgerBackend = createServerFn({ method: "GET" }).handler(async () => {
   const database = Boolean(process.env.DATABASE_URL?.trim());
   const authOff = process.env.VITE_AUTH_ENABLED === "false";
@@ -15,8 +28,7 @@ export const ledgerBackend = createServerFn({ method: "GET" }).handler(async () 
 export const loadLedger = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<LedgerData | null> => {
-    const { getSql } = await import("@/lib/db");
-    const sql = await getSql();
+    const sql = await ensureLedgers();
     const rows = await sql<{ data: unknown }>`
       select data from ledgers where user_id = ${context.userId}
     `;
@@ -31,13 +43,12 @@ export const loadLedger = createServerFn({ method: "GET" })
 export const saveLedger = createServerFn({ method: "POST" })
   .validator((input: unknown) => {
     const parsed = parseBackup(input);
-    if (typeof parsed === "string") throw new Error("Caderneta inválida.");
+    if (typeof parsed === "string") throw new Error(parsed);
     return parsed;
   })
   .middleware([authMiddleware])
   .handler(async ({ context, data }) => {
-    const { getSql } = await import("@/lib/db");
-    const sql = await getSql();
+    const sql = await ensureLedgers();
     const payload = JSON.stringify(toBackup(data));
     await sql`
       insert into ledgers (user_id, data, updated_at)

@@ -4,6 +4,18 @@ import { cents, clampClosingDay } from "@/lib/ledger/money";
 import { demoLedger } from "@/lib/ledger/demo";
 import type { CurrencyCode, IncomeKind, LedgerData, Platform, PlatformKind } from "@/lib/ledger/types";
 
+function newId(): string {
+  const cryptoObj = globalThis.crypto;
+  if (cryptoObj && typeof cryptoObj.randomUUID === "function") return cryptoObj.randomUUID();
+  const bytes = new Uint8Array(16);
+  if (cryptoObj && typeof cryptoObj.getRandomValues === "function") cryptoObj.getRandomValues(bytes);
+  else for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 type DraftPlatform = {
   name: string;
   kind: PlatformKind;
@@ -94,7 +106,7 @@ export const useLedger = create<Store>()((set) => ({
   setFireGoal: (goal) => set({ fireGoal: goal == null || goal <= 0 ? null : cents(goal) }),
   setClosingDay: (day) => set({ closingDay: clampClosingDay(day) }),
   addPlatform: (draft) => {
-    const id = crypto.randomUUID();
+    const id = newId();
     set((state) => ({
       platforms: [
         ...state.platforms,
@@ -148,7 +160,7 @@ export const useLedger = create<Store>()((set) => ({
         entries: [
           ...state.entries,
           {
-            id: crypto.randomUUID(),
+            id: newId(),
             platformId: input.platformId,
             month: input.month,
             ...next,
@@ -171,7 +183,7 @@ export const useLedger = create<Store>()((set) => ({
     }),
   addProduct: (platformId, name) => {
     const trimmed = name.trim();
-    const created = crypto.randomUUID();
+    const created = newId();
     let result: string = created;
     set((state) => {
       const existing = state.products.find(
@@ -209,7 +221,7 @@ export const useLedger = create<Store>()((set) => ({
             (entry) => entry.productId === line.productId && entry.month === month,
           );
           return {
-            id: previous?.id ?? crypto.randomUUID(),
+            id: previous?.id ?? newId(),
             productId: line.productId,
             month,
             contributed: cents(line.contributed),
@@ -222,7 +234,7 @@ export const useLedger = create<Store>()((set) => ({
         entries[entryIndex] = { ...entries[entryIndex], contributed, endValue };
       } else {
         entries.push({
-          id: crypto.randomUUID(),
+          id: newId(),
           platformId,
           month,
           contributed,
@@ -232,7 +244,7 @@ export const useLedger = create<Store>()((set) => ({
       return { productEntries: [...kept, ...nextLines], entries };
     }),
   addExpenseType: (name) => {
-    const id = crypto.randomUUID();
+    const id = newId();
     set((state) => ({
       expenseTypes: [...state.expenseTypes, { id, name: name.trim() }],
     }));
@@ -263,12 +275,12 @@ export const useLedger = create<Store>()((set) => ({
       return {
         expenses: [
           ...state.expenses,
-          { id: crypto.randomUUID(), typeId: input.typeId, month: input.month, amount },
+          { id: newId(), typeId: input.typeId, month: input.month, amount },
         ],
       };
     }),
   addCashbackCard: (name) => {
-    const id = crypto.randomUUID();
+    const id = newId();
     set((state) => ({
       cashbackCards: [...state.cashbackCards, { id, name: name.trim() }],
     }));
@@ -299,12 +311,12 @@ export const useLedger = create<Store>()((set) => ({
       return {
         cashbacks: [
           ...state.cashbacks,
-          { id: crypto.randomUUID(), cardId: input.cardId, month: input.month, amount },
+          { id: newId(), cardId: input.cardId, month: input.month, amount },
         ],
       };
     }),
   addIncomeSource: (name, kind) => {
-    const id = crypto.randomUUID();
+    const id = newId();
     set((state) => ({
       incomeSources: [...state.incomeSources, { id, name: name.trim(), kind }],
     }));
@@ -339,7 +351,7 @@ export const useLedger = create<Store>()((set) => ({
       return {
         incomes: [
           ...state.incomes,
-          { id: crypto.randomUUID(), sourceId: input.sourceId, month: input.month, amount },
+          { id: newId(), sourceId: input.sourceId, month: input.month, amount },
         ],
       };
     }),

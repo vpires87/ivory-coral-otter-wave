@@ -120,6 +120,10 @@ export function LastroApp() {
           </button>
         </header>
 
+        {syncError ? (
+          <p className="mt-4 rounded-md bg-loss-soft px-4 py-3 text-sm text-loss">{syncError}</p>
+        ) : null}
+
         {demo ? (
           <div className="mt-4 flex flex-col gap-3 rounded-lg bg-brass-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm">Isto é um exemplo, não são os teus números.</p>
