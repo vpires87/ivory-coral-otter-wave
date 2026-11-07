@@ -1,1 +1,0 @@
-import{a as e,o as t}from"./index-DixwuGQ2.js";var n=t();function r(){return(0,n.jsx)(e,{to:`/`})}export{r as component};

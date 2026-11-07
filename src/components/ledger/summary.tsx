@@ -76,7 +76,14 @@ export function SummaryView({
         {snapshot.latestMonth ? (
           <p className="mt-2 text-sm text-muted">
             Atualizado em {formatMonth(snapshot.latestMonth).toLowerCase()}
-            {snapshot.resultRatio != null ? ` · ${formatPercent(snapshot.resultRatio)}` : ""}
+            {snapshot.resultRatio != null ? (
+              <>
+                {" · "}
+                <span className={snapshot.result > 0 ? "text-forest" : snapshot.result < 0 ? "text-loss" : undefined}>
+                  {formatPercent(snapshot.resultRatio)}
+                </span>
+              </>
+            ) : null}
           </p>
         ) : null}
         {snapshot.withValue > 0 ? (
@@ -254,6 +261,7 @@ export function SummaryView({
           {
             id: "aportes",
             label: "Aportes",
+            signed: true,
             points: series
               .filter((point) => point.recorded > 0)
               .map((point) => ({ month: point.month, amount: point.contributed })),
@@ -562,10 +570,20 @@ function story(snapshot: ReturnType<typeof totals>, currency: CurrencyCode) {
   }
   const invested = formatMoney(snapshot.invested, currency);
   if (snapshot.result > 0) {
-    return `Investiste ${invested}. Ficou ${formatMoney(snapshot.result, currency)} acima do que meteste.`;
+    return (
+      <>
+        Investiste {invested}. Ficou{" "}
+        <span className="text-forest">{formatMoney(snapshot.result, currency)}</span> acima do que meteste.
+      </>
+    );
   }
   if (snapshot.result < 0) {
-    return `Investiste ${invested}. Ficou ${formatMoney(Math.abs(snapshot.result), currency)} abaixo do que meteste.`;
+    return (
+      <>
+        Investiste {invested}. Ficou{" "}
+        <span className="text-loss">{formatMoney(Math.abs(snapshot.result), currency)}</span> abaixo do que meteste.
+      </>
+    );
   }
   return `Investiste ${invested}, e a carteira vale o mesmo.`;
 }
@@ -579,18 +597,34 @@ function monthStory(
     return "Este mês ainda não tem registos. Em cada plataforma, indica o aporte e o valor no fim do mês.";
   }
   const aporte =
-    focus.contributed === 0
-      ? "não houve aportes"
-      : focus.contributed > 0
-        ? `entraram ${formatMoney(focus.contributed, currency)}`
-        : `saíram ${formatMoney(Math.abs(focus.contributed), currency)}`;
+    focus.contributed === 0 ? (
+      "não houve aportes"
+    ) : focus.contributed > 0 ? (
+      <>
+        entraram <span className="text-forest">{formatMoney(focus.contributed, currency)}</span>
+      </>
+    ) : (
+      <>
+        saíram <span className="text-loss">{formatMoney(Math.abs(focus.contributed), currency)}</span>
+      </>
+    );
   const market =
-    focus.market === 0
-      ? "o mercado não mexeu o saldo"
-      : focus.market > 0
-        ? `o mercado somou ${formatMoney(focus.market, currency)}`
-        : `o mercado tirou ${formatMoney(Math.abs(focus.market), currency)}`;
+    focus.market === 0 ? (
+      "o mercado não mexeu o saldo"
+    ) : focus.market > 0 ? (
+      <>
+        o mercado somou <span className="text-forest">{formatMoney(focus.market, currency)}</span>
+      </>
+    ) : (
+      <>
+        o mercado tirou <span className="text-loss">{formatMoney(Math.abs(focus.market), currency)}</span>
+      </>
+    );
   const coverage =
     focus.recorded < platformCount ? ` ${focus.recorded} de ${platformCount} plataformas.` : "";
-  return `Neste mês ${aporte} e ${market}.${coverage}`;
+  return (
+    <>
+      Neste mês {aporte} e {market}.{coverage}
+    </>
+  );
 }

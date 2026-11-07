@@ -3,13 +3,13 @@ import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
 import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
 import { a as Settings, c as ChevronRight, d as Bitcoin, i as Shapes, l as ChevronLeft, n as Wallet, o as PiggyBank, s as Landmark, t as X, u as ChartLine } from "../_libs/lucide-react.mjs";
-import { i as storeTheme, n as THEMES, r as readTheme } from "./router-HCa245sB.mjs";
+import { i as storeTheme, n as THEMES, r as readTheme } from "./router-BE85lYvs.mjs";
 import { n as parse, r as format, t as pt } from "../_libs/date-fns.mjs";
 import { t as create } from "../_libs/zustand.mjs";
 import { t as clsx } from "../_libs/clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
-import { a as XAxis, c as CartesianGrid, d as ResponsiveContainer, f as Tooltip, i as YAxis, l as Bar, n as BarChart, o as Area, r as LineChart, s as Line, t as ComposedChart, u as Cell } from "../_libs/recharts+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-S6Q8TTqN.js
+import { a as Area, c as ReferenceLine, d as ResponsiveContainer, f as Tooltip, i as XAxis, l as Bar, n as BarChart, o as Line, r as YAxis, s as CartesianGrid, t as ComposedChart, u as Cell } from "../_libs/recharts+[...].mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-DzvYvD26.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function cents(n) {
@@ -1130,12 +1130,12 @@ function CompareBars({ invested, value, currency }) {
 			amount: value,
 			max,
 			currency,
-			tone: "forest"
+			tone: value < invested ? "loss" : "forest"
 		})]
 	});
 }
 function Bar$1({ label, amount, max, currency, tone }) {
-	const width = max === 0 ? 0 : Math.min(100, amount / max * 100);
+	const width = max === 0 ? 0 : Math.min(100, Math.max(amount, 0) / max * 100);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 		className: "mb-1 flex items-baseline justify-between gap-3 text-sm",
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", { children: label }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
@@ -1145,7 +1145,7 @@ function Bar$1({ label, amount, max, currency, tone }) {
 	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 		className: "h-2 overflow-hidden rounded-full bg-chip",
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-			className: cn("h-full rounded-full", tone === "forest" ? "bg-forest" : "bg-brass"),
+			className: cn("h-full rounded-full", tone === "forest" && "bg-forest", tone === "brass" && "bg-brass", tone === "loss" && "bg-loss"),
 			style: { width: `${width}%` }
 		})
 	})] });
@@ -2114,11 +2114,17 @@ function ValueChart({ points, currency }) {
 										}),
 										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 											className: "tabular-nums",
-											children: ["Aporte ", formatMoney(point.contributed, currency, { sign: true })]
+											children: ["Aporte ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
+												value: point.contributed,
+												currency
+											})]
 										}),
 										/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 											className: "tabular-nums",
-											children: ["Mercado ", formatMoney(point.market, currency, { sign: true })]
+											children: ["Mercado ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
+												value: point.market,
+												currency
+											})]
 										})
 									]
 								});
@@ -2155,10 +2161,102 @@ function ValueChart({ points, currency }) {
 					label: "Investido"
 				})]
 			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MarketBars, {
+				points: data,
+				currency,
+				reduced
+			}),
 			points.some((point) => point.recorded === 0) ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "mt-3 text-sm text-muted",
 				children: "Meses sem atualização repetem o último valor conhecido de cada plataforma."
 			}) : null
+		]
+	});
+}
+function MarketBars({ points, currency, reduced }) {
+	const data = points.filter((point) => point.recorded > 0);
+	if (data.length === 0) return null;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "mt-6",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+				className: "font-serif text-xl",
+				children: "Mercado"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-1 text-sm text-muted",
+				children: "Verde quando o mês subiu. Vermelho quando desceu."
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: "mt-3 h-40",
+				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
+					width: "100%",
+					height: "100%",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(BarChart, {
+						data,
+						margin: {
+							top: 8,
+							right: 4,
+							left: 0,
+							bottom: 0
+						},
+						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
+								stroke: "var(--color-line)",
+								vertical: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(XAxis, {
+								dataKey: "label",
+								minTickGap: 28,
+								tick: {
+									fill: "var(--color-muted)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YAxis, {
+								width: 48,
+								tickFormatter: (value) => formatCompact(value),
+								tick: {
+									fill: "var(--color-muted)",
+									fontSize: 12
+								},
+								axisLine: false,
+								tickLine: false
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ReferenceLine, {
+								y: 0,
+								stroke: "var(--color-muted)"
+							}),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Tooltip, { content: ({ active, payload }) => {
+								const point = payload?.[0]?.payload;
+								if (!active || !point) return null;
+								return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+									className: "rounded-md border border-line bg-card px-3 py-2 text-sm",
+									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+										className: "font-medium",
+										children: formatMonth(point.month)
+									}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+										className: "mt-1",
+										children: ["Mercado ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
+											value: point.market,
+											currency
+										})]
+									})]
+								});
+							} }),
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+								dataKey: "market",
+								isAnimationActive: !reduced,
+								maxBarSize: 18,
+								radius: 4,
+								children: data.map((point) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: point.market < 0 ? "var(--color-loss)" : "var(--color-forest)" }, point.month))
+							})
+						]
+					})
+				})
+			})
 		]
 	});
 }
@@ -2651,7 +2749,7 @@ function YearCompareChart({ currency, metrics }) {
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "mt-1 text-sm text-muted",
-				children: compared.years.length < 2 ? "O mesmo mês, em cada ano. A segunda linha aparece quando houver outro ano." : "O mesmo mês, lado a lado, em cada ano."
+				children: selected.signed ? "O mesmo mês, lado a lado. Vermelho é uma saída." : compared.years.length < 2 ? "O mesmo mês, em cada ano. A segunda linha aparece quando houver outro ano." : "O mesmo mês, lado a lado, em cada ano."
 			}),
 			available.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "mt-4 grid grid-cols-2 gap-1 rounded-md bg-paper-2 p-1 sm:grid-cols-4",
@@ -2666,7 +2764,7 @@ function YearCompareChart({ currency, metrics }) {
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
 					width: "100%",
 					height: "100%",
-					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(LineChart, {
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ComposedChart, {
 						data: compared.rows,
 						margin: {
 							top: 8,
@@ -2706,26 +2804,49 @@ function YearCompareChart({ currency, metrics }) {
 									children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 										className: "font-medium",
 										children: label
-									}), payload.map((item) => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-										className: "mt-1 tabular-nums",
-										children: [
-											item.dataKey,
-											" ",
-											typeof item.value === "number" ? formatMoney(item.value, currency) : "—"
-										]
-									}, String(item.dataKey)))]
+									}), payload.map((item) => {
+										const amount = typeof item.value === "number" ? item.value : null;
+										return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+											className: "mt-1",
+											children: [
+												item.dataKey,
+												" ",
+												amount == null ? "—" : selected.signed || amount < 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
+													value: amount,
+													currency
+												}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+													className: "tabular-nums",
+													children: formatMoney(amount, currency)
+												})
+											]
+										}, String(item.dataKey));
+									})]
 								});
 							} }),
-							compared.years.map((year, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
-								type: "monotone",
-								dataKey: year,
-								name: year,
-								stroke: YEAR_COLORS[index % YEAR_COLORS.length].stroke,
-								strokeWidth: 2,
-								dot: false,
-								connectNulls: false,
-								isAnimationActive: !reduced
-							}, year))
+							compared.years.map((year, index) => {
+								const color = YEAR_COLORS[index % YEAR_COLORS.length].stroke;
+								if (!selected.signed) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
+									type: "monotone",
+									dataKey: year,
+									name: year,
+									stroke: color,
+									strokeWidth: 2,
+									dot: false,
+									connectNulls: false,
+									isAnimationActive: !reduced
+								}, year);
+								return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Bar, {
+									dataKey: year,
+									name: year,
+									maxBarSize: 16,
+									radius: 3,
+									isAnimationActive: !reduced,
+									children: compared.rows.map((row) => {
+										const amount = row[year];
+										return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, { fill: typeof amount === "number" && amount < 0 ? "var(--color-loss)" : color }, `${year}-${row.label}`);
+									})
+								}, year);
+							})
 						]
 					})
 				})
@@ -4099,7 +4220,10 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 						children: [
 							"Atualizado em ",
 							formatMonth(snapshot.latestMonth).toLowerCase(),
-							snapshot.resultRatio != null ? ` · ${formatPercent(snapshot.resultRatio)}` : ""
+							snapshot.resultRatio != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [" · ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+								className: snapshot.result > 0 ? "text-forest" : snapshot.result < 0 ? "text-loss" : void 0,
+								children: formatPercent(snapshot.resultRatio)
+							})] }) : null
 						]
 					}) : null,
 					snapshot.withValue > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CompareBars, {
@@ -4328,6 +4452,7 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 					{
 						id: "aportes",
 						label: "Aportes",
+						signed: true,
 						points: series.filter((point) => point.recorded > 0).map((point) => ({
 							month: point.month,
 							amount: point.contributed
@@ -4646,13 +4771,55 @@ function FireCard({ value, recorded, currency }) {
 function story(snapshot, currency) {
 	if (snapshot.withValue === 0) return "Quando registares o primeiro fim de mês, comparas aqui o que meteste com o que ficou.";
 	const invested = formatMoney(snapshot.invested, currency);
-	if (snapshot.result > 0) return `Investiste ${invested}. Ficou ${formatMoney(snapshot.result, currency)} acima do que meteste.`;
-	if (snapshot.result < 0) return `Investiste ${invested}. Ficou ${formatMoney(Math.abs(snapshot.result), currency)} abaixo do que meteste.`;
+	if (snapshot.result > 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+		"Investiste ",
+		invested,
+		". Ficou",
+		" ",
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+			className: "text-forest",
+			children: formatMoney(snapshot.result, currency)
+		}),
+		" acima do que meteste."
+	] });
+	if (snapshot.result < 0) return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+		"Investiste ",
+		invested,
+		". Ficou",
+		" ",
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+			className: "text-loss",
+			children: formatMoney(Math.abs(snapshot.result), currency)
+		}),
+		" abaixo do que meteste."
+	] });
 	return `Investiste ${invested}, e a carteira vale o mesmo.`;
 }
 function monthStory(focus, platformCount, currency) {
 	if (!focus || focus.recorded === 0) return "Este mês ainda não tem registos. Em cada plataforma, indica o aporte e o valor no fim do mês.";
-	return `Neste mês ${focus.contributed === 0 ? "não houve aportes" : focus.contributed > 0 ? `entraram ${formatMoney(focus.contributed, currency)}` : `saíram ${formatMoney(Math.abs(focus.contributed), currency)}`} e ${focus.market === 0 ? "o mercado não mexeu o saldo" : focus.market > 0 ? `o mercado somou ${formatMoney(focus.market, currency)}` : `o mercado tirou ${formatMoney(Math.abs(focus.market), currency)}`}.${focus.recorded < platformCount ? ` ${focus.recorded} de ${platformCount} plataformas.` : ""}`;
+	const aporte = focus.contributed === 0 ? "não houve aportes" : focus.contributed > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: ["entraram ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+		className: "text-forest",
+		children: formatMoney(focus.contributed, currency)
+	})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: ["saíram ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+		className: "text-loss",
+		children: formatMoney(Math.abs(focus.contributed), currency)
+	})] });
+	const market = focus.market === 0 ? "o mercado não mexeu o saldo" : focus.market > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: ["o mercado somou ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+		className: "text-forest",
+		children: formatMoney(focus.market, currency)
+	})] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: ["o mercado tirou ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+		className: "text-loss",
+		children: formatMoney(Math.abs(focus.market), currency)
+	})] });
+	const coverage = focus.recorded < platformCount ? ` ${focus.recorded} de ${platformCount} plataformas.` : "";
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
+		"Neste mês ",
+		aporte,
+		" e ",
+		market,
+		".",
+		coverage
+	] });
 }
 function PlatformsPanel({ selectedId, onOpen, onClose, onAdd, onEdit, onGoMonth }) {
 	const platforms = useLedger((state) => state.platforms);
@@ -4843,7 +5010,10 @@ function PlatformDetail({ platformId, onClose, onEdit, onGoMonth }) {
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 								className: "mt-1 text-sm tabular-nums",
-								children: ["Aporte ", formatMoney(row.contributed, currency, { sign: true })]
+								children: ["Aporte ", /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
+									value: row.contributed,
+									currency
+								})]
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
 								className: "text-sm",
@@ -4894,7 +5064,7 @@ function Stat({ label, value }) {
 	});
 }
 function ProductList({ platformId }) {
-	const products = useLedger((state) => state.products.filter((product) => product.platformId === platformId));
+	const products = useLedger((state) => state.products).filter((product) => product.platformId === platformId);
 	const addProduct = useLedger((state) => state.addProduct);
 	const renameProduct = useLedger((state) => state.renameProduct);
 	const deleteProduct = useLedger((state) => state.deleteProduct);

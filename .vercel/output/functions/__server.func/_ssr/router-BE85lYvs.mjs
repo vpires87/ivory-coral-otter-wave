@@ -15,7 +15,7 @@ import { a as utf8ToBytes, i as managedNonce, n as bytesToHex, r as hexToBytes, 
 import { n as defu, t as createDefu } from "../_libs/defu.mjs";
 import { t as Pool } from "../_libs/pg.mjs";
 import { randomBytes } from "node:crypto";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-HCa245sB.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-BE85lYvs.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
@@ -405,7 +405,7 @@ function ThemeBoot() {
 	}, []);
 	return null;
 }
-var styles_default = "/assets/styles-C_MO13gh.css";
+var styles_default = "/assets/styles-BJEK3bMu.css";
 var APP_NAME = "Lastro";
 function shareHost(raw) {
 	const host = String(raw ?? "").split(",")[0].trim().split(":")[0].toLowerCase();
@@ -483,7 +483,7 @@ var Route$3 = createRootRoute({
 		] })]
 	})
 });
-var $$splitComponentImporter$1 = () => import("./routes-S6Q8TTqN.mjs");
+var $$splitComponentImporter$1 = () => import("./routes-DzvYvD26.mjs");
 var Route$2 = createFileRoute("/")({ component: lazyRouteComponent($$splitComponentImporter$1, "component") });
 var $$splitComponentImporter = () => import("./login-BNJmYgn_.mjs");
 var Route$1 = createFileRoute("/login")({ component: lazyRouteComponent($$splitComponentImporter, "component") });

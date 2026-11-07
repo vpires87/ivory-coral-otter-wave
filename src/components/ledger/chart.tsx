@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { compareByYear } from "@/lib/ledger/calc";
 import { formatCompact, formatMoney, formatMonth, formatShare } from "@/lib/ledger/money";
 import type { CashbackCard, CurrencyCode, ExpenseMonth, ExpenseType, MonthPoint, SavingsPoint } from "@/lib/ledger/types";
+import { SignedMoney } from "@/components/ledger/ui";
 
 function useReducedMotion() {
   const [reduced, setReduced] = useState(false);
@@ -73,10 +74,10 @@ export function ValueChart({ points, currency }: { points: MonthPoint[]; currenc
                     <p className="mt-1 tabular-nums">Valor {formatMoney(point.value, currency)}</p>
                     <p className="tabular-nums">Investido {formatMoney(point.invested, currency)}</p>
                     <p className="tabular-nums">
-                      Aporte {formatMoney(point.contributed, currency, { sign: true })}
+                      Aporte <SignedMoney value={point.contributed} currency={currency} />
                     </p>
                     <p className="tabular-nums">
-                      Mercado {formatMoney(point.market, currency, { sign: true })}
+                      Mercado <SignedMoney value={point.market} currency={currency} />
                     </p>
                   </div>
                 );
@@ -107,12 +108,76 @@ export function ValueChart({ points, currency }: { points: MonthPoint[]; currenc
         <Legend swatch="bg-forest" label="Valor" />
         <Legend swatch="bg-brass" label="Investido" />
       </div>
+      <MarketBars points={data} currency={currency} reduced={reduced} />
       {points.some((point) => point.recorded === 0) ? (
         <p className="mt-3 text-sm text-muted">
           Meses sem atualização repetem o último valor conhecido de cada plataforma.
         </p>
       ) : null}
     </section>
+  );
+}
+
+function MarketBars({
+  points,
+  currency,
+  reduced,
+}: {
+  points: (MonthPoint & { label: string })[];
+  currency: CurrencyCode;
+  reduced: boolean;
+}) {
+  const data = points.filter((point) => point.recorded > 0);
+  if (data.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <h3 className="font-serif text-xl">Mercado</h3>
+      <p className="mt-1 text-sm text-muted">Verde quando o mês subiu. Vermelho quando desceu.</p>
+      <div className="mt-3 h-40">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+            <CartesianGrid stroke="var(--color-line)" vertical={false} />
+            <XAxis
+              dataKey="label"
+              minTickGap={28}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              width={48}
+              tickFormatter={(value: number) => formatCompact(value)}
+              tick={{ fill: "var(--color-muted)", fontSize: 12 }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <ReferenceLine y={0} stroke="var(--color-muted)" />
+            <Tooltip
+              content={({ active, payload }) => {
+                const point = payload?.[0]?.payload as MonthPoint | undefined;
+                if (!active || !point) return null;
+                return (
+                  <div className="rounded-md border border-line bg-card px-3 py-2 text-sm">
+                    <p className="font-medium">{formatMonth(point.month)}</p>
+                    <p className="mt-1">
+                      Mercado <SignedMoney value={point.market} currency={currency} />
+                    </p>
+                  </div>
+                );
+              }}
+            />
+            <Bar dataKey="market" isAnimationActive={!reduced} maxBarSize={18} radius={4}>
+              {data.map((point) => (
+                <Cell
+                  key={point.month}
+                  fill={point.market < 0 ? "var(--color-loss)" : "var(--color-forest)"}
+                />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }
 
@@ -460,7 +525,7 @@ export function YearCompareChart({
   metrics,
 }: {
   currency: CurrencyCode;
-  metrics: { id: string; label: string; points: { month: string; amount: number }[] }[];
+  metrics: { id: string; label: string; signed?: boolean; points: { month: string; amount: number }[] }[];
 }) {
   const reduced = useReducedMotion();
   const available = metrics.filter((metric) => metric.points.length > 0);
@@ -474,9 +539,11 @@ export function YearCompareChart({
     <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
       <h2 className="font-serif text-2xl">Entre anos</h2>
       <p className="mt-1 text-sm text-muted">
-        {compared.years.length < 2
-          ? "O mesmo mês, em cada ano. A segunda linha aparece quando houver outro ano."
-          : "O mesmo mês, lado a lado, em cada ano."}
+        {selected.signed
+          ? "O mesmo mês, lado a lado. Vermelho é uma saída."
+          : compared.years.length < 2
+            ? "O mesmo mês, em cada ano. A segunda linha aparece quando houver outro ano."
+            : "O mesmo mês, lado a lado, em cada ano."}
       </p>
       {available.length > 1 ? (
         <div className="mt-4 grid grid-cols-2 gap-1 rounded-md bg-paper-2 p-1 sm:grid-cols-4">
@@ -489,7 +556,7 @@ export function YearCompareChart({
       ) : null}
       <div className="mt-4 h-64">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={compared.rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+          <ComposedChart data={compared.rows} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
             <CartesianGrid stroke="var(--color-line)" vertical={false} />
             <XAxis
               dataKey="label"
@@ -511,30 +578,53 @@ export function YearCompareChart({
                 return (
                   <div className="rounded-md border border-line bg-card px-3 py-2 text-sm">
                     <p className="font-medium">{label}</p>
-                    {payload.map((item) => (
-                      <p key={String(item.dataKey)} className="mt-1 tabular-nums">
-                        {item.dataKey}{" "}
-                        {typeof item.value === "number" ? formatMoney(item.value, currency) : "—"}
-                      </p>
-                    ))}
+                    {payload.map((item) => {
+                      const amount = typeof item.value === "number" ? item.value : null;
+                      return (
+                        <p key={String(item.dataKey)} className="mt-1">
+                          {item.dataKey}{" "}
+                          {amount == null ? (
+                            "—"
+                          ) : selected.signed || amount < 0 ? (
+                            <SignedMoney value={amount} currency={currency} />
+                          ) : (
+                            <span className="tabular-nums">{formatMoney(amount, currency)}</span>
+                          )}
+                        </p>
+                      );
+                    })}
                   </div>
                 );
               }}
             />
-            {compared.years.map((year, index) => (
-              <Line
-                key={year}
-                type="monotone"
-                dataKey={year}
-                name={year}
-                stroke={YEAR_COLORS[index % YEAR_COLORS.length].stroke}
-                strokeWidth={2}
-                dot={false}
-                connectNulls={false}
-                isAnimationActive={!reduced}
-              />
-            ))}
-          </LineChart>
+            {compared.years.map((year, index) => {
+              const color = YEAR_COLORS[index % YEAR_COLORS.length].stroke;
+              if (!selected.signed) {
+                return (
+                  <Line
+                    key={year}
+                    type="monotone"
+                    dataKey={year}
+                    name={year}
+                    stroke={color}
+                    strokeWidth={2}
+                    dot={false}
+                    connectNulls={false}
+                    isAnimationActive={!reduced}
+                  />
+                );
+              }
+              return (
+                <Bar key={year} dataKey={year} name={year} maxBarSize={16} radius={3} isAnimationActive={!reduced}>
+                  {compared.rows.map((row) => {
+                    const amount = row[year];
+                    const negative = typeof amount === "number" && amount < 0;
+                    return <Cell key={`${year}-${row.label}`} fill={negative ? "var(--color-loss)" : color} />;
+                  })}
+                </Bar>
+              );
+            })}
+          </ComposedChart>
         </ResponsiveContainer>
       </div>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm">

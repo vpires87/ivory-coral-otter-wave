@@ -206,7 +206,7 @@ function PlatformDetail({
                       {formatMonth(row.month)}
                     </button>
                     <p className="mt-1 text-sm tabular-nums">
-                      Aporte {formatMoney(row.contributed, currency, { sign: true })}
+                      Aporte <SignedMoney value={row.contributed} currency={currency} />
                     </p>
                     <p className="text-sm">
                       Mercado <SignedMoney value={row.market} currency={currency} />

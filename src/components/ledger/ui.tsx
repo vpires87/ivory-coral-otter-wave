@@ -152,7 +152,13 @@ export function CompareBars({
   return (
     <div className="mt-6 space-y-3">
       <Bar label="Investido" amount={invested} max={max} currency={currency} tone="brass" />
-      <Bar label="Valor" amount={value} max={max} currency={currency} tone="forest" />
+      <Bar
+        label="Valor"
+        amount={value}
+        max={max}
+        currency={currency}
+        tone={value < invested ? "loss" : "forest"}
+      />
     </div>
   );
 }
@@ -168,9 +174,9 @@ function Bar({
   amount: number;
   max: number;
   currency: CurrencyCode;
-  tone: "brass" | "forest";
+  tone: "brass" | "forest" | "loss";
 }) {
-  const width = max === 0 ? 0 : Math.min(100, (amount / max) * 100);
+  const width = max === 0 ? 0 : Math.min(100, (Math.max(amount, 0) / max) * 100);
   return (
     <div>
       <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
@@ -179,7 +185,12 @@ function Bar({
       </div>
       <div className="h-2 overflow-hidden rounded-full bg-chip">
         <div
-          className={cn("h-full rounded-full", tone === "forest" ? "bg-forest" : "bg-brass")}
+          className={cn(
+            "h-full rounded-full",
+            tone === "forest" && "bg-forest",
+            tone === "brass" && "bg-brass",
+            tone === "loss" && "bg-loss",
+          )}
           style={{ width: `${width}%` }}
         />
       </div>
