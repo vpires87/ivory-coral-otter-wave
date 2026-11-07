@@ -38,6 +38,7 @@ export function LastroApp() {
   const keepDemo = useLedger((state) => state.keepDemo);
   const reset = useLedger((state) => state.reset);
   const loadDemo = useLedger((state) => state.loadDemo);
+  const remote = useLedger((state) => state.remote);
   const [tab, setTab] = useState<Tab>("resumo");
   const [month, setMonth] = useState(() => dueMonth(1));
   const monthTouched = useRef(false);
@@ -202,7 +203,9 @@ export function LastroApp() {
             ? syncError
             : saving
               ? "A guardar…"
-              : "Os números ficam neste dispositivo. Nas definições podes exportar uma cópia."}
+              : remote
+                ? "Os números ficam no PostgreSQL. Nas definições podes exportar uma cópia."
+                : "Os números ficam neste dispositivo. Nas definições podes exportar uma cópia."}
         </p>
       </div>
 

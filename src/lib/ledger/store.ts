@@ -60,6 +60,8 @@ type Store = LedgerData & {
   adopt: (data: LedgerData | null) => void;
   failLoad: (message: string) => void;
   retryLoad: () => void;
+  remote: boolean;
+  setRemote: (remote: boolean) => void;
 };
 
 const empty: LedgerData = {
@@ -86,6 +88,7 @@ export const useLedger = create<Store>()((set) => ({
   saving: false,
   syncError: null,
   loadAttempt: 0,
+  remote: false,
   setCurrency: (currency) => set({ currency }),
   setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
   setFireGoal: (goal) => set({ fireGoal: goal == null || goal <= 0 ? null : cents(goal) }),
@@ -353,6 +356,7 @@ export const useLedger = create<Store>()((set) => ({
   adopt: (data) => set({ ...(data ?? empty), ready: true, saving: false, syncError: null }),
   failLoad: (message) => set({ ...empty, ready: false, saving: false, syncError: message }),
   retryLoad: () => set((state) => ({ loadAttempt: state.loadAttempt + 1, syncError: null, ready: false })),
+  setRemote: (remote) => set({ remote }),
 }));
 
 export function selectData(state: Store): LedgerData {

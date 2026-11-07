@@ -1,14 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { LastroApp } from "@/components/ledger/app";
-import { LocalLedger } from "@/components/ledger/sync";
+import { LedgerHost } from "@/components/ledger/sync";
+import { ledgerBackend } from "@/lib/ledger/remote";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/")({
+  loader: () => ledgerBackend(),
+  component: Home,
+});
 
 function Home() {
-  return (
-    <>
-      <LocalLedger />
-      <LastroApp />
-    </>
-  );
+  return <LedgerHost initial={Route.useLoaderData()} />;
 }

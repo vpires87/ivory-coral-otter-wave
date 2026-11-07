@@ -3,6 +3,15 @@ import { authMiddleware } from "@/lib/auth/middleware";
 import { parseBackup, toBackup } from "@/lib/ledger/backup";
 import type { LedgerData } from "@/lib/ledger/types";
 
+export const ledgerBackend = createServerFn({ method: "GET" }).handler(async () => {
+  const database = Boolean(process.env.DATABASE_URL?.trim());
+  const authOff = process.env.VITE_AUTH_ENABLED === "false";
+  return {
+    mode: database ? ("postgres" as const) : ("local" as const),
+    authOff,
+  };
+});
+
 export const loadLedger = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<LedgerData | null> => {

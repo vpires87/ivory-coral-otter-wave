@@ -1,0 +1,1 @@
+import{c as e,l as t}from"./index-DKBksW2P.js";var n=t();function r(){return(0,n.jsx)(e,{to:`/`})}export{r as component};

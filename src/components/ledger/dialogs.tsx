@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toBackup } from "@/lib/ledger/backup";
 import { clampClosingDay, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { selectData, useLedger } from "@/lib/ledger/store";
+import { signOut } from "@/lib/auth/client";
 import { CURRENCIES, PLATFORM_KINDS, type CurrencyCode, type Platform, type PlatformKind } from "@/lib/ledger/types";
 import { Button, Field, inputClassName } from "@/components/ledger/ui";
 import { THEMES, readTheme, storeTheme, type ThemeChoice } from "@/lib/theme";
@@ -171,6 +172,7 @@ export function SettingsDialog({
   const importData = useLedger((state) => state.importData);
   const reset = useLedger((state) => state.reset);
   const loadDemo = useLedger((state) => state.loadDemo);
+  const remote = useLedger((state) => state.remote);
   const hasData = useLedger(
     (state) =>
       state.platforms.length > 0 ||
@@ -227,7 +229,11 @@ export function SettingsDialog({
         onOpenChange(next);
       }}
       title="Definições"
-      description="Os números ficam neste dispositivo. Exporta uma cópia se quiseres um ficheiro teu."
+      description={
+        remote
+          ? "Os números ficam no PostgreSQL. Exporta uma cópia se quiseres um ficheiro teu."
+          : "Os números ficam neste dispositivo. Exporta uma cópia se quiseres um ficheiro teu."
+      }
     >
       <div className="space-y-5">
         <div>
@@ -333,7 +339,11 @@ export function SettingsDialog({
         )}
         {confirmWipe ? (
           <div className="rounded-md bg-loss-soft p-3 text-sm">
-            <p>Isto apaga a caderneta neste dispositivo. Não dá para desfazer.</p>
+            <p>
+              {remote
+                ? "Isto apaga a caderneta na base de dados. Não dá para desfazer."
+                : "Isto apaga a caderneta neste dispositivo. Não dá para desfazer."}
+            </p>
             <div className="mt-3 flex gap-2">
               <Button
                 variant="danger"
@@ -356,6 +366,16 @@ export function SettingsDialog({
           </Button>
         )}
         {message ? <p className="text-sm text-muted">{message}</p> : null}
+        {remote ? (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              void signOut("/").catch(() => setMessage("Não consegui sair. Tenta outra vez."));
+            }}
+          >
+            Sair da conta
+          </Button>
+        ) : null}
       </div>
     </Sheet>
   );

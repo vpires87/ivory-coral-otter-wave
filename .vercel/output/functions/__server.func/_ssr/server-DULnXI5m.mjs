@@ -1,826 +1,337 @@
-import { o as __toESM } from "../_runtime.mjs";
+import { $t as generateId, A as email, Bt as ATTR_CONTEXT, C as serializeSignedCookie, D as any, Dt as JWTExpired, F as optional, G as importJWK, Gt as getAuthTables, H as base64Url, Ht as ATTR_OPERATION_ID, I as record, Jt as runWithAdapter, K as jwtVerify, Kt as getCurrentAdapter, L as string, M as looseObject, N as number, O as array, P as object, Qt as initGetFieldName, S as serializeCookie, U as decodeJwt, Ut as import_src, Vt as ATTR_HOOK_TYPE, W as decodeProtectedHeader, Wt as safeJSONParse, Xt as getBetterAuthVersion, Yt as runWithTransaction, Zt as initGetModelName, _ as runWithRequestState, _n as APIError, a as createAuthorizationURL, b as createRouter$1, bn as BASE_ERROR_CODES, c as createRateLimitKey, cn as logger, d as deprecate, dn as env, en as createRandomStringGenerator, f as createAuthEndpoint, g as hasRequestState, gn as isTest, h as defineRequestState, hn as isProduction, ht as encode, i as refreshAccessToken, k as boolean, l as findInvalidTrustedProxies, ln as shouldPublishLog, m as isAPIError, mn as isDevelopment, n as socialProviders, o as applyDefaultAccessTokenExpiry, on as normalizePathname, p as createAuthMiddleware, qt as queueAfterTransactionHook, r as validateAuthorizationCode, rn as betterFetch, s as isLoopbackHost, sn as createLogger, t as SocialProviderListEnum, u as getIp, v as getCurrentAuthContext, vn as BetterAuthError, w as filterOutputFields, x as toResponse, y as runWithEndpointContext, yn as kAPIErrorHeaderSymbol, zt as createWithSpan } from "../_libs/@better-auth/core+[...].mjs";
+import { a as getOrigin, c as isRequestLike, i as getHost, l as resolveBaseURL, n as PACKAGE_VERSION, o as getProtocol, r as getBaseURL, s as isDynamicBaseURLConfig, t as GENERIC_OAUTH_ERROR_CODES, u as wildcardMatch } from "./url-BE6YaD7r.mjs";
+import { n as defu, t as createDefu } from "../_libs/defu.mjs";
+import { n as ensureDbReady, r as getPglite } from "./db-Dsl80zee.mjs";
 import { a as PostgresIntrospector, c as sql, i as PostgresAdapter, n as getKyselyDatabaseType, o as PostgresQueryCompiler, s as CompiledQuery, t as createKyselyAdapter } from "../_libs/@better-auth/kysely-adapter+[...].mjs";
-import { $t as getBetterAuthVersion, A as decodeProtectedHeader, At as literal, C as toResponse, Dt as array, E as filterOutputFields, Et as any, Ft as record, Gt as ATTR_OPERATION_ID, Ht as createWithSpan, It as string, Jt as getAuthTables, Kt as import_src, Lt as union, M as jwtVerify, Mt as number, Nt as object, O as base64Url, Ot as boolean, Pt as optional, Qt as runWithTransaction, S as createRouter$1, T as serializeSignedCookie, Ut as ATTR_CONTEXT, Wt as ATTR_HOOK_TYPE, Xt as queueAfterTransactionHook, Yt as getCurrentAdapter, Zt as runWithAdapter, _ as defineRequestState, _n as BASE_ERROR_CODES, a as betterFetch, an as logger, b as getCurrentAuthContext, c as isLoopbackHost, cn as env, d as getIp, dn as isDevelopment, en as initGetModelName, f as deprecate, fn as isProduction, g as isAPIError, gn as kAPIErrorHeaderSymbol, h as createAuthMiddleware, hn as BetterAuthError, i as refreshAccessToken, in as createLogger, j as importJWK, jt as looseObject, k as decodeJwt, kt as email, l as createRateLimitKey, m as createAuthEndpoint, mn as APIError, n as socialProviders, nn as generateId, o as createAuthorizationURL, on as shouldPublishLog, p as normalizePathname, pn as isTest, pt as JWTExpired, qt as safeJSONParse, r as validateAuthorizationCode, rn as createRandomStringGenerator, s as applyDefaultAccessTokenExpiry, t as SocialProviderListEnum, tn as initGetFieldName, tt as encode, u as findInvalidTrustedProxies, v as hasRequestState, vn as defineErrorCodes, w as serializeCookie, x as runWithEndpointContext, y as runWithRequestState } from "../_libs/@better-auth/core+[...].mjs";
-import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].mjs";
-import { _ as createFileRoute, b as useRouter, d as Scripts, f as HeadContent, g as lazyRouteComponent, h as Outlet, m as createRouter, v as createRootRoute } from "../_libs/@tanstack/react-router+[...].mjs";
-import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
-import { n as __exportAll } from "./ssr.mjs";
-import { r as TriangleAlert } from "../_libs/lucide-react.mjs";
-import { n as string$1, t as boolean$1 } from "../_libs/zod.mjs";
-import { n as hkdf, t as sha256 } from "../_libs/noble__hashes.mjs";
 import { i as jwtDecrypt, n as EncryptJWT, r as SignJWT, t as calculateJwkThumbprint } from "../_libs/jose.mjs";
+import { n as hkdf, t as sha256 } from "../_libs/noble__hashes.mjs";
 import { i as verifyPassword, n as binary, r as hashPassword, t as createHMAC } from "../_libs/better-auth__utils.mjs";
 import { n as createHash, t as createTelemetry } from "../_libs/@better-auth/telemetry+[...].mjs";
 import { a as utf8ToBytes, i as managedNonce, n as bytesToHex, r as hexToBytes, t as xchacha20poly1305 } from "../_libs/noble__ciphers.mjs";
-import { n as defu, t as createDefu } from "../_libs/defu.mjs";
+import { n as string$1, t as boolean$1 } from "../_libs/zod.mjs";
 import { t as Pool } from "../_libs/pg.mjs";
 import { randomBytes } from "node:crypto";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-BE85lYvs.js
-var import_react = /* @__PURE__ */ __toESM(require_react());
-var import_jsx_runtime = require_jsx_runtime();
-var FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
-function errorMessage(error) {
-	if (error instanceof Error && error.message) return error.message;
-	if (typeof error === "string" && error) return error;
-	return FALLBACK_MESSAGE;
+//#region node_modules/.nitro/vite/services/ssr/assets/server-DULnXI5m.js
+function tryDecode$1(str) {
+	if (str.indexOf("%") === -1) return str;
+	try {
+		return decodeURIComponent(str);
+	} catch {
+		return str;
+	}
 }
-function AppErrorComponent({ error }) {
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("main", {
-		className: "flex min-h-screen flex-col items-center justify-center gap-3 px-6 text-center bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-50",
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
-				className: "text-red-500",
-				"aria-hidden": "true",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(TriangleAlert, {
-					className: "size-10",
-					strokeWidth: 2
-				})
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h1", {
-				className: "text-lg font-semibold",
-				children: "Something went wrong"
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "max-w-md text-sm break-words text-zinc-500 dark:text-zinc-400",
-				children: errorMessage(error)
-			})
-		]
+var SECURE_COOKIE_PREFIX = "__Secure-";
+/**
+* Split a comma-joined `Set-Cookie` header string into individual cookies.
+*/
+function splitSetCookieHeader(setCookie) {
+	if (!setCookie) return [];
+	const result = [];
+	let start = 0;
+	let i = 0;
+	while (i < setCookie.length) {
+		if (setCookie[i] === ",") {
+			let j = i + 1;
+			while (j < setCookie.length && setCookie[j] === " ") j++;
+			while (j < setCookie.length && setCookie[j] !== "=" && setCookie[j] !== ";" && setCookie[j] !== ",") j++;
+			if (j < setCookie.length && setCookie[j] === "=") {
+				const part = setCookie.slice(start, i).trim();
+				if (part) result.push(part);
+				start = i + 1;
+				while (start < setCookie.length && setCookie[start] === " ") start++;
+				i = start;
+				continue;
+			}
+		}
+		i++;
+	}
+	const last = setCookie.slice(start).trim();
+	if (last) result.push(last);
+	return result;
+}
+function parseSetCookieHeader(setCookie) {
+	const cookies = /* @__PURE__ */ new Map();
+	splitSetCookieHeader(setCookie).forEach((cookieString) => {
+		const [nameValue, ...attributes] = cookieString.split(";").map((part) => part.trim());
+		const [name, ...valueParts] = (nameValue || "").split("=");
+		const value = unquoteCookieValue(valueParts.join("="));
+		if (!name) return;
+		const attrObj = { value: tryDecode$1(value) };
+		attributes.forEach((attribute) => {
+			const [attrName, ...attrValueParts] = attribute.split("=");
+			const attrValue = attrValueParts.join("=");
+			const normalizedAttrName = attrName.trim().toLowerCase();
+			switch (normalizedAttrName) {
+				case "max-age":
+					attrObj["max-age"] = attrValue ? parseInt(attrValue.trim(), 10) : void 0;
+					break;
+				case "expires":
+					attrObj.expires = attrValue ? new Date(attrValue.trim()) : void 0;
+					break;
+				case "domain":
+					attrObj.domain = attrValue ? attrValue.trim() : void 0;
+					break;
+				case "path":
+					attrObj.path = attrValue ? attrValue.trim() : void 0;
+					break;
+				case "secure":
+					attrObj.secure = true;
+					break;
+				case "httponly":
+					attrObj.httponly = true;
+					break;
+				case "samesite":
+					attrObj.samesite = attrValue ? attrValue.trim().toLowerCase() : void 0;
+					break;
+				case "partitioned":
+					attrObj.partitioned = true;
+					break;
+				default: attrObj[normalizedAttrName] = attrValue ? attrValue.trim() : true;
+			}
+		});
+		cookies.set(name, attrObj);
+	});
+	return cookies;
+}
+function toCookieOptions(attributes) {
+	return {
+		maxAge: attributes["max-age"],
+		expires: attributes.expires,
+		domain: attributes.domain,
+		path: attributes.path,
+		secure: attributes.secure,
+		httpOnly: attributes.httponly,
+		sameSite: attributes.samesite,
+		partitioned: attributes.partitioned
+	};
+}
+/**
+* Cookie-name token char set per RFC 7230 §3.2.6.
+*
+* @see https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6
+*/
+var cookieNameRegex = /^[\x21\x23-\x27\x2A\x2B\x2D\x2E\x30-\x39\x41-\x5A\x5E\x5F\x60\x61-\x7A\x7C\x7E]+$/;
+/**
+* Cookie-value char set per RFC 6265 §4.1.1, plus space and comma.
+*
+* @see https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.1
+* @see https://github.com/golang/go/issues/7243
+*/
+var cookieValueRegex = /^[\x20\x21\x23-\x3A\x3C-\x5B\x5D-\x7E]*$/;
+/**
+* Strip surrounding double-quotes per RFC 6265 §4.1.1 quoted-string form.
+*
+* @see https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.1
+*/
+function unquoteCookieValue(value) {
+	if (value.length < 2 || !value.startsWith("\"") || !value.endsWith("\"")) return value;
+	return value.slice(1, -1);
+}
+/**
+* Trim leading/trailing OWS (space / horizontal tab) per RFC 7230 §3.2.3.
+* Narrower than `String.prototype.trim()`, which strips CR/LF and other
+* whitespace and would let CTLs escape `cookieValueRegex`.
+*
+* @see https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.3
+*/
+function trimOWS(s) {
+	let start = 0;
+	let end = s.length;
+	while (start < end) {
+		const c = s.charCodeAt(start);
+		if (c !== 32 && c !== 9) break;
+		start++;
+	}
+	while (end > start) {
+		const c = s.charCodeAt(end - 1);
+		if (c !== 32 && c !== 9) break;
+		end--;
+	}
+	return start === 0 && end === s.length ? s : s.slice(start, end);
+}
+/**
+* Tolerates `;` separators without the SP that RFC 6265 §4.2.1 mandates,
+* since proxies and runtimes commonly strip it. Silently drops entries
+* whose name violates RFC 7230 token or whose value violates RFC 6265
+* cookie-octet (plus space and comma). Strips optional surrounding
+* double-quotes per RFC 6265 §4.1.1.
+*/
+function parseCookies(cookie) {
+	const cookieMap = /* @__PURE__ */ new Map();
+	if (cookie.length < 2) return cookieMap;
+	for (const chunk of cookie.split(";")) {
+		const eq = chunk.indexOf("=");
+		if (eq === -1) continue;
+		const key = trimOWS(chunk.slice(0, eq));
+		const val = unquoteCookieValue(trimOWS(chunk.slice(eq + 1)));
+		if (cookieNameRegex.test(key) && cookieValueRegex.test(val)) cookieMap.set(key, tryDecode$1(val));
+	}
+	return cookieMap;
+}
+/**
+* Add or replace a cookie in the request `Cookie` header.
+*
+* Cookie pairs are joined with `; `, but `headers.append("cookie", ...)`
+* joins with `, ` in some runtimes (e.g. Deno, Cloudflare Workers) and
+* breaks downstream cookie parsing. This builds the header value via
+* parse-mutate-serialize.
+*/
+function setRequestCookie(headers, name, value) {
+	const cookieMap = parseCookies(headers.get("cookie") || "");
+	if (cookieNameRegex.test(name)) cookieMap.set(name, value);
+	headers.set("cookie", Array.from(cookieMap, ([k, v]) => `${k}=${encodeURIComponent(v)}`).join("; "));
+}
+var GROK_PROVIDERS = [{
+	providerId: "grok-google",
+	idp: "google",
+	label: "Google"
+}, {
+	providerId: "grok-x",
+	idp: "twitter",
+	label: "X"
+}];
+function env$2(key) {
+	return process.env[key]?.trim() || void 0;
+}
+/**
+* Workspace preview vs deployed app. The deployer writes GROK_PROJECT_ID on
+* every publish; the sandbox preview never has it. Single source of truth for
+* the split — gate audience, gate endpoints and connector-token semantics all
+* key off this predicate.
+*/
+function isWorkspacePreview() {
+	return !env$2("GROK_PROJECT_ID");
+}
+var GATE_IDENTITY_HEADER = "x-grok-identity";
+var GATE_JWKS_PATH = "/__gate/identity-key";
+var JWKS_CACHE_TTL_MS = 3e5;
+var PREVIEW_AUDIENCE = "preview";
+var PREVIEW_GATE_ORIGIN = "http://127.0.0.1:6014";
+var FALLBACK_EMAIL_DOMAIN = "viewer.grok.invalid";
+var FALLBACK_NAME = "Grok user";
+function gateIdentityEnabled() {
+	return env$2("VITE_AUTH_ENABLED") !== "false";
+}
+function gateTokenAudience() {
+	if (isWorkspacePreview()) return PREVIEW_AUDIENCE;
+	return `app:${env$2("GROK_PROJECT_ID")}`;
+}
+async function defaultJwksFetch(url) {
+	try {
+		const res = await fetch(url, {
+			headers: { accept: "application/json" },
+			redirect: "manual"
+		});
+		if (!res.ok) return null;
+		const body = await res.json();
+		return Array.isArray(body?.keys) ? body : null;
+	} catch {
+		return null;
+	}
+}
+var jwksCache = /* @__PURE__ */ new Map();
+function gateKeyResolver(url, jwksFetch = defaultJwksFetch) {
+	return async (protectedHeader) => {
+		const kid = typeof protectedHeader.kid === "string" ? protectedHeader.kid : void 0;
+		const findKey = (jwks) => jwks.keys.find((k) => k.kty === "OKP" && k.crv === "Ed25519" && (!kid || k.kid === kid));
+		let entry = jwksCache.get(url);
+		if (!entry || Date.now() - entry.fetchedAt > JWKS_CACHE_TTL_MS) {
+			const jwks = await jwksFetch(url);
+			if (jwks) {
+				entry = {
+					jwks,
+					fetchedAt: Date.now()
+				};
+				jwksCache.set(url, entry);
+			}
+		}
+		let key = entry ? findKey(entry.jwks) : void 0;
+		if (!key) {
+			const jwks = await jwksFetch(url);
+			if (jwks) {
+				entry = {
+					jwks,
+					fetchedAt: Date.now()
+				};
+				jwksCache.set(url, entry);
+				key = findKey(jwks);
+			}
+		}
+		if (!key) throw new Error("no gate identity key matches the token kid");
+		return importJWK(key, "EdDSA");
+	};
+}
+async function verifyGateIdentityToken(token, options) {
+	try {
+		const { payload } = await jwtVerify(token, options.getKey, {
+			algorithms: ["EdDSA"],
+			issuer: options.issuer,
+			audience: options.audience,
+			requiredClaims: [
+				"sub",
+				"iat",
+				"exp"
+			],
+			maxTokenAge: "10 minutes"
+		});
+		const sub = typeof payload.sub === "string" ? payload.sub.trim() : "";
+		if (!sub) return null;
+		return {
+			sub,
+			email: typeof payload.email === "string" ? payload.email : null,
+			name: typeof payload.name === "string" ? payload.name : null,
+			teamId: typeof payload.team_id === "string" ? payload.team_id : null
+		};
+	} catch {
+		return null;
+	}
+}
+function resolveGateEndpoints(headers) {
+	const explicit = env$2("GROK_GATE_ORIGIN");
+	if (explicit) {
+		const origin = explicit.replace(/\/+$/, "");
+		return {
+			issuer: origin,
+			jwksUrl: `${origin}${GATE_JWKS_PATH}`
+		};
+	}
+	if (isWorkspacePreview()) return {
+		issuer: PREVIEW_GATE_ORIGIN,
+		jwksUrl: `${PREVIEW_GATE_ORIGIN}${GATE_JWKS_PATH}`
+	};
+	const host = (headers.get("x-forwarded-host")?.split(",")[0]?.trim() || headers.get("host") || "").split(":")[0]?.trim().toLowerCase();
+	if (!host) return null;
+	let issuer = null;
+	if (host === "app-builder-testing.com" || host.endsWith(".app-builder-testing.com")) issuer = "https://gate.app-builder-testing.com";
+	else if (host === "grok.me" || host.endsWith(".grok.me")) issuer = "https://gate.grok.me";
+	if (!issuer) return null;
+	return {
+		issuer,
+		jwksUrl: `${issuer}${GATE_JWKS_PATH}`
+	};
+}
+function sessionBoundToGateIdentity(accounts, identitySub, gateProviderId) {
+	return accounts.some((account) => account.providerId === gateProviderId && account.accountId === identitySub);
+}
+async function gateIdentityFromHeaders(headers, jwksFetch) {
+	if (!gateIdentityEnabled()) return null;
+	const token = headers.get(GATE_IDENTITY_HEADER)?.trim();
+	if (!token) return null;
+	const endpoints = resolveGateEndpoints(headers);
+	if (!endpoints) return null;
+	return verifyGateIdentityToken(token, {
+		issuer: endpoints.issuer,
+		audience: gateTokenAudience(),
+		getKey: gateKeyResolver(endpoints.jwksUrl, jwksFetch)
 	});
 }
-/**
-* Path-based preview hosts serve the dev server under `/{port_id}/` and strip
-* that prefix before forwarding, so SSR sees `/` while the browser URL keeps the
-* prefix. TanStack Start resets `basepath` on hydration, so a `rewrite` keeps
-* client routing and generated links aligned with the public URL.
-*/
-var PATH_BASED_PREVIEW_HOSTS = /* @__PURE__ */ new Set([
-	"preview.grok.genai.mil",
-	"preview.grok.mil",
-	"preview.grokgsac.com"
-]);
-var PORT_ID_PREFIX = /^\/hds-[a-z0-9]+-\d+-[a-z0-9]+(?=\/|$)/i;
-function previewPathPrefix(hostname, pathname) {
-	if (!PATH_BASED_PREVIEW_HOSTS.has(hostname.toLowerCase())) return void 0;
-	return PORT_ID_PREFIX.exec(pathname)?.[0];
-}
-function prefixRewrite(prefix) {
+function gateIdentityUserInfo(identity) {
 	return {
-		input: ({ url }) => {
-			if (url.pathname === prefix) url.pathname = "/";
-			else if (url.pathname.startsWith(`${prefix}/`)) url.pathname = url.pathname.slice(prefix.length);
-			return url;
-		},
-		output: ({ url }) => {
-			url.pathname = `${prefix}${url.pathname}`;
-			return url;
-		}
+		id: identity.sub,
+		email: (identity.email ?? `${identity.sub}@${FALLBACK_EMAIL_DOMAIN}`).toLowerCase(),
+		emailVerified: Boolean(identity.email),
+		name: identity.name ?? FALLBACK_NAME
 	};
-}
-function previewPathRewrite() {
-	if (typeof window === "undefined") return void 0;
-	const prefix = previewPathPrefix(window.location.hostname, window.location.pathname);
-	return prefix ? prefixRewrite(prefix) : void 0;
-}
-/**
-* App-wide client provider mounted once near the root (in `src/routes/__root.tsx`):
-*
-*   <AuthProvider><Outlet /></AuthProvider>
-*
-* Better Auth's React client (`@/lib/auth/client`) needs NO context provider —
-* its `useSession()` works standalone — so this is a passthrough today. It's
-* kept as the single, stable mount point for any future client-side providers
-* (e.g. a toast or theme provider) without churning the root shell.
-*/
-function AuthProvider({ children }) {
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(import_jsx_runtime.Fragment, { children });
-}
-var CONNECTOR_TOKEN_READY_EVENT = "grok:connector-token-ready";
-function isGrokEmbedderOrigin(origin) {
-	try {
-		const url = new URL(origin);
-		if (url.protocol !== "https:" && url.protocol !== "http:") return false;
-		const host = url.hostname.toLowerCase();
-		if (host === "grok.com" || host.endsWith(".grok.com")) return true;
-		if (host === "localhost" || host === "127.0.0.1" || host === "[::1]") return true;
-		return false;
-	} catch {
-		return false;
-	}
-}
-function isSandboxPreviewGuestHost(hostname) {
-	const host = hostname.toLowerCase();
-	return host === "grok-sandbox.com" || host.endsWith(".grok-sandbox.com");
-}
-function isRemintPreviewPair(guestHost, parentHost) {
-	const guest = guestHost.toLowerCase();
-	const parent = parentHost.toLowerCase();
-	const i = guest.indexOf(".preview.");
-	if (i <= 0) return false;
-	const label = guest.slice(0, i);
-	const rest = guest.slice(i + 9);
-	if (label.includes(".") || !rest.includes(".")) return false;
-	return parent === rest || parent === `grok.${rest}`;
-}
-function resolveParentEmbedderOrigin(parentIsSelf, referrer, ancestorOrigin, guestHostname = "") {
-	if (parentIsSelf) return null;
-	for (const candidate of [referrer, ancestorOrigin ?? ""].filter(Boolean)) try {
-		const url = new URL(candidate.includes("://") ? candidate : `https://${candidate}`);
-		if (url.protocol !== "https:" && url.protocol !== "http:") continue;
-		if (isGrokEmbedderOrigin(url.origin)) return url.origin;
-		if (isSandboxPreviewGuestHost(guestHostname) || isRemintPreviewPair(guestHostname, url.hostname)) return url.origin;
-	} catch {}
-	return null;
-}
-/**
-* Guest side of the grok-web ↔ sandbox preview postMessage bridge.
-*
-* Activates only when this page is framed by an allowlisted Grok embedder.
-* Top-level runs (download/export, local `npm run dev`, deployed sites) noop.
-*/
-var PREVIEW_BRIDGE_CHANNEL = "grok-preview-bridge";
-var EnvelopeSchema = object({
-	channel: literal(PREVIEW_BRIDGE_CHANNEL),
-	version: number().int().positive(),
-	type: string().min(1)
-});
-var HelloSchema = EnvelopeSchema.extend({ type: literal("hello") });
-var NavigateSchema = EnvelopeSchema.extend({
-	type: literal("navigate"),
-	path: string().min(1)
-});
-var HistorySchema = EnvelopeSchema.extend({
-	type: literal("history"),
-	delta: union([literal(-1), literal(1)])
-});
-var ConnectorTokenReadySchema = EnvelopeSchema.extend({ type: literal("connector-token-ready") });
-function isSafeBridgePath(path) {
-	if (!path.startsWith("/") || path.startsWith("//") || path.includes("\\")) return false;
-	try {
-		return new URL(path, "https://preview.invalid").origin === "https://preview.invalid";
-	} catch {
-		return false;
-	}
-}
-/**
-* Origin of the Grok embedder framing this page, or null when the page runs
-* top-level (download/export, local `npm run dev`, deployed sites) or under a
-* non-Grok parent. Client-only; null during SSR.
-*/
-function resolveCurrentEmbedderOrigin() {
-	if (typeof window === "undefined") return null;
-	const ancestorOrigin = typeof location.ancestorOrigins !== "undefined" && location.ancestorOrigins.length > 0 ? location.ancestorOrigins[0] : null;
-	return resolveParentEmbedderOrigin(window.parent === window, document.referrer, ancestorOrigin, window.location.hostname);
-}
-/**
-* Install host↔guest messaging. Returns a dispose function.
-* Noops (returns a no-op dispose) when not embedded under a Grok parent.
-*/
-function installPreviewHostBridge(options = {}) {
-	const parentOrigin = resolveCurrentEmbedderOrigin();
-	if (parentOrigin === null) return () => {};
-	const ROOT_STATE_KEY = "__grokPreviewBridgeRoot";
-	const originalPushState = window.history.pushState.bind(window.history);
-	const originalReplaceState = window.history.replaceState.bind(window.history);
-	const isAtHistoryRoot = () => {
-		const state = window.history.state;
-		return Boolean(state && typeof state === "object" && state[ROOT_STATE_KEY] === true);
-	};
-	try {
-		const current = window.history.state;
-		if (!(current !== null && typeof current === "object" && Object.prototype.hasOwnProperty.call(current, ROOT_STATE_KEY))) {
-			const isRoot = window.history.length <= 1;
-			originalReplaceState(current && typeof current === "object" ? {
-				...current,
-				[ROOT_STATE_KEY]: isRoot
-			} : { [ROOT_STATE_KEY]: isRoot }, "", window.location.href);
-		}
-	} catch {}
-	const post = (message) => {
-		window.parent.postMessage(message, parentOrigin);
-	};
-	const reportLocation = () => {
-		post({
-			channel: PREVIEW_BRIDGE_CHANNEL,
-			version: 1,
-			type: "location",
-			path: window.location.pathname || "/",
-			search: window.location.search,
-			hash: window.location.hash
-		});
-	};
-	const reportRoutes = () => {
-		const paths = options.getRoutePaths?.() ?? [];
-		post({
-			channel: PREVIEW_BRIDGE_CHANNEL,
-			version: 1,
-			type: "routes",
-			paths
-		});
-	};
-	const defaultNavigate = (path) => {
-		if (!isSafeBridgePath(path)) return;
-		try {
-			const url = new URL(path, window.location.origin);
-			if (url.origin !== window.location.origin) return;
-			const next = `${url.pathname}${url.search}${url.hash}`;
-			window.history.pushState(window.history.state, "", next);
-			window.dispatchEvent(new PopStateEvent("popstate", { state: window.history.state }));
-		} catch {}
-	};
-	const navigate = (path) => {
-		if (!isSafeBridgePath(path)) return;
-		if (options.navigate) {
-			options.navigate(path);
-			return;
-		}
-		defaultNavigate(path);
-	};
-	const announce = () => {
-		reportLocation();
-		reportRoutes();
-		post({
-			channel: PREVIEW_BRIDGE_CHANNEL,
-			version: 1,
-			type: "ready"
-		});
-	};
-	const onHello = (data) => {
-		if (!HelloSchema.safeParse(data).success) return;
-		announce();
-	};
-	const onNavigate = (data) => {
-		const parsed = NavigateSchema.safeParse(data);
-		if (!parsed.success) return;
-		navigate(parsed.data.path);
-		queueMicrotask(reportLocation);
-	};
-	const onHistory = (data) => {
-		const parsed = HistorySchema.safeParse(data);
-		if (!parsed.success) return;
-		if (parsed.data.delta === -1 && isAtHistoryRoot()) return;
-		window.history.go(parsed.data.delta);
-	};
-	const onConnectorTokenReady = (data) => {
-		if (!ConnectorTokenReadySchema.safeParse(data).success) return;
-		window.dispatchEvent(new Event(CONNECTOR_TOKEN_READY_EVENT));
-	};
-	const hostMessageHandlers = /* @__PURE__ */ new Map([
-		["hello", onHello],
-		["navigate", onNavigate],
-		["history", onHistory],
-		["connector-token-ready", onConnectorTokenReady]
-	]);
-	const onMessage = (event) => {
-		if (event.source !== window.parent) return;
-		if (event.origin !== parentOrigin) return;
-		const envelope = EnvelopeSchema.safeParse(event.data);
-		if (!envelope.success || envelope.data.version !== 1) return;
-		hostMessageHandlers.get(envelope.data.type)?.(event.data);
-	};
-	const onPopState = () => {
-		reportLocation();
-	};
-	const onHashChange = () => {
-		reportLocation();
-	};
-	window.history.pushState = (data, unused, url) => {
-		const next = data && typeof data === "object" ? {
-			...data,
-			[ROOT_STATE_KEY]: false
-		} : data;
-		originalPushState(next, unused, url);
-		reportLocation();
-	};
-	window.history.replaceState = (data, unused, url) => {
-		const next = isAtHistoryRoot() ? {
-			...data && typeof data === "object" ? data : {},
-			[ROOT_STATE_KEY]: true
-		} : data;
-		originalReplaceState(next, unused, url);
-		reportLocation();
-	};
-	window.addEventListener("message", onMessage);
-	window.addEventListener("popstate", onPopState);
-	window.addEventListener("hashchange", onHashChange);
-	announce();
-	return () => {
-		window.removeEventListener("message", onMessage);
-		window.removeEventListener("popstate", onPopState);
-		window.removeEventListener("hashchange", onHashChange);
-		window.history.pushState = originalPushState;
-		window.history.replaceState = originalReplaceState;
-	};
-}
-/** Collect static path patterns from a TanStack route tree (best-effort). */
-function collectRoutePathsFromTree(routeTree) {
-	const paths = /* @__PURE__ */ new Set();
-	const walk = (node) => {
-		if (!node || typeof node !== "object") return;
-		const record = node;
-		const full = typeof record.fullPath === "string" ? record.fullPath : typeof record.path === "string" ? record.path : null;
-		if (full !== null && full !== "") paths.add(full.startsWith("/") ? full : `/${full}`);
-		else if (full === "") paths.add("/");
-		const children = record.children;
-		if (Array.isArray(children)) for (const child of children) walk(child);
-		else if (children && typeof children === "object") for (const child of Object.values(children)) walk(child);
-	};
-	walk(routeTree);
-	return [...paths];
-}
-/**
-* Mount once in `__root.tsx` so the Grok preview chrome can drive navigation
-* (and later receive registered routes). Noops when the app is not embedded.
-*/
-function PreviewHostBridge() {
-	const router = useRouter();
-	(0, import_react.useEffect)(() => {
-		return installPreviewHostBridge({
-			navigate: (path) => {
-				router.history.push(path);
-			},
-			getRoutePaths: () => collectRoutePathsFromTree(router.routeTree)
-		});
-	}, [router]);
-	return null;
-}
-var THEMES = [
-	{
-		id: "papel",
-		label: "Papel",
-		paper: "#f3eee6",
-		accent: "#1e5c40"
-	},
-	{
-		id: "escuro",
-		label: "Escuro",
-		paper: "#161410",
-		accent: "#8fceb0"
-	},
-	{
-		id: "sistema",
-		label: "Sistema",
-		paper: "#f3eee6",
-		accent: "#161410"
-	}
-];
-var KEY = "lastro-theme";
-function readTheme() {
-	if (typeof window === "undefined") return "papel";
-	try {
-		const stored = window.localStorage.getItem(KEY);
-		if (stored === "papel" || stored === "escuro" || stored === "sistema") return stored;
-	} catch {}
-	return "papel";
-}
-function resolvedTheme(choice) {
-	if (choice === "sistema" && typeof window !== "undefined") return window.matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "papel";
-	return choice === "escuro" ? "escuro" : "papel";
-}
-function applyTheme(choice) {
-	if (typeof document === "undefined") return;
-	const resolved = resolvedTheme(choice);
-	document.documentElement.dataset.theme = resolved;
-	document.documentElement.style.colorScheme = resolved === "escuro" ? "dark" : "light";
-	const meta = document.querySelector("meta[name=\"theme-color\"]");
-	if (meta) meta.setAttribute("content", resolved === "escuro" ? "#161410" : "#f3eee6");
-}
-function storeTheme(choice) {
-	try {
-		window.localStorage.setItem(KEY, choice);
-	} catch {}
-	applyTheme(choice);
-	window.dispatchEvent(new Event("lastro-theme"));
-}
-function ThemeBoot() {
-	(0, import_react.useLayoutEffect)(() => {
-		const sync = () => applyTheme(readTheme());
-		sync();
-		const query = window.matchMedia("(prefers-color-scheme: dark)");
-		query.addEventListener("change", sync);
-		window.addEventListener("lastro-theme", sync);
-		return () => {
-			query.removeEventListener("change", sync);
-			window.removeEventListener("lastro-theme", sync);
-		};
-	}, []);
-	return null;
-}
-var styles_default = "/assets/styles-BJEK3bMu.css";
-var APP_NAME = "Lastro";
-function shareHost(raw) {
-	const host = String(raw ?? "").split(",")[0].trim().split(":")[0].toLowerCase();
-	if (!host || !/^[a-z0-9.-]+$/.test(host) || !host.includes(".")) return "";
-	if (/^\d{1,3}(?:\.\d{1,3}){3}$/.test(host)) return "";
-	if (host === "vercel.app" || host.endsWith(".vercel.app") || host === "vercel.com" || host.endsWith(".vercel.com")) return "";
-	return host;
-}
-var host = shareHost(void 0);
-var xBanner = host ? `https://${host}/x-banner.jpg` : "";
-var Route$3 = createRootRoute({
-	head: () => ({
-		meta: [
-			{ charSet: "utf-8" },
-			{
-				name: "viewport",
-				content: "width=device-width, initial-scale=1"
-			},
-			{ title: APP_NAME },
-			{
-				name: "description",
-				content: "Registo mensal do que investes e do que fica em cada plataforma."
-			},
-			{
-				name: "theme-color",
-				content: "#f3eee6"
-			},
-			...xBanner ? [{
-				property: "x:game:image",
-				content: xBanner
-			}] : []
-		],
-		links: [
-			{
-				rel: "icon",
-				type: "image/svg+xml",
-				href: "/favicon.svg"
-			},
-			{
-				rel: "preconnect",
-				href: "https://fonts.googleapis.com"
-			},
-			{
-				rel: "preconnect",
-				href: "https://fonts.gstatic.com",
-				crossOrigin: "anonymous"
-			},
-			{
-				rel: "stylesheet",
-				href: "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,560;9..144,650&family=Outfit:wght@400;500;600&display=swap"
-			},
-			{
-				rel: "stylesheet",
-				href: styles_default
-			},
-			{
-				rel: "manifest",
-				href: "/__grok/manifest.webmanifest"
-			},
-			{
-				rel: "apple-touch-icon",
-				href: "/__grok/icon-180.png"
-			}
-		]
-	}),
-	component: () => /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("html", {
-		lang: "pt",
-		suppressHydrationWarning: true,
-		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("head", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(HeadContent, {}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("body", { children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("script", { dangerouslySetInnerHTML: { __html: "(function(){try{var c=localStorage.getItem(\"lastro-theme\");var d=c===\"escuro\"||(c===\"sistema\"&&matchMedia(\"(prefers-color-scheme: dark)\").matches);if(d){document.documentElement.dataset.theme=\"escuro\";document.documentElement.style.colorScheme=\"dark\";var m=document.querySelector('meta[name=\"theme-color\"]');if(m)m.setAttribute(\"content\",\"#161410\");}}catch(e){}})();" } }),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ThemeBoot, {}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PreviewHostBridge, {}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Outlet, {}) }),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Scripts, {})
-		] })]
-	})
-});
-var $$splitComponentImporter$1 = () => import("./routes-DzvYvD26.mjs");
-var Route$2 = createFileRoute("/")({ component: lazyRouteComponent($$splitComponentImporter$1, "component") });
-var $$splitComponentImporter = () => import("./login-BNJmYgn_.mjs");
-var Route$1 = createFileRoute("/login")({ component: lazyRouteComponent($$splitComponentImporter, "component") });
-/**
-* Escapes a character if it has a special meaning in regular expressions
-* and returns the character as is if it doesn't
-*/
-function escapeRegExpChar(char) {
-	if (char === "-" || char === "^" || char === "$" || char === "+" || char === "." || char === "(" || char === ")" || char === "|" || char === "[" || char === "]" || char === "{" || char === "}" || char === "*" || char === "?" || char === "\\") return `\\${char}`;
-	else return char;
-}
-/**
-* Escapes all characters in a given string that have a special meaning in regular expressions
-*/
-function escapeRegExpString(str) {
-	let result = "";
-	for (let i = 0; i < str.length; i++) result += escapeRegExpChar(str[i]);
-	return result;
-}
-/**
-* Transforms one or more glob patterns into a RegExp pattern
-*/
-function transform(pattern, separator = true) {
-	if (Array.isArray(pattern)) return `(?:${pattern.map((p) => `^${transform(p, separator)}$`).join("|")})`;
-	let separatorSplitter = "";
-	let separatorMatcher = "";
-	let wildcard = ".";
-	if (separator === true) {
-		separatorSplitter = "/";
-		separatorMatcher = "[/\\\\]";
-		wildcard = "[^/\\\\]";
-	} else if (separator) {
-		separatorSplitter = separator;
-		separatorMatcher = escapeRegExpString(separatorSplitter);
-		if (separatorMatcher.length > 1) {
-			separatorMatcher = `(?:${separatorMatcher})`;
-			wildcard = `((?!${separatorMatcher}).)`;
-		} else wildcard = `[^${separatorMatcher}]`;
-	}
-	const requiredSeparator = separator ? `${separatorMatcher}+?` : "";
-	const optionalSeparator = separator ? `${separatorMatcher}*?` : "";
-	const segments = separator ? pattern.split(separatorSplitter) : [pattern];
-	let result = "";
-	for (let s = 0; s < segments.length; s++) {
-		const segment = segments[s];
-		const nextSegment = segments[s + 1];
-		let currentSeparator = "";
-		if (!segment && s > 0) continue;
-		if (separator) if (s === segments.length - 1) currentSeparator = optionalSeparator;
-		else if (nextSegment !== "**") currentSeparator = requiredSeparator;
-		else currentSeparator = "";
-		if (separator && segment === "**") {
-			if (currentSeparator) {
-				result += s === 0 ? "" : currentSeparator;
-				result += `(?:${wildcard}*?${currentSeparator})*?`;
-			}
-			continue;
-		}
-		for (let c = 0; c < segment.length; c++) {
-			const char = segment[c];
-			if (char === "\\") {
-				if (c < segment.length - 1) {
-					result += escapeRegExpChar(segment[c + 1]);
-					c++;
-				}
-			} else if (char === "?") result += wildcard;
-			else if (char === "*") result += `${wildcard}*?`;
-			else result += escapeRegExpChar(char);
-		}
-		result += currentSeparator;
-	}
-	return result;
-}
-function isMatch(regexp, sample) {
-	if (typeof sample !== "string") throw new TypeError(`Sample must be a string, but ${typeof sample} given`);
-	return regexp.test(sample);
-}
-/**
-* Compiles one or more glob patterns into a RegExp and returns an isMatch function.
-* The isMatch function takes a sample string as its only argument and returns `true`
-* if the string matches the pattern(s).
-*
-* ```js
-* wildcardMatch('src/*.js')('src/index.js') //=> true
-* ```
-*
-* ```js
-* const isMatch = wildcardMatch('*.example.com', '.')
-* isMatch('foo.example.com') //=> true
-* isMatch('foo.bar.com') //=> false
-* ```
-*/
-function wildcardMatch(pattern, options) {
-	if (typeof pattern !== "string" && !Array.isArray(pattern)) throw new TypeError(`The first argument must be a single pattern string or an array of patterns, but ${typeof pattern} given`);
-	if (typeof options === "string" || typeof options === "boolean") options = { separator: options };
-	if (arguments.length === 2 && !(typeof options === "undefined" || typeof options === "object" && options !== null && !Array.isArray(options))) throw new TypeError(`The second argument must be an options object or a string/boolean separator, but ${typeof options} given`);
-	options = options || {};
-	if (options.separator === "\\") throw new Error("\\ is not a valid separator because it is used for escaping. Try setting the separator to `true` instead");
-	const regexpPattern = transform(pattern, options.separator);
-	const regexp = new RegExp(`^${regexpPattern}$`, options.flags);
-	const fn = isMatch.bind(null, regexp);
-	fn.options = options;
-	fn.pattern = pattern;
-	fn.regexp = regexp;
-	return fn;
-}
-var SLASH_CHAR_CODE = "/".charCodeAt(0);
-/**
-* Minimal loopback check for dev scheme inference only. Reachable from
-* `client/config.ts` via `getBaseURL`, so we MUST NOT import the full
-* `@better-auth/core/utils/host` classifier here: its `utils/ip` dependency
-* on zod would leak into the client bundle (see `e2e/smoke/test/vite.spec.ts`).
-*
-* Server-side SSRF/loopback checks (oauth redirect matching, trusted-origin
-* resolution, electron fetch gate) continue to use the authoritative
-* `isLoopbackHost` from `@better-auth/core/utils/host`. This helper's only
-* job is picking `http` vs `https` for dev ergonomics.
-*/
-function isLoopbackForDevScheme(host) {
-	const hostname = host.replace(/:\d+$/, "").replace(/^\[|\]$/g, "").toLowerCase();
-	return hostname === "localhost" || hostname.endsWith(".localhost") || hostname === "::1" || hostname.startsWith("127.");
-}
-function trimTrailingSlashes(value) {
-	let end = value.length;
-	while (end > 0 && value.charCodeAt(end - 1) === SLASH_CHAR_CODE) end--;
-	return end === value.length ? value : value.slice(0, end);
-}
-function checkHasPath(url) {
-	try {
-		return (trimTrailingSlashes(new URL(url).pathname) || "/") !== "/";
-	} catch {
-		throw new BetterAuthError(`Invalid base URL: ${url}. Please provide a valid base URL.`);
-	}
-}
-function assertHasProtocol(url) {
-	try {
-		const parsedUrl = new URL(url);
-		if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") throw new BetterAuthError(`Invalid base URL: ${url}. URL must include 'http://' or 'https://'`);
-	} catch (error) {
-		if (error instanceof BetterAuthError) throw error;
-		throw new BetterAuthError(`Invalid base URL: ${url}. Please provide a valid base URL.`, { cause: error });
-	}
-}
-function withPath(url, path = "/api/auth") {
-	assertHasProtocol(url);
-	if (checkHasPath(url)) return url;
-	const trimmedUrl = trimTrailingSlashes(url);
-	if (!path || path === "/") return trimmedUrl;
-	path = path.startsWith("/") ? path : `/${path}`;
-	return `${trimmedUrl}${path}`;
-}
-function validateProxyHeader(header, type) {
-	if (!header || header.trim() === "") return false;
-	if (type === "proto") return header === "http" || header === "https";
-	if (type === "host") {
-		if ([
-			/\.\./,
-			/\0/,
-			/[\s]/,
-			/^[.]/,
-			/[<>'"]/,
-			/javascript:/i,
-			/file:/i,
-			/data:/i
-		].some((pattern) => pattern.test(header))) return false;
-		return /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*(:[0-9]{1,5})?$/.test(header) || /^(\d{1,3}\.){3}\d{1,3}(:[0-9]{1,5})?$/.test(header) || /^\[[0-9a-fA-F:]+\](:[0-9]{1,5})?$/.test(header) || /^localhost(:[0-9]{1,5})?$/i.test(header);
-	}
-	return false;
-}
-function getBaseURL(url, path, request, loadEnv, trustedProxyHeaders) {
-	if (url) return withPath(url, path);
-	if (loadEnv !== false) {
-		const fromEnv = env.BETTER_AUTH_URL || env.NEXT_PUBLIC_BETTER_AUTH_URL || env.PUBLIC_BETTER_AUTH_URL || env.NUXT_PUBLIC_BETTER_AUTH_URL || env.NUXT_PUBLIC_AUTH_URL || (env.BASE_URL !== "/" ? env.BASE_URL : void 0);
-		if (fromEnv) return withPath(fromEnv, path);
-	}
-	const fromRequest = request?.headers.get("x-forwarded-host");
-	const fromRequestProto = request?.headers.get("x-forwarded-proto");
-	if (fromRequest && fromRequestProto && trustedProxyHeaders) {
-		if (validateProxyHeader(fromRequestProto, "proto") && validateProxyHeader(fromRequest, "host")) try {
-			return withPath(`${fromRequestProto}://${fromRequest}`, path);
-		} catch (_error) {}
-	}
-	if (request) {
-		const url = getOrigin(request.url);
-		if (!url) throw new BetterAuthError("Could not get origin from request. Please provide a valid base URL.");
-		return withPath(url, path);
-	}
-	if (typeof window !== "undefined" && window.location) return withPath(window.location.origin, path);
-}
-function getOrigin(url) {
-	try {
-		const parsedUrl = new URL(url);
-		return parsedUrl.origin === "null" ? null : parsedUrl.origin;
-	} catch {
-		return null;
-	}
-}
-function getProtocol(url) {
-	try {
-		return new URL(url).protocol;
-	} catch {
-		return null;
-	}
-}
-function getHost(url) {
-	try {
-		return new URL(url).host;
-	} catch {
-		return null;
-	}
-}
-/**
-* Checks if the baseURL config is a dynamic config object
-*/
-function isDynamicBaseURLConfig(config) {
-	return typeof config === "object" && config !== null && "allowedHosts" in config && Array.isArray(config.allowedHosts);
-}
-/**
-* Check if a value is a `Request`
-* - `instanceof`: works for native Request instances
-* - `toString`: handles where instanceof check fails but the object is still a
-*   valid Request (e.g. cross-realm, polyfills). Paired with a shape check so
-*   an object that only spoofs `Symbol.toStringTag` without the real shape is
-*   rejected before downstream code tries to read `.headers` / `.url`.
-*
-* @param value The value to check
-* @returns `true` if the value is a Request instance
-*/
-function isRequestLike(value) {
-	if (value instanceof Request) return true;
-	if (typeof value !== "object" || value === null || Object.prototype.toString.call(value) !== "[object Request]") return false;
-	const v = value;
-	return typeof v.url === "string" && typeof v.headers === "object" && v.headers !== null && typeof v.headers.get === "function";
-}
-/**
-* Extracts the host from a `Request` or `Headers`.
-* Honors `x-forwarded-host` only when `trustedProxyHeaders` is enabled,
-* then falls back to the `host` header and finally the request URL.
-*/
-function getHostFromSource(source, trustedProxyHeaders) {
-	const headers = isRequestLike(source) ? source.headers : source;
-	if (trustedProxyHeaders) {
-		const forwardedHost = headers.get("x-forwarded-host");
-		if (forwardedHost && validateProxyHeader(forwardedHost, "host")) return forwardedHost;
-	}
-	const host = headers.get("host");
-	if (host && validateProxyHeader(host, "host")) return host;
-	if (isRequestLike(source)) try {
-		return new URL(source.url).host;
-	} catch {
-		return null;
-	}
-	return null;
-}
-/**
-* Extracts the protocol from a `Request` or `Headers`.
-* Honors `x-forwarded-proto` only when `trustedProxyHeaders` is enabled,
-* then falls back to the request URL, then to "https".
-*/
-function getProtocolFromSource(source, configProtocol, trustedProxyHeaders) {
-	if (configProtocol === "http" || configProtocol === "https") return configProtocol;
-	const headers = isRequestLike(source) ? source.headers : source;
-	if (trustedProxyHeaders) {
-		const forwardedProto = headers.get("x-forwarded-proto");
-		if (forwardedProto && validateProxyHeader(forwardedProto, "proto")) return forwardedProto;
-	}
-	if (isRequestLike(source)) try {
-		const url = new URL(source.url);
-		if (url.protocol === "http:" || url.protocol === "https:") return url.protocol.slice(0, -1);
-	} catch {}
-	const host = getHostFromSource(source, trustedProxyHeaders);
-	if (host && isLoopbackForDevScheme(host)) return "http";
-	return "https";
-}
-/**
-* Matches a hostname against a host pattern.
-* Supports wildcard patterns like `*.vercel.app` or `preview-*.myapp.com`.
-*
-* @param host The hostname to test (e.g., "myapp.com", "preview-123.vercel.app")
-* @param pattern The host pattern (e.g., "myapp.com", "*.vercel.app")
-* @returns {boolean} true if the host matches the pattern, false otherwise.
-*
-* @example
-* ```ts
-* matchesHostPattern("myapp.com", "myapp.com") // true
-* matchesHostPattern("preview-123.vercel.app", "*.vercel.app") // true
-* matchesHostPattern("preview-123.myapp.com", "preview-*.myapp.com") // true
-* matchesHostPattern("evil.com", "myapp.com") // false
-* ```
-*/
-var matchesHostPattern = (host, pattern) => {
-	if (!host || !pattern) return false;
-	const normalizedHost = host.replace(/^https?:\/\//, "").split("/")[0].toLowerCase();
-	const normalizedPattern = pattern.replace(/^https?:\/\//, "").split("/")[0].toLowerCase();
-	if (normalizedPattern.includes("*") || normalizedPattern.includes("?")) return wildcardMatch(normalizedPattern)(normalizedHost);
-	return normalizedHost.toLowerCase() === normalizedPattern.toLowerCase();
-};
-/**
-* Resolves the base URL from a dynamic config based on the incoming request.
-* Validates the derived host against the allowedHosts allowlist.
-*
-* @param config The dynamic base URL config
-* @param request The incoming request
-* @param basePath The base path to append
-* @returns The resolved base URL with path
-* @throws BetterAuthError if host is not in allowedHosts and no fallback is set
-*/
-function resolveDynamicBaseURL(config, source, basePath, trustedProxyHeaders) {
-	const host = getHostFromSource(source, trustedProxyHeaders);
-	if (!host) {
-		if (config.fallback) return withPath(config.fallback, basePath);
-		throw new BetterAuthError("Could not determine host from request headers. Please provide a fallback URL in your baseURL config.");
-	}
-	if (config.allowedHosts.some((pattern) => matchesHostPattern(host, pattern))) return withPath(`${getProtocolFromSource(source, config.protocol, trustedProxyHeaders)}://${host}`, basePath);
-	if (config.fallback) return withPath(config.fallback, basePath);
-	throw new BetterAuthError(`Host "${host}" is not in the allowed hosts list. Allowed hosts: ${config.allowedHosts.join(", ")}. Add this host to your allowedHosts config or provide a fallback URL.`);
-}
-/**
-* Resolves the base URL from any config type (static string or dynamic object).
-* This is the main entry point for base URL resolution.
-*
-* @param config The base URL config (string or object)
-* @param basePath The base path to append
-* @param request Optional request for dynamic resolution
-* @param loadEnv Whether to load from environment variables
-* @param trustedProxyHeaders Whether to trust proxy headers (for legacy behavior)
-* @returns The resolved base URL with path
-*/
-function resolveBaseURL(config, basePath, source, loadEnv, trustedProxyHeaders) {
-	if (isDynamicBaseURLConfig(config)) {
-		if (source) return resolveDynamicBaseURL(config, source, basePath, trustedProxyHeaders);
-		if (config.fallback) return withPath(config.fallback, basePath);
-		return getBaseURL(void 0, basePath, void 0, loadEnv, trustedProxyHeaders);
-	}
-	const request = isRequestLike(source) ? source : void 0;
-	if (typeof config === "string") return getBaseURL(config, basePath, request, loadEnv, trustedProxyHeaders);
-	return getBaseURL(void 0, basePath, request, loadEnv, trustedProxyHeaders);
 }
 var generateRandomString = createRandomStringGenerator("a-z", "0-9", "A-Z", "-_");
 async function signJWT(payload, secret, expiresIn = 3600) {
@@ -1241,175 +752,6 @@ function parse(value) {
 */
 function sec(value) {
 	return Math.round(parse(value) / 1e3);
-}
-function tryDecode$1(str) {
-	if (str.indexOf("%") === -1) return str;
-	try {
-		return decodeURIComponent(str);
-	} catch {
-		return str;
-	}
-}
-var SECURE_COOKIE_PREFIX = "__Secure-";
-/**
-* Split a comma-joined `Set-Cookie` header string into individual cookies.
-*/
-function splitSetCookieHeader(setCookie) {
-	if (!setCookie) return [];
-	const result = [];
-	let start = 0;
-	let i = 0;
-	while (i < setCookie.length) {
-		if (setCookie[i] === ",") {
-			let j = i + 1;
-			while (j < setCookie.length && setCookie[j] === " ") j++;
-			while (j < setCookie.length && setCookie[j] !== "=" && setCookie[j] !== ";" && setCookie[j] !== ",") j++;
-			if (j < setCookie.length && setCookie[j] === "=") {
-				const part = setCookie.slice(start, i).trim();
-				if (part) result.push(part);
-				start = i + 1;
-				while (start < setCookie.length && setCookie[start] === " ") start++;
-				i = start;
-				continue;
-			}
-		}
-		i++;
-	}
-	const last = setCookie.slice(start).trim();
-	if (last) result.push(last);
-	return result;
-}
-function parseSetCookieHeader(setCookie) {
-	const cookies = /* @__PURE__ */ new Map();
-	splitSetCookieHeader(setCookie).forEach((cookieString) => {
-		const [nameValue, ...attributes] = cookieString.split(";").map((part) => part.trim());
-		const [name, ...valueParts] = (nameValue || "").split("=");
-		const value = unquoteCookieValue(valueParts.join("="));
-		if (!name) return;
-		const attrObj = { value: tryDecode$1(value) };
-		attributes.forEach((attribute) => {
-			const [attrName, ...attrValueParts] = attribute.split("=");
-			const attrValue = attrValueParts.join("=");
-			const normalizedAttrName = attrName.trim().toLowerCase();
-			switch (normalizedAttrName) {
-				case "max-age":
-					attrObj["max-age"] = attrValue ? parseInt(attrValue.trim(), 10) : void 0;
-					break;
-				case "expires":
-					attrObj.expires = attrValue ? new Date(attrValue.trim()) : void 0;
-					break;
-				case "domain":
-					attrObj.domain = attrValue ? attrValue.trim() : void 0;
-					break;
-				case "path":
-					attrObj.path = attrValue ? attrValue.trim() : void 0;
-					break;
-				case "secure":
-					attrObj.secure = true;
-					break;
-				case "httponly":
-					attrObj.httponly = true;
-					break;
-				case "samesite":
-					attrObj.samesite = attrValue ? attrValue.trim().toLowerCase() : void 0;
-					break;
-				case "partitioned":
-					attrObj.partitioned = true;
-					break;
-				default: attrObj[normalizedAttrName] = attrValue ? attrValue.trim() : true;
-			}
-		});
-		cookies.set(name, attrObj);
-	});
-	return cookies;
-}
-function toCookieOptions(attributes) {
-	return {
-		maxAge: attributes["max-age"],
-		expires: attributes.expires,
-		domain: attributes.domain,
-		path: attributes.path,
-		secure: attributes.secure,
-		httpOnly: attributes.httponly,
-		sameSite: attributes.samesite,
-		partitioned: attributes.partitioned
-	};
-}
-/**
-* Cookie-name token char set per RFC 7230 §3.2.6.
-*
-* @see https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.6
-*/
-var cookieNameRegex = /^[\x21\x23-\x27\x2A\x2B\x2D\x2E\x30-\x39\x41-\x5A\x5E\x5F\x60\x61-\x7A\x7C\x7E]+$/;
-/**
-* Cookie-value char set per RFC 6265 §4.1.1, plus space and comma.
-*
-* @see https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.1
-* @see https://github.com/golang/go/issues/7243
-*/
-var cookieValueRegex = /^[\x20\x21\x23-\x3A\x3C-\x5B\x5D-\x7E]*$/;
-/**
-* Strip surrounding double-quotes per RFC 6265 §4.1.1 quoted-string form.
-*
-* @see https://datatracker.ietf.org/doc/html/rfc6265#section-4.1.1
-*/
-function unquoteCookieValue(value) {
-	if (value.length < 2 || !value.startsWith("\"") || !value.endsWith("\"")) return value;
-	return value.slice(1, -1);
-}
-/**
-* Trim leading/trailing OWS (space / horizontal tab) per RFC 7230 §3.2.3.
-* Narrower than `String.prototype.trim()`, which strips CR/LF and other
-* whitespace and would let CTLs escape `cookieValueRegex`.
-*
-* @see https://datatracker.ietf.org/doc/html/rfc7230#section-3.2.3
-*/
-function trimOWS(s) {
-	let start = 0;
-	let end = s.length;
-	while (start < end) {
-		const c = s.charCodeAt(start);
-		if (c !== 32 && c !== 9) break;
-		start++;
-	}
-	while (end > start) {
-		const c = s.charCodeAt(end - 1);
-		if (c !== 32 && c !== 9) break;
-		end--;
-	}
-	return start === 0 && end === s.length ? s : s.slice(start, end);
-}
-/**
-* Tolerates `;` separators without the SP that RFC 6265 §4.2.1 mandates,
-* since proxies and runtimes commonly strip it. Silently drops entries
-* whose name violates RFC 7230 token or whose value violates RFC 6265
-* cookie-octet (plus space and comma). Strips optional surrounding
-* double-quotes per RFC 6265 §4.1.1.
-*/
-function parseCookies(cookie) {
-	const cookieMap = /* @__PURE__ */ new Map();
-	if (cookie.length < 2) return cookieMap;
-	for (const chunk of cookie.split(";")) {
-		const eq = chunk.indexOf("=");
-		if (eq === -1) continue;
-		const key = trimOWS(chunk.slice(0, eq));
-		const val = unquoteCookieValue(trimOWS(chunk.slice(eq + 1)));
-		if (cookieNameRegex.test(key) && cookieValueRegex.test(val)) cookieMap.set(key, tryDecode$1(val));
-	}
-	return cookieMap;
-}
-/**
-* Add or replace a cookie in the request `Cookie` header.
-*
-* Cookie pairs are joined with `; `, but `headers.append("cookie", ...)`
-* joins with `, ` in some runtimes (e.g. Deno, Cloudflare Workers) and
-* breaks downstream cookie parsing. This builds the header value via
-* parse-mutate-serialize.
-*/
-function setRequestCookie(headers, name, value) {
-	const cookieMap = parseCookies(headers.get("cookie") || "");
-	if (cookieNameRegex.test(name)) cookieMap.set(name, value);
-	headers.set("cookie", Array.from(cookieMap, ([k, v]) => `${k}=${encodeURIComponent(v)}`).join("; "));
 }
 /**
 * Per-cookie byte ceiling.
@@ -8520,7 +7862,6 @@ var createBetterAuth = (options, initFn) => {
 var betterAuth = (options) => {
 	return createBetterAuth(options, init);
 };
-var PACKAGE_VERSION = "1.6.33";
 var BEARER_SCHEME = "bearer ";
 function tryDecode(str) {
 	try {
@@ -8587,16 +7928,6 @@ var bearer = (options) => {
 		options
 	};
 };
-var GENERIC_OAUTH_ERROR_CODES = defineErrorCodes({
-	INVALID_OAUTH_CONFIGURATION: "Invalid OAuth configuration",
-	TOKEN_URL_NOT_FOUND: "Invalid OAuth configuration. Token URL not found.",
-	PROVIDER_CONFIG_NOT_FOUND: "No config found for provider",
-	PROVIDER_ID_REQUIRED: "Provider ID is required",
-	INVALID_OAUTH_CONFIG: "Invalid OAuth configuration.",
-	SESSION_REQUIRED: "Session is required",
-	ISSUER_MISMATCH: "OAuth issuer mismatch. The authorization server issuer does not match the expected value (RFC 9207).",
-	ISSUER_MISSING: "OAuth issuer parameter missing. The authorization server did not include the required iss parameter (RFC 9207)."
-});
 function isNonEmptyOAuthId$1(id) {
 	return id !== void 0 && id !== null && id !== "";
 }
@@ -9196,7 +8527,7 @@ var tanstackStartCookies = () => {
 					const setCookies = returned?.get("set-cookie");
 					if (!setCookies) return;
 					const parsed = parseSetCookieHeader(setCookies);
-					const { setCookie } = await import("./ssr.mjs").then((n) => n.r).then((n) => n.t);
+					const { setCookie } = await import("./ssr.mjs").then((n) => n.s).then((n) => n.t);
 					parsed.forEach((value, key) => {
 						if (!key) return;
 						try {
@@ -9209,336 +8540,6 @@ var tanstackStartCookies = () => {
 		}] }
 	};
 };
-var _0001_auth_default = "-- Better Auth schema (identity + sessions for \"Sign in with Grok\").\n--\n-- Generated by the Better Auth CLI for its Postgres adapter — DO NOT EDIT by\n-- hand. `@/lib/auth/server` runs Better Auth against these tables when\n-- DATABASE_URL is set. The columns are camelCase and MUST stay double-quoted so\n-- Postgres preserves the case Better Auth queries by.\n--\n-- Migrations in this folder are the single source of truth for your schema. They\n-- apply to Neon during the Vercel build (`npm run build`) and to the local\n-- PGLite fallback automatically on startup, so dev matches production. Applied\n-- files are recorded by name in `_migrations` and NEVER run again.\n--\n-- Put YOUR app's schema in NEW ordered files (0002_*.sql, 0003_*.sql, …), never\n-- in this one. For app tables, prefer snake_case and give per-user tables a\n-- `user_id TEXT NOT NULL` column (TEXT, not UUID — the preview dev user id is\n-- the string 'dev-user'), then scope every query to the authenticated user\n-- server-side (see the `neon` + `auth` skills and src/lib/auth/verify.server.ts).\n\ncreate table if not exists \"user\" (\n  \"id\" text not null primary key,\n  \"name\" text not null,\n  \"email\" text not null unique,\n  \"emailVerified\" boolean not null,\n  \"image\" text,\n  \"createdAt\" timestamptz default CURRENT_TIMESTAMP not null,\n  \"updatedAt\" timestamptz default CURRENT_TIMESTAMP not null\n);\n\ncreate table if not exists \"session\" (\n  \"id\" text not null primary key,\n  \"expiresAt\" timestamptz not null,\n  \"token\" text not null unique,\n  \"createdAt\" timestamptz default CURRENT_TIMESTAMP not null,\n  \"updatedAt\" timestamptz not null,\n  \"ipAddress\" text,\n  \"userAgent\" text,\n  \"userId\" text not null references \"user\" (\"id\") on delete cascade\n);\n\ncreate table if not exists \"account\" (\n  \"id\" text not null primary key,\n  \"accountId\" text not null,\n  \"providerId\" text not null,\n  \"userId\" text not null references \"user\" (\"id\") on delete cascade,\n  \"accessToken\" text,\n  \"refreshToken\" text,\n  \"idToken\" text,\n  \"accessTokenExpiresAt\" timestamptz,\n  \"refreshTokenExpiresAt\" timestamptz,\n  \"scope\" text,\n  \"password\" text,\n  \"createdAt\" timestamptz default CURRENT_TIMESTAMP not null,\n  \"updatedAt\" timestamptz not null\n);\n\ncreate table if not exists \"verification\" (\n  \"id\" text not null primary key,\n  \"identifier\" text not null,\n  \"value\" text not null,\n  \"expiresAt\" timestamptz not null,\n  \"createdAt\" timestamptz default CURRENT_TIMESTAMP not null,\n  \"updatedAt\" timestamptz default CURRENT_TIMESTAMP not null\n);\n\ncreate index if not exists \"session_userId_idx\" on \"session\" (\"userId\");\ncreate index if not exists \"account_userId_idx\" on \"account\" (\"userId\");\ncreate index if not exists \"verification_identifier_idx\" on \"verification\" (\"identifier\");\n";
-var _0002_ledgers_default = "create table if not exists ledgers (\n  user_id text primary key,\n  data jsonb not null,\n  updated_at timestamptz not null default now()\n);\n";
-/**
-* Migration bookkeeping shared by the two appliers — `scripts/migrate.mjs`
-* (deploy, `readdir`) and `src/lib/db.ts` (PGLite preview, `import.meta.glob`).
-*
-* Applied files are keyed by BASENAME, so the same file applies once no matter
-* which directory it is globbed from. That is what makes the auth schema safe to
-* copy from `migrations/auth/` into `migrations/` when an app turns sign-in on:
-* a database that already has `0001_auth.sql` will not re-run it.
-*
-* Neither applier descends into subdirectories, so `migrations/auth/*.sql` is
-* out of scope for both until it is copied up.
-*/
-/**
-* The `_migrations` key for a migration path (or bare filename).
-* @param {string} path
-* @returns {string}
-*/
-function migrationName(path) {
-	return path.split("/").pop() ?? path;
-}
-/**
-* @param {string} path
-* @returns {boolean}
-*/
-function isMigrationFile(path) {
-	return path.endsWith(".sql");
-}
-/**
-* Migrations in `paths` that are not yet in `applied`, in apply order.
-* Non-`.sql` entries (a `readdir` also yields `migrations/auth/`) are dropped.
-* @param {Iterable<string>} paths
-* @param {Iterable<string>} applied
-* @returns {Array<{ name: string, path: string }>}
-*/
-function pendingMigrations(paths, applied) {
-	const done = new Set(applied);
-	return [...paths].filter(isMigrationFile).map((path) => ({
-		name: migrationName(path),
-		path
-	})).sort((a, b) => a.name.localeCompare(b.name)).filter(({ name }) => !done.has(name));
-}
-var rawDatabaseUrl = typeof process !== "undefined" ? process.env.DATABASE_URL : void 0;
-var databaseUrl$1 = rawDatabaseUrl && rawDatabaseUrl.trim() ? rawDatabaseUrl : void 0;
-/**
-* Active backend: real **Neon** when `DATABASE_URL` is set (deployed / configured
-* sandbox), otherwise a local embedded **PGLite** (Postgres compiled to WASM) so
-* the app has a working database even with nothing configured — the live preview
-* included. Swap in Neon later by just setting `DATABASE_URL`; no code changes.
-*/
-var dbSource = databaseUrl$1 ? "neon" : "pglite";
-/**
-* Init state lives on globalThis as promises: dev HMR creates new instances of
-* this module, and two instances racing module-level state would open a second
-* pool or run two concurrent PGLite migration passes (whose duplicate
-* `_migrations` insert rejects — and would get memoized, poisoning every later
-* `getSql()`). A failed init clears its slot so the next call retries.
-*/
-var globalRef = globalThis;
-/**
-* Result-type parity: Postgres sends every value as text plus a type OID — the
-* JS value is the DRIVER's parsing choice, and pg and PGLite disagree (pg:
-* int8 -> string, date -> local-midnight Date; PGLite: int8 -> BigInt, which
-* JSON.stringify rejects, date -> UTC Date). Normalize both so preview and
-* production return identical, JSON-safe shapes:
-*   int8/bigint (incl. count(*)) -> number (past 2^53 loses precision — cast
-*                                   `::text` if you ever need huge integers)
-*   date                         -> 'YYYY-MM-DD' string
-*   interval                     -> Postgres interval text
-* numeric already comes back as a string on both (arbitrary precision).
-*/
-var OID_INT8 = 20;
-var OID_DATE = 1082;
-var OID_INTERVAL = 1186;
-var identity = (v) => v;
-/** Wrap a query runner in the tagged-template + `.query()` `Sql` surface. */
-function toSql(run) {
-	const sql = (async (strings, ...values) => {
-		let text = strings[0];
-		for (let i = 0; i < values.length; i += 1) text += `$${i + 1}${strings[i + 1]}`;
-		return run(text, values);
-	});
-	sql.query = (text, params = []) => run(text, params);
-	return sql;
-}
-function createNeonSql() {
-	globalRef.__pgSqlPromise__ ??= (async () => {
-		const { Pool, types } = await import("../_libs/pg.mjs").then((n) => n.n);
-		types.setTypeParser(OID_INT8, Number);
-		types.setTypeParser(OID_DATE, identity);
-		types.setTypeParser(OID_INTERVAL, identity);
-		const pool = new Pool({ connectionString: databaseUrl$1 });
-		return toSql(async (text, params) => {
-			return (await pool.query(text, params)).rows;
-		});
-	})().catch((err) => {
-		globalRef.__pgSqlPromise__ = void 0;
-		throw err;
-	});
-	return globalRef.__pgSqlPromise__;
-}
-async function createPgliteSql() {
-	globalRef.__pgliteInstance__ ??= (async () => {
-		const { PGlite } = await import("../_libs/electric-sql__pglite.mjs").then((n) => n.t);
-		const pg = new PGlite({ parsers: {
-			[OID_INT8]: Number,
-			[OID_DATE]: identity,
-			[OID_INTERVAL]: identity
-		} });
-		await pg.waitReady;
-		await pg.exec("create table if not exists _migrations (name text primary key, applied_at timestamptz not null default now())");
-		return pg;
-	})().catch((err) => {
-		globalRef.__pgliteInstance__ = void 0;
-		throw err;
-	});
-	const pg = await globalRef.__pgliteInstance__;
-	const migrate = async () => {
-		const migrations = /* #__PURE__ */ Object.assign({
-			"/migrations/0001_auth.sql": _0001_auth_default,
-			"/migrations/0002_ledgers.sql": _0002_ledgers_default
-		});
-		const done = (await pg.query("select name from _migrations")).rows.map((r) => r.name);
-		for (const { name, path } of pendingMigrations(Object.keys(migrations), done)) await pg.transaction(async (tx) => {
-			await tx.exec(migrations[path]);
-			await tx.query("insert into _migrations (name) values ($1)", [name]);
-		});
-	};
-	const pass = (globalRef.__pgliteMigrateChain__ ?? Promise.resolve()).catch(() => void 0).then(migrate);
-	globalRef.__pgliteMigrateChain__ = pass;
-	await pass;
-	return toSql(async (text, params) => {
-		return (await pg.query(text, params)).rows;
-	});
-}
-var sqlPromise = null;
-async function createSql() {
-	if (typeof window !== "undefined") throw new Error("@/lib/db is server-only — call getSql() from a createServerFn handler or a server route loader, never from client code.");
-	return dbSource === "neon" ? createNeonSql() : createPgliteSql();
-}
-/**
-* Get the shared, **server-only** SQL client. Neon when `DATABASE_URL` is set,
-* otherwise the local PGLite fallback. Memoized — safe to call per request.
-*
-* Schema comes from `migrations/*.sql`, auto-applied before the first query on
-* both backends — define tables there, never inline in server functions.
-*/
-function getSql() {
-	sqlPromise ??= createSql().catch((err) => {
-		sqlPromise = null;
-		throw err;
-	});
-	return sqlPromise;
-}
-/**
-* The shared PGLite instance (preview only), with `migrations/*.sql` applied.
-* Lets Better Auth persist to the SAME embedded DB as app data in preview (via a
-* Kysely dialect). Throws when `DATABASE_URL` is set (that path uses Neon).
-*/
-async function getPglite() {
-	if (dbSource !== "pglite") throw new Error("getPglite() is only available on the PGLite fallback (no DATABASE_URL)");
-	await getSql();
-	const pg = await globalRef.__pgliteInstance__;
-	if (!pg) throw new Error("PGLite instance failed to initialize");
-	return pg;
-}
-/**
-* Finish DB bootstrap before the server handles traffic.
-*
-* - **PGLite** (preview / no `DATABASE_URL`): open the in-memory DB and apply
-*   `migrations/*.sql`. Idempotent — concurrent callers share one promise.
-* - **Neon**: no-op (pool is created lazily on first query).
-*
-* Vite `configureServer` awaits this at dev startup; production imports of this
-* module kick it off immediately (see bottom of file).
-*/
-function ensureDbReady() {
-	if (dbSource !== "pglite") return Promise.resolve();
-	return getSql().then(() => void 0);
-}
-var globalBoot = globalThis;
-if (typeof window === "undefined" && dbSource === "pglite") globalBoot.__pgBootstrapPromise__ ??= ensureDbReady().catch((err) => {
-	globalBoot.__pgBootstrapPromise__ = void 0;
-	console.error("[db] PGLite bootstrap failed:", err);
-	throw err;
-});
-function env$2(key) {
-	return process.env[key]?.trim() || void 0;
-}
-/**
-* Workspace preview vs deployed app. The deployer writes GROK_PROJECT_ID on
-* every publish; the sandbox preview never has it. Single source of truth for
-* the split — gate audience, gate endpoints and connector-token semantics all
-* key off this predicate.
-*/
-function isWorkspacePreview() {
-	return !env$2("GROK_PROJECT_ID");
-}
-var GATE_IDENTITY_HEADER = "x-grok-identity";
-var GATE_JWKS_PATH = "/__gate/identity-key";
-var JWKS_CACHE_TTL_MS = 3e5;
-var PREVIEW_AUDIENCE = "preview";
-var PREVIEW_GATE_ORIGIN = "http://127.0.0.1:6014";
-var FALLBACK_EMAIL_DOMAIN = "viewer.grok.invalid";
-var FALLBACK_NAME = "Grok user";
-function gateIdentityEnabled() {
-	return env$2("VITE_AUTH_ENABLED") !== "false";
-}
-function gateTokenAudience() {
-	if (isWorkspacePreview()) return PREVIEW_AUDIENCE;
-	return `app:${env$2("GROK_PROJECT_ID")}`;
-}
-async function defaultJwksFetch(url) {
-	try {
-		const res = await fetch(url, {
-			headers: { accept: "application/json" },
-			redirect: "manual"
-		});
-		if (!res.ok) return null;
-		const body = await res.json();
-		return Array.isArray(body?.keys) ? body : null;
-	} catch {
-		return null;
-	}
-}
-var jwksCache = /* @__PURE__ */ new Map();
-function gateKeyResolver(url, jwksFetch = defaultJwksFetch) {
-	return async (protectedHeader) => {
-		const kid = typeof protectedHeader.kid === "string" ? protectedHeader.kid : void 0;
-		const findKey = (jwks) => jwks.keys.find((k) => k.kty === "OKP" && k.crv === "Ed25519" && (!kid || k.kid === kid));
-		let entry = jwksCache.get(url);
-		if (!entry || Date.now() - entry.fetchedAt > JWKS_CACHE_TTL_MS) {
-			const jwks = await jwksFetch(url);
-			if (jwks) {
-				entry = {
-					jwks,
-					fetchedAt: Date.now()
-				};
-				jwksCache.set(url, entry);
-			}
-		}
-		let key = entry ? findKey(entry.jwks) : void 0;
-		if (!key) {
-			const jwks = await jwksFetch(url);
-			if (jwks) {
-				entry = {
-					jwks,
-					fetchedAt: Date.now()
-				};
-				jwksCache.set(url, entry);
-				key = findKey(jwks);
-			}
-		}
-		if (!key) throw new Error("no gate identity key matches the token kid");
-		return importJWK(key, "EdDSA");
-	};
-}
-async function verifyGateIdentityToken(token, options) {
-	try {
-		const { payload } = await jwtVerify(token, options.getKey, {
-			algorithms: ["EdDSA"],
-			issuer: options.issuer,
-			audience: options.audience,
-			requiredClaims: [
-				"sub",
-				"iat",
-				"exp"
-			],
-			maxTokenAge: "10 minutes"
-		});
-		const sub = typeof payload.sub === "string" ? payload.sub.trim() : "";
-		if (!sub) return null;
-		return {
-			sub,
-			email: typeof payload.email === "string" ? payload.email : null,
-			name: typeof payload.name === "string" ? payload.name : null,
-			teamId: typeof payload.team_id === "string" ? payload.team_id : null
-		};
-	} catch {
-		return null;
-	}
-}
-function resolveGateEndpoints(headers) {
-	const explicit = env$2("GROK_GATE_ORIGIN");
-	if (explicit) {
-		const origin = explicit.replace(/\/+$/, "");
-		return {
-			issuer: origin,
-			jwksUrl: `${origin}${GATE_JWKS_PATH}`
-		};
-	}
-	if (isWorkspacePreview()) return {
-		issuer: PREVIEW_GATE_ORIGIN,
-		jwksUrl: `${PREVIEW_GATE_ORIGIN}${GATE_JWKS_PATH}`
-	};
-	const host = (headers.get("x-forwarded-host")?.split(",")[0]?.trim() || headers.get("host") || "").split(":")[0]?.trim().toLowerCase();
-	if (!host) return null;
-	let issuer = null;
-	if (host === "app-builder-testing.com" || host.endsWith(".app-builder-testing.com")) issuer = "https://gate.app-builder-testing.com";
-	else if (host === "grok.me" || host.endsWith(".grok.me")) issuer = "https://gate.grok.me";
-	if (!issuer) return null;
-	return {
-		issuer,
-		jwksUrl: `${issuer}${GATE_JWKS_PATH}`
-	};
-}
-function sessionBoundToGateIdentity(accounts, identitySub, gateProviderId) {
-	return accounts.some((account) => account.providerId === gateProviderId && account.accountId === identitySub);
-}
-async function gateIdentityFromHeaders(headers, jwksFetch) {
-	if (!gateIdentityEnabled()) return null;
-	const token = headers.get(GATE_IDENTITY_HEADER)?.trim();
-	if (!token) return null;
-	const endpoints = resolveGateEndpoints(headers);
-	if (!endpoints) return null;
-	return verifyGateIdentityToken(token, {
-		issuer: endpoints.issuer,
-		audience: gateTokenAudience(),
-		getKey: gateKeyResolver(endpoints.jwksUrl, jwksFetch)
-	});
-}
-function gateIdentityUserInfo(identity) {
-	return {
-		id: identity.sub,
-		email: (identity.email ?? `${identity.sub}@${FALLBACK_EMAIL_DOMAIN}`).toLowerCase(),
-		emailVerified: Boolean(identity.email),
-		name: identity.name ?? FALLBACK_NAME
-	};
-}
 /**
 * Client-readable marker for gate-materialized sessions ("Sign in with Grok"
 * zero-click sessions minted by `gate-session.server.ts`). Signing out of a
@@ -9582,7 +8583,7 @@ async function emitSessionCookie(ctx, sessionTokenName, sessionToken) {
 		return null;
 	}
 	try {
-		const { setCookie } = await import("./ssr.mjs").then((n) => n.r).then((n) => n.t);
+		const { setCookie } = await import("./ssr.mjs").then((n) => n.s).then((n) => n.t);
 		setCookie(sessionTokenName, sessionValue, {
 			path: cookieOptions.path ?? "/",
 			httpOnly: cookieOptions.httpOnly ?? true,
@@ -9614,7 +8615,7 @@ async function expireSessionDataCookie(ctx, cookie) {
 	const path = cookie.attributes.path ?? "/";
 	const secure = cookie.attributes.secure ?? true;
 	try {
-		const { setCookie } = await import("./ssr.mjs").then((n) => n.r).then((n) => n.t);
+		const { setCookie } = await import("./ssr.mjs").then((n) => n.s).then((n) => n.t);
 		setCookie(cookie.name, "", {
 			path,
 			httpOnly: true,
@@ -9642,7 +8643,7 @@ async function writeGateMarkerCookie(ctx, clear) {
 	const maxAge = clear ? 0 : typeof sessionMaxAge === "number" ? sessionMaxAge : void 0;
 	const value = clear ? "" : "1";
 	try {
-		const { setCookie } = await import("./ssr.mjs").then((n) => n.r).then((n) => n.t);
+		const { setCookie } = await import("./ssr.mjs").then((n) => n.s).then((n) => n.t);
 		setCookie(GATE_SESSION_MARKER_COOKIE, value, {
 			path: "/",
 			httpOnly: false,
@@ -9762,15 +8763,6 @@ function gateIdentitySessions() {
 		}] }
 	};
 }
-var GROK_PROVIDERS = [{
-	providerId: "grok-google",
-	idp: "google",
-	label: "Google"
-}, {
-	providerId: "grok-x",
-	idp: "twitter",
-	label: "X"
-}];
 /** Factory used by `auth/server.ts`: `pgliteDialect(() => getPglite())`. */
 function pgliteDialect(getClient) {
 	return {
@@ -9972,6 +8964,7 @@ var auth = betterAuth({
 		enabled: true,
 		maxAge: 300
 	} },
+	emailAndPassword: { enabled: true },
 	advanced: {
 		useSecureCookies: false,
 		defaultCookieAttributes: {
@@ -9993,35 +8986,5 @@ var auth = betterAuth({
 		tanstackStartCookies()
 	]
 });
-var Route = createFileRoute("/api/auth/$")({ server: { handlers: {
-	GET: ({ request }) => auth.handler(request),
-	POST: ({ request }) => auth.handler(request)
-} } });
-var rootRouteChildren = {
-	IndexRoute: Route$2.update({
-		id: "/",
-		path: "/",
-		getParentRoute: () => Route$3
-	}),
-	LoginRoute: Route$1.update({
-		id: "/login",
-		path: "/login",
-		getParentRoute: () => Route$3
-	}),
-	ApiAuthSplatRoute: Route.update({
-		id: "/api/auth/$",
-		path: "/api/auth/$",
-		getParentRoute: () => Route$3
-	})
-};
-var routeTree = Route$3._addFileChildren(rootRouteChildren)._addFileTypes();
-var router_exports = /* @__PURE__ */ __exportAll({ getRouter: () => getRouter });
-function getRouter() {
-	return createRouter({
-		routeTree,
-		rewrite: previewPathRewrite(),
-		defaultErrorComponent: AppErrorComponent
-	});
-}
 //#endregion
-export { storeTheme as i, THEMES as n, readTheme as r, router_exports as t };
+export { authConfigured as n, gateIdentityEnabled as r, auth as t };
