@@ -172,7 +172,13 @@ export function LedgerHost({
 
 function PostgresApp() {
   const { user, isPending } = useCurrentUserState();
-  if (isPending) return null;
+  if (isPending) {
+    return (
+      <main className="grid min-h-dvh place-items-center px-4">
+        <p className="text-sm text-muted">A abrir a caderneta…</p>
+      </main>
+    );
+  }
   if (!user || user.isDevFallback) return <AccountGate />;
   return (
     <>

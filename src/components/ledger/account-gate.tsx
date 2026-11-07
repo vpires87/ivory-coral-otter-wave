@@ -2,8 +2,32 @@ import { useState, type FormEvent } from "react";
 import { authClient } from "@/lib/auth/client";
 import { Button, inputClassName } from "@/components/ledger/ui";
 
+const BEARER_KEY = "grok-auth.bearer-token";
+
+function rememberSession(token: string | null) {
+  if (!token) return;
+  try {
+    window.sessionStorage.setItem(BEARER_KEY, token);
+  } catch {
+    /* storage unavailable — the cookie may still be enough */
+  }
+}
+
+function failureMessage(creating: boolean, raw: string) {
+  const message = raw.toLowerCase();
+  if (message.includes("origin")) {
+    return "Este endereço não deixa entrar. Abre a aplicação em http://localhost:8080, na própria máquina.";
+  }
+  if (creating && message.includes("exist")) {
+    return "Já existe uma conta com este email. Entra com ela.";
+  }
+  return creating
+    ? "Não consegui criar a conta. Confirma o email e uma palavra-passe com 8 caracteres."
+    : "Email ou palavra-passe não batem certo.";
+}
+
 export function AccountGate() {
-  const [creating, setCreating] = useState(false);
+  const [creating, setCreating] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,19 +46,30 @@ export function AccountGate() {
       return;
     }
     setPending(true);
-    const result = creating
-      ? await authClient.signUp.email({ email: email.trim(), password, name: name.trim() || email.trim() })
-      : await authClient.signIn.email({ email: email.trim(), password });
-    setPending(false);
-    if (result.error) {
-      const message = result.error.message ?? "";
-      setError(
-        creating
-          ? message.toLowerCase().includes("exist")
-            ? "Já existe uma conta com este email. Entra com ela."
-            : "Não consegui criar a conta. Confirma o email e uma palavra-passe com 8 caracteres."
-          : "Email ou palavra-passe não batem certo.",
-      );
+    let token: string | null = null;
+    try {
+      const payload = {
+        email: email.trim(),
+        password,
+        fetchOptions: {
+          onSuccess(ctx: { response: Response }) {
+            token = ctx.response.headers.get("set-auth-token");
+          },
+        },
+      };
+      const result = creating
+        ? await authClient.signUp.email({ ...payload, name: name.trim() || email.trim() })
+        : await authClient.signIn.email(payload);
+      if (result.error || !result.data?.user) {
+        setPending(false);
+        setError(failureMessage(creating, result.error?.message ?? ""));
+        return;
+      }
+      rememberSession(token);
+      window.location.assign("/");
+    } catch {
+      setPending(false);
+      setError("Não consegui falar com o servidor. Tenta outra vez.");
     }
   }
 
@@ -82,7 +117,7 @@ export function AccountGate() {
           </label>
           {error ? <p className="text-sm text-loss">{error}</p> : null}
           <Button type="submit" className="w-full" disabled={pending}>
-            {pending ? "A esperar…" : creating ? "Criar conta" : "Entrar"}
+            {pending ? "A entrar…" : creating ? "Criar conta" : "Entrar"}
           </Button>
         </form>
         <button
