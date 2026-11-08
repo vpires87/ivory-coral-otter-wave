@@ -9,10 +9,12 @@ export function IncomePanel({
   month,
   onMonth,
   onSetup,
+  embedded = false,
 }: {
   month: string;
   onMonth: (month: string) => void;
   onSetup: () => void;
+  embedded?: boolean;
 }) {
   const sources = useLedger((state) => state.incomeSources);
   const incomes = useLedger((state) => state.incomes);
@@ -112,15 +114,15 @@ export function IncomePanel({
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
-        <MonthSwitcher month={month} onChange={onMonth} />
-        <p className="mt-3 text-sm text-muted">
+        {embedded ? null : <MonthSwitcher month={month} onChange={onMonth} />}
+        <p className={embedded ? "text-sm text-muted" : "mt-3 text-sm text-muted"}>
           {sources.length === 0
             ? "Ainda sem ordenados nem extras."
             : `${recorded} de ${sources.length} neste mês. Total ${formatMoney(earned, currency)}.`}
         </p>
         {sources.length === 0 ? (
           <Button className="mt-4" variant="soft" onClick={onSetup}>
-            Criar nas tabelas
+            Criar nas contas
           </Button>
         ) : dirtyCount >= 2 || canCopy ? (
           <div className="mt-4 flex flex-wrap gap-2">
@@ -203,7 +205,7 @@ export function IncomePanel({
         </ul>
       ) : null}
 
-      <SavingsChart series={series} currency={currency} />
+      {embedded ? null : <SavingsChart series={series} currency={currency} />}
     </div>
   );
 }

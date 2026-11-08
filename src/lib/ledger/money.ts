@@ -41,6 +41,23 @@ export function formatCloseDay(ym: string, closingDay: number): string {
   return format(date, "d 'de' LLLL", { locale: pt });
 }
 
+export function formatWhen(ms: number, now = new Date()): string {
+  const date = new Date(ms);
+  if (Number.isNaN(date.getTime())) return "";
+  const time = format(date, "HH:mm");
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  if (sameDay) return `às ${time}`;
+  return `a ${format(date, "d 'de' MMM", { locale: pt })} às ${time}`;
+}
+
+export function formatSavedAt(ms: number, now = new Date()): string {
+  const when = formatWhen(ms, now);
+  return when ? `Guardado ${when}` : "";
+}
+
 export function shiftMonth(ym: string, delta: number): string {
   const [y, m] = ym.split("-").map(Number);
   const date = new Date(Date.UTC(y, m - 1 + delta, 1));

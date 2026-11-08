@@ -5,6 +5,7 @@ import { toBackup } from "@/lib/ledger/backup";
 import { clampClosingDay, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { selectData, useLedger } from "@/lib/ledger/store";
 import { signOut } from "@/lib/auth/client";
+import { useCurrentUser } from "@/lib/auth/use-current-user";
 import { CURRENCIES, PLATFORM_KINDS, type CurrencyCode, type Platform, type PlatformKind } from "@/lib/ledger/types";
 import { Button, Field, inputClassName } from "@/components/ledger/ui";
 import { THEMES, readTheme, storeTheme, type ThemeChoice } from "@/lib/theme";
@@ -173,6 +174,7 @@ export function SettingsDialog({
   const reset = useLedger((state) => state.reset);
   const loadDemo = useLedger((state) => state.loadDemo);
   const remote = useLedger((state) => state.remote);
+  const account = useCurrentUser();
   const hasData = useLedger(
     (state) =>
       state.platforms.length > 0 ||
@@ -236,6 +238,15 @@ export function SettingsDialog({
       }
     >
       <div className="space-y-5">
+        {remote ? (
+          <div className="rounded-md bg-paper px-3 py-3 text-sm">
+            {account?.primaryEmail ? <p className="font-medium">{account.primaryEmail}</p> : null}
+            <p className={account?.primaryEmail ? "mt-1 text-muted" : "text-muted"}>
+              Não há forma de recuperar a palavra-passe. Se a esqueceres, esta caderneta fica fechada. Exporta uma
+              cópia enquanto estás aqui.
+            </p>
+          </div>
+        ) : null}
         <div>
           <p className="mb-2 text-sm font-medium">Aparência</p>
           <div className="grid grid-cols-3 gap-2">

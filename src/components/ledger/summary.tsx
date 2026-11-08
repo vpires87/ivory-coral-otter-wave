@@ -1,9 +1,9 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { buildSeries, cashbackFor, cashbackRows, cashbackTotal, contributedIn, entryFor, expenseFor, expenseTotal, incomeFor, incomeTotal, kindShares, platformSnapshot, pointFor, productShares, savingsRate, savingsSeries, sumByMonth, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
+import { buildSeries, cashbackFor, cashbackRows, cashbackSeries, cashbackTotal, contributedIn, entryFor, expenseFor, expenseSeries, expenseTotal, incomeFor, incomeTotal, kindShares, platformSnapshot, pointFor, productShares, savingsRate, savingsSeries, sumByMonth, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
 import { cents, formatMoney, formatMonth, formatPercent, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { PLATFORM_KINDS, type CurrencyCode } from "@/lib/ledger/types";
-import { ValueChart, YearCompareChart } from "@/components/ledger/chart";
+import { CashbackHistory, CashbackMonthChart, ExpenseChart, SavingsChart, ValueChart, YearCompareChart } from "@/components/ledger/chart";
 import { Button, CompareBars, GoalMeter, KindMark, MonthSwitcher, ShareList, SignedMoney } from "@/components/ledger/ui";
 
 export function SummaryView({
@@ -60,6 +60,16 @@ export function SummaryView({
   const ranked = platforms
     .map((platform) => ({ platform, snap: platformSnapshot(platform, entries) }))
     .sort((a, b) => (b.snap.value ?? -1) - (a.snap.value ?? -1));
+  const [evolution, setEvolution] = useState(false);
+  const expenseHistory = expenseSeries(expenseTypes, expenses);
+  const cashHistory = cashbackSeries(cashbackCards, cashbacks);
+  const cashChartRows = cashLeaders.length > 0 ? cashRows : [];
+  const cashChartTitle =
+    cashLeaders.length === 1
+      ? `${cashLeaders[0].name} deu mais em ${formatMonth(month).toLowerCase()}.`
+      : cashLeaders.length > 1
+        ? `${cashLeaders.map((row) => row.name).join(" e ")} empataram em ${formatMonth(month).toLowerCase()}.`
+        : "";
 
   return (
     <div className="space-y-4">
@@ -246,6 +256,13 @@ export function SummaryView({
         </section>
       ) : null}
 
+      <div>
+        <Button variant="soft" aria-expanded={evolution} onClick={() => setEvolution((open) => !open)}>
+          {evolution ? "Esconder evolução" : "Ver evolução"}
+        </Button>
+      </div>
+      {evolution ? (
+        <>
       <ValueChart points={series} currency={currency} />
 
       <YearCompareChart
@@ -350,6 +367,14 @@ export function SummaryView({
             })}
           </ul>
         </section>
+      ) : null}
+      <SavingsChart series={period} currency={currency} />
+      <ExpenseChart series={expenseHistory} types={expenseTypes} currency={currency} />
+      {cashChartRows.some((row) => row.amount > 0) ? (
+        <CashbackMonthChart rows={cashChartRows} currency={currency} title={cashChartTitle} />
+      ) : null}
+      <CashbackHistory series={cashHistory} cards={cashbackCards} currency={currency} />
+        </>
       ) : null}
     </div>
   );

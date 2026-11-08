@@ -82,7 +82,7 @@ function Catalog({
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
-        <h2 className="font-serif text-2xl">Tabelas</h2>
+        <h2 className="font-serif text-2xl">Contas</h2>
         <p className="mt-2 text-sm text-muted">
           Crias isto uma vez: onde está o dinheiro, o que ganhas, os tipos de despesa e os cartões. No fecho
           só apontas os valores do mês.
@@ -227,7 +227,7 @@ function IncomeTable() {
   return (
     <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
       <h2 className="font-serif text-2xl">Ganhos</h2>
-      <p className="mt-1 text-sm text-muted">Ordenados e extras. O valor de cada mês fica no separador Ganhos.</p>
+      <p className="mt-1 text-sm text-muted">Ordenados e extras. O valor de cada mês fica no fecho.</p>
       <div className="mt-4 grid grid-cols-2 gap-1 rounded-md bg-paper-2 p-1">
         {INCOME_KINDS.map((item) => (
           <button

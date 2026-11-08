@@ -34,6 +34,10 @@ type Store = LedgerData & {
   saving: boolean;
   syncError: string | null;
   loadAttempt: number;
+  savedAt: number | null;
+  conflictAt: number | null;
+  pendingSync: null | "overwrite" | "reload";
+  deviceDemo: boolean;
   setCurrency: (currency: CurrencyCode) => void;
   setMonthlyGoal: (goal: number | null) => void;
   setFireGoal: (goal: number | null) => void;
@@ -72,6 +76,9 @@ type Store = LedgerData & {
   adopt: (data: LedgerData | null) => void;
   failLoad: (message: string) => void;
   retryLoad: () => void;
+  dismissDeviceDemo: () => void;
+  overwriteRemote: () => void;
+  takeRemote: () => void;
   remote: boolean;
   setRemote: (remote: boolean) => void;
 };
@@ -100,6 +107,10 @@ export const useLedger = create<Store>()((set) => ({
   saving: false,
   syncError: null,
   loadAttempt: 0,
+  savedAt: null,
+  conflictAt: null,
+  pendingSync: null,
+  deviceDemo: false,
   remote: false,
   setCurrency: (currency) => set({ currency }),
   setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
@@ -355,19 +366,44 @@ export const useLedger = create<Store>()((set) => ({
         ],
       };
     }),
-  loadDemo: () => set({ ...demoLedger(), ready: true }),
+  loadDemo: () =>
+    set({ ...demoLedger(), ready: true, deviceDemo: false, conflictAt: null, pendingSync: null }),
   keepDemo: () => set({ demo: false }),
-  reset: () => set({ ...empty, ready: true }),
+  reset: () => set({ ...empty, ready: true, conflictAt: null, pendingSync: null, deviceDemo: false, savedAt: null }),
   importData: (raw) => {
     const parsed = parseBackup(raw);
     if (typeof parsed === "string") return parsed;
-    set({ ...parsed, ready: true });
+    set({ ...parsed, ready: true, deviceDemo: false, conflictAt: null, pendingSync: null });
     return null;
   },
-  prepareAccount: () => set({ ...empty, ready: false, saving: false, syncError: null }),
-  adopt: (data) => set({ ...(data ?? empty), ready: true, saving: false, syncError: null }),
-  failLoad: (message) => set({ ...empty, ready: false, saving: false, syncError: message }),
+  prepareAccount: () =>
+    set({
+      ...empty,
+      ready: false,
+      saving: false,
+      syncError: null,
+      savedAt: null,
+      conflictAt: null,
+      pendingSync: null,
+      deviceDemo: false,
+    }),
+  adopt: (data) =>
+    set({ ...(data ?? empty), ready: true, saving: false, syncError: null, conflictAt: null, pendingSync: null }),
+  failLoad: (message) =>
+    set({
+      ...empty,
+      ready: false,
+      saving: false,
+      syncError: message,
+      savedAt: null,
+      conflictAt: null,
+      pendingSync: null,
+      deviceDemo: false,
+    }),
   retryLoad: () => set((state) => ({ loadAttempt: state.loadAttempt + 1, syncError: null, ready: false })),
+  dismissDeviceDemo: () => set({ deviceDemo: false }),
+  overwriteRemote: () => set({ pendingSync: "overwrite" }),
+  takeRemote: () => set({ pendingSync: "reload" }),
   setRemote: (remote) => set({ remote }),
 }));
 

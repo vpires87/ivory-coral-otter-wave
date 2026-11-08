@@ -9,10 +9,12 @@ export function ExpensesPanel({
   month,
   onMonth,
   onSetup,
+  embedded = false,
 }: {
   month: string;
   onMonth: (month: string) => void;
   onSetup: () => void;
+  embedded?: boolean;
 }) {
   const types = useLedger((state) => state.expenseTypes);
   const expenses = useLedger((state) => state.expenses);
@@ -112,15 +114,15 @@ export function ExpensesPanel({
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
-        <MonthSwitcher month={month} onChange={onMonth} />
-        <p className="mt-3 text-sm text-muted">
+        {embedded ? null : <MonthSwitcher month={month} onChange={onMonth} />}
+        <p className={embedded ? "text-sm text-muted" : "mt-3 text-sm text-muted"}>
           {types.length === 0
             ? "Ainda sem tipos de despesa."
             : `${recorded} de ${types.length} tipos neste mês. Total ${formatMoney(monthTotal, currency)}.`}
         </p>
         {types.length === 0 ? (
           <Button className="mt-4" variant="soft" onClick={onSetup}>
-            Criar nas tabelas
+            Criar nas contas
           </Button>
         ) : dirtyCount >= 2 || canCopy ? (
           <div className="mt-4 flex flex-wrap gap-2">
@@ -187,14 +189,14 @@ export function ExpensesPanel({
         </ul>
       ) : null}
 
-      {shareRows.length > 1 ? (
+      {embedded || shareRows.length < 2 ? null : (
         <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
           <h2 className="mb-4 font-serif text-2xl">Este mês</h2>
           <ShareList title="Por tipo" slices={shareRows} currency={currency} />
         </section>
-      ) : null}
+      )}
 
-      <ExpenseChart series={series} types={types} currency={currency} />
+      {embedded ? null : <ExpenseChart series={series} types={types} currency={currency} />}
     </div>
   );
 }

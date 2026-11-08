@@ -5,10 +5,10 @@ import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].
 import { _ as createFileRoute, b as useRouter, d as Scripts, f as HeadContent, g as lazyRouteComponent, h as Outlet, m as createRouter, v as createRootRoute } from "../_libs/@tanstack/react-router+[...].mjs";
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
 import { a as getServerFnById, i as TSS_SERVER_FUNCTION, r as createServerFn } from "./ssr.mjs";
-import { b as parseBackup, i as authMiddleware } from "./backup-RJsyLcKr.mjs";
+import { S as parseBackup, i as authMiddleware } from "./backup-CoUVcS4P.mjs";
 import { t as auth } from "./server-DULnXI5m.mjs";
 import { r as TriangleAlert } from "../_libs/lucide-react.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-D-bW2QB9.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-Bl8LK1SE.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
@@ -398,7 +398,7 @@ function ThemeBoot() {
 	}, []);
 	return null;
 }
-var styles_default = "/assets/styles-BJEK3bMu.css";
+var styles_default = "/assets/styles-B9Tg9rF9.css";
 var APP_NAME = "Lastro";
 function shareHost(raw) {
 	const host = String(raw ?? "").split(",")[0].trim().split(":")[0].toLowerCase();
@@ -488,14 +488,29 @@ var createSsrRpc = (functionId) => {
 		[TSS_SERVER_FUNCTION]: true
 	});
 };
+function asMillis(value) {
+	if (typeof value === "number" && Number.isFinite(value)) return Math.trunc(value);
+	if (typeof value === "bigint") return Number(value);
+	if (typeof value === "string" && value.trim() !== "") {
+		const parsed = Number(value);
+		if (Number.isFinite(parsed)) return Math.trunc(parsed);
+	}
+	return null;
+}
 var ledgerBackend = createServerFn({ method: "GET" }).handler(createSsrRpc("7f84c3db189cdf5bb13ff81656de165a11d3e83638c0ed2e4630f03baf81d1cc"));
 var loadLedger = createServerFn({ method: "GET" }).middleware([authMiddleware]).handler(createSsrRpc("b1169f5b85e3d12f18a4ae8bfa2efe3c74a72d6fa29cb184412a323254a7101b"));
 var saveLedger = createServerFn({ method: "POST" }).validator((input) => {
-	const parsed = parseBackup(input);
-	if (typeof parsed === "string") throw new Error("Caderneta inválida.");
-	return parsed;
+	if (!input || typeof input !== "object") throw new Error("Caderneta ilegível.");
+	const body = input;
+	const parsed = parseBackup(body.ledger);
+	if (typeof parsed === "string") throw new Error(parsed);
+	return {
+		ledger: parsed,
+		expectedUpdatedAt: asMillis(body.expectedUpdatedAt),
+		force: body.force === true
+	};
 }).middleware([authMiddleware]).handler(createSsrRpc("94336ba60ad5fd3d3e26c0a812bda93c8cfff06ef5eb6a9fdc20d41278839862"));
-var $$splitComponentImporter$1 = () => import("./routes-CMN6L6-V.mjs");
+var $$splitComponentImporter$1 = () => import("./routes-CBMUp0uI.mjs");
 var Route$2 = createFileRoute("/")({
 	loader: () => ledgerBackend(),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")

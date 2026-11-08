@@ -1,6 +1,6 @@
 import { n as createMiddleware } from "./ssr.mjs";
 import { n as parse, r as format, t as pt } from "../_libs/date-fns.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/backup-RJsyLcKr.js
+//#region node_modules/.nitro/vite/services/ssr/assets/backup-CoUVcS4P.js
 /**
 * Auth middleware for server functions — the standard way to get the caller's
 * verified user id. When deployed the session cookie is same-origin and rides
@@ -64,6 +64,17 @@ function formatCloseDay(ym, closingDay) {
 	const day = Math.min(clampClosingDay(closingDay), daysInMonth(ym));
 	const date = new Date(year, month - 1, day);
 	return format(date, "d 'de' LLLL", { locale: pt });
+}
+function formatWhen(ms, now = /* @__PURE__ */ new Date()) {
+	const date = new Date(ms);
+	if (Number.isNaN(date.getTime())) return "";
+	const time = format(date, "HH:mm");
+	if (date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth() && date.getDate() === now.getDate()) return `às ${time}`;
+	return `a ${format(date, "d 'de' MMM", { locale: pt })} às ${time}`;
+}
+function formatSavedAt(ms, now = /* @__PURE__ */ new Date()) {
+	const when = formatWhen(ms, now);
+	return when ? `Guardado ${when}` : "";
 }
 function shiftMonth(ym, delta) {
 	const [y, m] = ym.split("-").map(Number);
@@ -470,4 +481,4 @@ function toBackup(data) {
 	};
 }
 //#endregion
-export { toBackup as S, isClosingToday as _, cents as a, parseBackup as b, dueMonth as c, formatCompact as d, formatMoney as f, formatShare as g, formatPlain as h, authMiddleware as i, eachMonth as l, formatPercent as m, INCOME_KINDS as n, clampClosingDay as o, formatMonth as p, PLATFORM_KINDS as r, currentMonth as s, CURRENCIES as t, formatCloseDay as u, isMonth as v, shiftMonth as x, parseAmount as y };
+export { shiftMonth as C, parseBackup as S, formatShare as _, cents as a, isMonth as b, dueMonth as c, formatCompact as d, formatMoney as f, formatSavedAt as g, formatPlain as h, authMiddleware as i, eachMonth as l, formatPercent as m, INCOME_KINDS as n, clampClosingDay as o, formatMonth as p, PLATFORM_KINDS as r, currentMonth as s, CURRENCIES as t, formatCloseDay as u, formatWhen as v, toBackup as w, parseAmount as x, isClosingToday as y };

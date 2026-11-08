@@ -65,10 +65,12 @@ export function MonthPanel({
   month,
   onMonth,
   onSetup,
+  embedded = false,
 }: {
   month: string;
   onMonth: (month: string) => void;
   onSetup: () => void;
+  embedded?: boolean;
 }) {
   const platforms = useLedger((state) => state.platforms);
   const entries = useLedger((state) => state.entries);
@@ -131,9 +133,9 @@ export function MonthPanel({
     return (
       <section className="rounded-lg border border-line bg-card p-5">
         <h2 className="font-serif text-2xl">Ainda não há plataformas</h2>
-        <p className="mt-2 text-sm text-muted">Cria-as nas tabelas e depois apontas o mês.</p>
+        <p className="mt-2 text-sm text-muted">Cria-as nas contas e depois apontas o mês.</p>
         <Button className="mt-4" onClick={onSetup}>
-          Ir para tabelas
+          Ir para contas
         </Button>
       </section>
     );
@@ -305,8 +307,8 @@ export function MonthPanel({
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
-        <MonthSwitcher month={month} onChange={onMonth} />
-        <p className="mt-3 text-sm text-muted">
+        {embedded ? null : <MonthSwitcher month={month} onChange={onMonth} />}
+        <p className={embedded ? "text-sm text-muted" : "mt-3 text-sm text-muted"}>
           {recorded} de {platforms.length} plataformas neste mês. O aporte é o que entrou ou saiu. O valor é o
           que a plataforma mostrava no fim do mês.
         </p>

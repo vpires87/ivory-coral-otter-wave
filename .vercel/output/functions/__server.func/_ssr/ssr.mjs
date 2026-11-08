@@ -124,7 +124,7 @@ var HEADERS = { TSS_SHELL: "X-TSS_SHELL" };
 * the dev styles URL for route-scoped CSS collection.
 */
 async function getStartManifest(matchedRoutes) {
-	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-CFgzxjMl.mjs");
+	const { tsrStartManifest } = await import("../_tanstack-start-manifest_v-bHmR5Q9m.mjs");
 	const startManifest = tsrStartManifest();
 	let routes = startManifest.routes;
 	routes[rootRouteId];
@@ -146,15 +146,15 @@ async function getStartManifest(matchedRoutes) {
 var manifest = {
 	"7f84c3db189cdf5bb13ff81656de165a11d3e83638c0ed2e4630f03baf81d1cc": {
 		functionName: "ledgerBackend_createServerFn_handler",
-		importer: () => import("./remote-Dapdlkhp.mjs")
+		importer: () => import("./remote-z4aWFqkh.mjs")
 	},
 	"94336ba60ad5fd3d3e26c0a812bda93c8cfff06ef5eb6a9fdc20d41278839862": {
 		functionName: "saveLedger_createServerFn_handler",
-		importer: () => import("./remote-Dapdlkhp.mjs")
+		importer: () => import("./remote-z4aWFqkh.mjs")
 	},
 	"b1169f5b85e3d12f18a4ae8bfa2efe3c74a72d6fa29cb184412a323254a7101b": {
 		functionName: "loadLedger_createServerFn_handler",
-		importer: () => import("./remote-Dapdlkhp.mjs")
+		importer: () => import("./remote-z4aWFqkh.mjs")
 	}
 };
 async function getServerFnById(id, access) {
@@ -1559,7 +1559,7 @@ var getBaseManifest = getProdBaseManifest;
 var createEarlyHintsForRequest = createEarlyHintsCollector;
 async function loadEntries() {
 	const [routerEntry, startEntry, pluginAdapters] = await Promise.all([
-		import("./router-D-bW2QB9.mjs").then((n) => n.t),
+		import("./router-Bl8LK1SE.mjs").then((n) => n.t),
 		import("./start-5Z2QO8AU.mjs"),
 		import("./empty-plugin-adapters-D9UWiqvJ.mjs")
 	]);
