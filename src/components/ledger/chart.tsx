@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, Bar, BarChart, CartesianGrid, Cell, ComposedChart, Line, Pie, PieChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { compareByYear } from "@/lib/ledger/calc";
 import { formatCompact, formatMoney, formatMonth, formatShare } from "@/lib/ledger/money";
-import type { CashbackCard, CurrencyCode, ExpenseMonth, ExpenseType, MonthPoint, SavingsPoint } from "@/lib/ledger/types";
+import type { CashbackCard, CurrencyCode, ExpenseMonth, ExpenseType, MonthPoint, SavingsPoint, ShareSlice } from "@/lib/ledger/types";
 import { SignedMoney } from "@/components/ledger/ui";
 
 function useReducedMotion() {
@@ -15,6 +15,119 @@ function useReducedMotion() {
     return () => query.removeEventListener("change", apply);
   }, []);
   return reduced;
+}
+
+export function sliceColor(index: number): string {
+  return `var(--slice-${index % 6})`;
+}
+
+export function ValueSpark({ points }: { points: MonthPoint[] }) {
+  const recorded = points.filter((point) => point.recorded > 0);
+  if (recorded.length < 2) return null;
+  const values = recorded.map((point) => point.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const width = 168;
+  const height = 64;
+  const coords = values.map((value, index) => {
+    const x = (index / (values.length - 1)) * width;
+    const y = max === min ? height / 2 : height - 6 - ((value - min) / (max - min)) * (height - 12);
+    return [x, y] as const;
+  });
+  const line = coords.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+  const area = `${line} L ${width} ${height} L 0 ${height} Z`;
+  const last = coords[coords.length - 1];
+  const rising = values[values.length - 1] >= values[0];
+  const tone = rising ? "var(--color-forest)" : "var(--color-loss)";
+  return (
+    <figure className="w-full max-w-44 shrink-0">
+      <svg viewBox={`0 0 ${width} ${height}`} className="h-16 w-full" role="img" aria-label="Evolução do valor da carteira">
+        <path d={area} fill={tone} opacity="0.16" />
+        <path d={line} fill="none" stroke={tone} strokeWidth="2.25" strokeLinejoin="round" strokeLinecap="round" />
+        <circle cx={last[0]} cy={last[1]} r="3.5" fill={tone} />
+      </svg>
+      <figcaption className="mt-1 text-right text-sm text-muted">
+        {formatMonth(recorded[0].month, "short")} – {formatMonth(recorded[recorded.length - 1].month, "short")}
+      </figcaption>
+    </figure>
+  );
+}
+
+export function AllocationRing({
+  title,
+  slices,
+  currency,
+  note,
+}: {
+  title: string;
+  slices: ShareSlice[];
+  currency: CurrencyCode;
+  note?: string;
+}) {
+  const [active, setActive] = useState<string | null>(null);
+  const total = slices.reduce((sum, slice) => sum + slice.value, 0);
+  if (slices.length < 2 || total <= 0) return null;
+  const focus = slices.find((slice) => slice.id === active) ?? null;
+  return (
+    <div>
+      <h3 className="font-serif text-xl">{title}</h3>
+      <div className="mt-3 grid items-center gap-4 sm:grid-cols-[11rem_1fr]">
+        <div className="relative mx-auto h-44 w-44">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={slices}
+                dataKey="value"
+                nameKey="label"
+                innerRadius="68%"
+                outerRadius="100%"
+                paddingAngle={2}
+                stroke="none"
+                isAnimationActive={false}
+                onMouseEnter={(_, index) => setActive(slices[index]?.id ?? null)}
+                onMouseLeave={() => setActive(null)}
+              >
+                {slices.map((slice, index) => (
+                  <Cell
+                    key={slice.id}
+                    fill={sliceColor(index)}
+                    opacity={active == null || active === slice.id ? 1 : 0.35}
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="pointer-events-none absolute inset-0 grid place-items-center px-6 text-center">
+            <div>
+              <p className="w-28 truncate text-sm text-muted">{focus ? focus.label : "Total"}</p>
+              <p className="font-serif text-lg tabular-nums leading-tight">
+                {focus ? formatShare(focus.share) : formatCompact(total)}
+              </p>
+            </div>
+          </div>
+        </div>
+        <ul className="space-y-2">
+          {slices.map((slice, index) => (
+            <li key={slice.id}>
+              <button
+                type="button"
+                onClick={() => setActive((current) => (current === slice.id ? null : slice.id))}
+                className="flex min-h-11 w-full items-center gap-2 rounded-md px-1 text-left text-sm hover:bg-paper"
+              >
+                <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: sliceColor(index) }} />
+                <span className="min-w-0 flex-1 truncate">{slice.label}</span>
+                <span className="shrink-0 tabular-nums">
+                  {formatShare(slice.share)}
+                  <span className="text-muted"> · {formatMoney(slice.value, currency)}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+      {note ? <p className="mt-3 text-sm text-muted">{note}</p> : null}
+    </div>
+  );
 }
 
 export function ValueChart({ points, currency }: { points: MonthPoint[]; currency: CurrencyCode }) {
@@ -46,9 +159,15 @@ export function ValueChart({ points, currency }: { points: MonthPoint[]; currenc
           </div>
         ) : null}
       </div>
-      <div className="h-64">
+      <div className="h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 12, right: 8, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="lastro-value-fill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-forest)" stopOpacity={0.32} />
+                <stop offset="100%" stopColor="var(--color-forest)" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
             <CartesianGrid stroke="var(--color-line)" vertical={false} />
             <XAxis
               dataKey="label"
@@ -87,17 +206,18 @@ export function ValueChart({ points, currency }: { points: MonthPoint[]; currenc
               type="monotone"
               dataKey="value"
               stroke="var(--color-forest)"
-              fill="var(--color-forest)"
-              fillOpacity={0.14}
-              strokeWidth={2}
+              fill="url(#lastro-value-fill)"
+              strokeWidth={2.5}
               isAnimationActive={!reduced}
               dot={false}
+              activeDot={{ r: 4, fill: "var(--color-forest)", stroke: "var(--color-card)", strokeWidth: 2 }}
             />
             <Line
               type="monotone"
               dataKey="invested"
               stroke="var(--color-brass)"
               strokeWidth={2}
+              strokeDasharray="5 4"
               dot={false}
               isAnimationActive={!reduced}
             />
@@ -607,7 +727,7 @@ export function YearCompareChart({
                     dataKey={year}
                     name={year}
                     stroke={color}
-                    strokeWidth={2}
+                    strokeWidth={2.5}
                     dot={false}
                     connectNulls={false}
                     isAnimationActive={!reduced}

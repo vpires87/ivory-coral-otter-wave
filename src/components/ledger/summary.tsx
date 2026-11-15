@@ -3,7 +3,7 @@ import { buildSeries, cashbackFor, cashbackRows, cashbackSeries, cashbackTotal, 
 import { cents, formatMoney, formatMonth, formatPercent, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { PLATFORM_KINDS, type CurrencyCode } from "@/lib/ledger/types";
-import { CashbackHistory, CashbackMonthChart, ExpenseChart, SavingsChart, ValueChart, YearCompareChart } from "@/components/ledger/chart";
+import { AllocationRing, CashbackHistory, CashbackMonthChart, ExpenseChart, SavingsChart, ValueChart, ValueSpark, YearCompareChart } from "@/components/ledger/chart";
 import { Button, CompareBars, GoalMeter, KindMark, MonthSwitcher, ShareList, SignedMoney } from "@/components/ledger/ui";
 
 export function SummaryView({
@@ -74,14 +74,19 @@ export function SummaryView({
   return (
     <div className="space-y-4">
       <section className="rounded-lg border border-line bg-card p-5 sm:p-6">
-        <p className="text-sm text-muted">Valor da carteira</p>
-        {snapshot.withValue === 0 ? (
-          <h2 className="mt-2 font-serif text-4xl">Ainda sem meses</h2>
-        ) : (
-          <p className="mt-2 font-serif text-4xl tabular-nums sm:text-5xl">
-            {formatMoney(snapshot.value, currency)}
-          </p>
-        )}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm text-muted">Valor da carteira</p>
+            {snapshot.withValue === 0 ? (
+              <h2 className="mt-2 font-serif text-4xl">Ainda sem meses</h2>
+            ) : (
+              <p className="mt-2 font-serif text-4xl tabular-nums sm:text-5xl">
+                {formatMoney(snapshot.value, currency)}
+              </p>
+            )}
+          </div>
+          <ValueSpark points={series} />
+        </div>
         <p className="mt-3 max-w-xl text-sm leading-relaxed">{story(snapshot, currency)}</p>
         {snapshot.latestMonth ? (
           <p className="mt-2 text-sm text-muted">
@@ -256,11 +261,20 @@ export function SummaryView({
         </section>
       ) : null}
 
-      <div>
-        <Button variant="soft" aria-expanded={evolution} onClick={() => setEvolution((open) => !open)}>
-          {evolution ? "Esconder evolução" : "Ver evolução"}
-        </Button>
-      </div>
+      <button
+        type="button"
+        aria-expanded={evolution}
+        onClick={() => setEvolution((open) => !open)}
+        className="flex w-full items-center justify-between gap-3 rounded-lg border border-line bg-card px-4 py-4 text-left"
+      >
+        <span>
+          <span className="block font-serif text-2xl">Evolução</span>
+          <span className="mt-1 block text-sm text-muted">
+            A carteira ao longo do tempo, os anos e onde está o dinheiro.
+          </span>
+        </span>
+        <span className="shrink-0 text-sm font-medium text-forest">{evolution ? "Esconder" : "Ver"}</span>
+      </button>
       {evolution ? (
         <>
       <ValueChart points={series} currency={currency} />
@@ -288,22 +302,18 @@ export function SummaryView({
         ]}
       />
 
-      {shares.length > 1 || (products.length > 0 && portfolio.length > 1) ? (
-        <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
-          <h2 className="mb-4 font-serif text-2xl">Onde está o dinheiro</h2>
-          {shares.length > 1 ? <ShareList title="Por plataforma" slices={shares} currency={currency} /> : null}
-          {kinds.length > 1 ? (
-            <div className="mt-6">
-              <ShareList title="Por tipo" slices={kinds} currency={currency} />
-            </div>
-          ) : null}
+      {shares.length > 1 || kinds.length > 1 || (products.length > 0 && portfolio.length > 1) ? (
+        <section className="space-y-6 rounded-lg border border-line bg-card p-4 sm:p-5">
+          <h2 className="font-serif text-2xl">Onde está o dinheiro</h2>
+          {shares.length > 1 ? <AllocationRing title="Por plataforma" slices={shares} currency={currency} /> : null}
+          {kinds.length > 1 ? <ShareList title="Por tipo" slices={kinds} currency={currency} /> : null}
           {products.length > 0 && portfolio.length > 1 ? (
-            <div className="mt-6">
-              <ShareList title="Por produto" slices={portfolio} currency={currency} />
-              <p className="mt-3 text-sm text-muted">
-                A percentagem é o último valor de cada produto. O que não dividiste fica com o nome da plataforma.
-              </p>
-            </div>
+            <AllocationRing
+              title="Por produto"
+              slices={portfolio}
+              currency={currency}
+              note="A percentagem é o último valor de cada produto. O que não dividiste fica com o nome da plataforma."
+            />
           ) : null}
         </section>
       ) : null}

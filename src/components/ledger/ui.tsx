@@ -263,7 +263,7 @@ export function ShareList({
     <div>
       <h3 className="mb-3 font-serif text-xl">{title}</h3>
       <ul className="space-y-3">
-        {slices.map((slice) => {
+        {slices.map((slice, index) => {
           const width = max <= 0 ? 0 : Math.min(100, (slice.value / max) * 100);
           return (
             <li key={slice.id}>
@@ -275,7 +275,10 @@ export function ShareList({
                 </span>
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-chip">
-                <div className="h-full rounded-full bg-forest" style={{ width: `${width}%` }} />
+                <div
+                  className="h-full rounded-full"
+                  style={{ width: `${width}%`, background: `var(--slice-${index % 6})` }}
+                />
               </div>
             </li>
           );

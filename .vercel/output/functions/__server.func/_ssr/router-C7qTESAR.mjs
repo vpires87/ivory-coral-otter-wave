@@ -8,7 +8,7 @@ import { a as getServerFnById, i as TSS_SERVER_FUNCTION, r as createServerFn } f
 import { S as parseBackup, i as authMiddleware } from "./backup-CoUVcS4P.mjs";
 import { t as auth } from "./server-DULnXI5m.mjs";
 import { r as TriangleAlert } from "../_libs/lucide-react.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-Bl8LK1SE.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-C7qTESAR.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
@@ -398,7 +398,7 @@ function ThemeBoot() {
 	}, []);
 	return null;
 }
-var styles_default = "/assets/styles-B9Tg9rF9.css";
+var styles_default = "/assets/styles-D2pMihQw.css";
 var APP_NAME = "Lastro";
 function shareHost(raw) {
 	const host = String(raw ?? "").split(",")[0].trim().split(":")[0].toLowerCase();
@@ -510,7 +510,7 @@ var saveLedger = createServerFn({ method: "POST" }).validator((input) => {
 		force: body.force === true
 	};
 }).middleware([authMiddleware]).handler(createSsrRpc("94336ba60ad5fd3d3e26c0a812bda93c8cfff06ef5eb6a9fdc20d41278839862"));
-var $$splitComponentImporter$1 = () => import("./routes-CBMUp0uI.mjs");
+var $$splitComponentImporter$1 = () => import("./routes-D2KSHvRA.mjs");
 var Route$2 = createFileRoute("/")({
 	loader: () => ledgerBackend(),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")

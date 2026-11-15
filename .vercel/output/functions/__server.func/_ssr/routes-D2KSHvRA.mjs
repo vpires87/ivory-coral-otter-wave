@@ -5,12 +5,12 @@ import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react
 import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
 import { C as shiftMonth, S as parseBackup, _ as formatShare, a as cents, b as isMonth, c as dueMonth, d as formatCompact, f as formatMoney, g as formatSavedAt, h as formatPlain, l as eachMonth, m as formatPercent, n as INCOME_KINDS, o as clampClosingDay, p as formatMonth, r as PLATFORM_KINDS, s as currentMonth, t as CURRENCIES, u as formatCloseDay, v as formatWhen, w as toBackup, x as parseAmount, y as isClosingToday } from "./backup-CoUVcS4P.mjs";
 import { a as Settings, c as ChevronRight, d as Bitcoin, i as Shapes, l as ChevronLeft, n as Wallet, o as PiggyBank, s as Landmark, t as X, u as ChartLine } from "../_libs/lucide-react.mjs";
-import { a as THEMES, i as saveLedger, n as Route$2, o as readTheme, r as loadLedger, s as storeTheme } from "./router-Bl8LK1SE.mjs";
+import { a as THEMES, i as saveLedger, n as Route$2, o as readTheme, r as loadLedger, s as storeTheme } from "./router-C7qTESAR.mjs";
 import { t as create } from "../_libs/zustand.mjs";
 import { t as clsx } from "../_libs/clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
-import { a as Area, c as ReferenceLine, d as ResponsiveContainer, f as Tooltip, i as XAxis, l as Bar, n as BarChart, o as Line, r as YAxis, s as CartesianGrid, t as ComposedChart, u as Cell } from "../_libs/recharts+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-CBMUp0uI.js
+import { a as XAxis, c as CartesianGrid, d as Pie, f as Cell, i as YAxis, l as ReferenceLine, m as Tooltip, n as PieChart, o as Area, p as ResponsiveContainer, r as BarChart, s as Line, t as ComposedChart, u as Bar } from "../_libs/recharts+[...].mjs";
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-D2KSHvRA.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function byMonth(a, b) {
@@ -1144,7 +1144,7 @@ function ShareList({ title, slices, currency }) {
 		children: title
 	}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
 		className: "space-y-3",
-		children: slices.map((slice) => {
+		children: slices.map((slice, index) => {
 			const width = max <= 0 ? 0 : Math.min(100, slice.value / max * 100);
 			return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("li", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 				className: "mb-1 flex items-baseline justify-between gap-3 text-sm",
@@ -1161,8 +1161,11 @@ function ShareList({ title, slices, currency }) {
 			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 				className: "h-2 overflow-hidden rounded-full bg-chip",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "h-full rounded-full bg-forest",
-					style: { width: `${width}%` }
+					className: "h-full rounded-full",
+					style: {
+						width: `${width}%`,
+						background: `var(--slice-${index % 6})`
+					}
 				})
 			})] }, slice.id);
 		})
@@ -1178,6 +1181,137 @@ function useReducedMotion() {
 		return () => query.removeEventListener("change", apply);
 	}, []);
 	return reduced;
+}
+function sliceColor(index) {
+	return `var(--slice-${index % 6})`;
+}
+function ValueSpark({ points }) {
+	const recorded = points.filter((point) => point.recorded > 0);
+	if (recorded.length < 2) return null;
+	const values = recorded.map((point) => point.value);
+	const min = Math.min(...values);
+	const max = Math.max(...values);
+	const width = 168;
+	const height = 64;
+	const coords = values.map((value, index) => {
+		return [index / (values.length - 1) * width, max === min ? height / 2 : 58 - (value - min) / (max - min) * 52];
+	});
+	const line = coords.map(([x, y], index) => `${index === 0 ? "M" : "L"}${x.toFixed(1)} ${y.toFixed(1)}`).join(" ");
+	const area = `${line} L ${width} ${height} L 0 ${height} Z`;
+	const last = coords[coords.length - 1];
+	const tone = values[values.length - 1] >= values[0] ? "var(--color-forest)" : "var(--color-loss)";
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("figure", {
+		className: "w-full max-w-44 shrink-0",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("svg", {
+			viewBox: `0 0 ${width} ${height}`,
+			className: "h-16 w-full",
+			role: "img",
+			"aria-label": "Evolução do valor da carteira",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+					d: area,
+					fill: tone,
+					opacity: "0.16"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("path", {
+					d: line,
+					fill: "none",
+					stroke: tone,
+					strokeWidth: "2.25",
+					strokeLinejoin: "round",
+					strokeLinecap: "round"
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("circle", {
+					cx: last[0],
+					cy: last[1],
+					r: "3.5",
+					fill: tone
+				})
+			]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("figcaption", {
+			className: "mt-1 text-right text-sm text-muted",
+			children: [
+				formatMonth(recorded[0].month, "short"),
+				" – ",
+				formatMonth(recorded[recorded.length - 1].month, "short")
+			]
+		})]
+	});
+}
+function AllocationRing({ title, slices, currency, note }) {
+	const [active, setActive] = (0, import_react.useState)(null);
+	const total = slices.reduce((sum, slice) => sum + slice.value, 0);
+	if (slices.length < 2 || total <= 0) return null;
+	const focus = slices.find((slice) => slice.id === active) ?? null;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h3", {
+			className: "font-serif text-xl",
+			children: title
+		}),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "mt-3 grid items-center gap-4 sm:grid-cols-[11rem_1fr]",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "relative mx-auto h-44 w-44",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
+					width: "100%",
+					height: "100%",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(PieChart, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Pie, {
+						data: slices,
+						dataKey: "value",
+						nameKey: "label",
+						innerRadius: "68%",
+						outerRadius: "100%",
+						paddingAngle: 2,
+						stroke: "none",
+						isAnimationActive: false,
+						onMouseEnter: (_, index) => setActive(slices[index]?.id ?? null),
+						onMouseLeave: () => setActive(null),
+						children: slices.map((slice, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Cell, {
+							fill: sliceColor(index),
+							opacity: active == null || active === slice.id ? 1 : .35
+						}, slice.id))
+					}) })
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+					className: "pointer-events-none absolute inset-0 grid place-items-center px-6 text-center",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "w-28 truncate text-sm text-muted",
+						children: focus ? focus.label : "Total"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "font-serif text-lg tabular-nums leading-tight",
+						children: focus ? formatShare(focus.share) : formatCompact(total)
+					})] })
+				})]
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("ul", {
+				className: "space-y-2",
+				children: slices.map((slice, index) => /* @__PURE__ */ (0, import_jsx_runtime.jsx)("li", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+					type: "button",
+					onClick: () => setActive((current) => current === slice.id ? null : slice.id),
+					className: "flex min-h-11 w-full items-center gap-2 rounded-md px-1 text-left text-sm hover:bg-paper",
+					children: [
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "h-3 w-3 shrink-0 rounded-full",
+							style: { background: sliceColor(index) }
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+							className: "min-w-0 flex-1 truncate",
+							children: slice.label
+						}),
+						/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+							className: "shrink-0 tabular-nums",
+							children: [formatShare(slice.share), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", {
+								className: "text-muted",
+								children: [" · ", formatMoney(slice.value, currency)]
+							})]
+						})
+					]
+				}) }, slice.id))
+			})]
+		}),
+		note ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "mt-3 text-sm text-muted",
+			children: note
+		}) : null
+	] });
 }
 function ValueChart({ points, currency }) {
 	const reduced = useReducedMotion();
@@ -1212,19 +1346,35 @@ function ValueChart({ points, currency }) {
 				}) : null]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "h-64",
+				className: "h-72",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ResponsiveContainer, {
 					width: "100%",
 					height: "100%",
 					children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(ComposedChart, {
 						data,
 						margin: {
-							top: 8,
-							right: 4,
+							top: 12,
+							right: 8,
 							left: 0,
 							bottom: 0
 						},
 						children: [
+							/* @__PURE__ */ (0, import_jsx_runtime.jsx)("defs", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("linearGradient", {
+								id: "lastro-value-fill",
+								x1: "0",
+								y1: "0",
+								x2: "0",
+								y2: "1",
+								children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+									offset: "0%",
+									stopColor: "var(--color-forest)",
+									stopOpacity: .32
+								}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("stop", {
+									offset: "100%",
+									stopColor: "var(--color-forest)",
+									stopOpacity: .02
+								})]
+							}) }),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(CartesianGrid, {
 								stroke: "var(--color-line)",
 								vertical: false
@@ -1288,17 +1438,23 @@ function ValueChart({ points, currency }) {
 								type: "monotone",
 								dataKey: "value",
 								stroke: "var(--color-forest)",
-								fill: "var(--color-forest)",
-								fillOpacity: .14,
-								strokeWidth: 2,
+								fill: "url(#lastro-value-fill)",
+								strokeWidth: 2.5,
 								isAnimationActive: !reduced,
-								dot: false
+								dot: false,
+								activeDot: {
+									r: 4,
+									fill: "var(--color-forest)",
+									stroke: "var(--color-card)",
+									strokeWidth: 2
+								}
 							}),
 							/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Line, {
 								type: "monotone",
 								dataKey: "invested",
 								stroke: "var(--color-brass)",
 								strokeWidth: 2,
+								strokeDasharray: "5 4",
 								dot: false,
 								isAnimationActive: !reduced
 							})
@@ -1985,7 +2141,7 @@ function YearCompareChart({ currency, metrics }) {
 									dataKey: year,
 									name: year,
 									stroke: color,
-									strokeWidth: 2,
+									strokeWidth: 2.5,
 									dot: false,
 									connectNulls: false,
 									isAnimationActive: !reduced
@@ -3955,16 +4111,21 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card p-5 sm:p-6",
 				children: [
-					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						className: "text-sm text-muted",
-						children: "Valor da carteira"
-					}),
-					snapshot.withValue === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-						className: "mt-2 font-serif text-4xl",
-						children: "Ainda sem meses"
-					}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-						className: "mt-2 font-serif text-4xl tabular-nums sm:text-5xl",
-						children: formatMoney(snapshot.value, currency)
+					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+						className: "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
+						children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+							className: "min-w-0",
+							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "text-sm text-muted",
+								children: "Valor da carteira"
+							}), snapshot.withValue === 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+								className: "mt-2 font-serif text-4xl",
+								children: "Ainda sem meses"
+							}) : /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+								className: "mt-2 font-serif text-4xl tabular-nums sm:text-5xl",
+								children: formatMoney(snapshot.value, currency)
+							})]
+						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ValueSpark, { points: series })]
 					}),
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "mt-3 max-w-xl text-sm leading-relaxed",
@@ -4189,12 +4350,22 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 					})
 				]
 			}) : null,
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-				variant: "soft",
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
+				type: "button",
 				"aria-expanded": evolution,
 				onClick: () => setEvolution((open) => !open),
-				children: evolution ? "Esconder evolução" : "Ver evolução"
-			}) }),
+				className: "flex w-full items-center justify-between gap-3 rounded-lg border border-line bg-card px-4 py-4 text-left",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("span", { children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "block font-serif text-2xl",
+					children: "Evolução"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "mt-1 block text-sm text-muted",
+					children: "A carteira ao longo do tempo, os anos e onde está o dinheiro."
+				})] }), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+					className: "shrink-0 text-sm font-medium text-forest",
+					children: evolution ? "Esconder" : "Ver"
+				})]
+			}),
 			evolution ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ValueChart, {
 					points: series,
@@ -4232,36 +4403,28 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 						}
 					]
 				}),
-				shares.length > 1 || products.length > 0 && portfolio.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
-					className: "rounded-lg border border-line bg-card p-4 sm:p-5",
+				shares.length > 1 || kinds.length > 1 || products.length > 0 && portfolio.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+					className: "space-y-6 rounded-lg border border-line bg-card p-4 sm:p-5",
 					children: [
 						/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
-							className: "mb-4 font-serif text-2xl",
+							className: "font-serif text-2xl",
 							children: "Onde está o dinheiro"
 						}),
-						shares.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShareList, {
+						shares.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AllocationRing, {
 							title: "Por plataforma",
 							slices: shares,
 							currency
 						}) : null,
-						kinds.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-							className: "mt-6",
-							children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShareList, {
-								title: "Por tipo",
-								slices: kinds,
-								currency
-							})
+						kinds.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShareList, {
+							title: "Por tipo",
+							slices: kinds,
+							currency
 						}) : null,
-						products.length > 0 && portfolio.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
-							className: "mt-6",
-							children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ShareList, {
-								title: "Por produto",
-								slices: portfolio,
-								currency
-							}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-								className: "mt-3 text-sm text-muted",
-								children: "A percentagem é o último valor de cada produto. O que não dividiste fica com o nome da plataforma."
-							})]
+						products.length > 0 && portfolio.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(AllocationRing, {
+							title: "Por produto",
+							slices: portfolio,
+							currency,
+							note: "A percentagem é o último valor de cada produto. O que não dividiste fica com o nome da plataforma."
 						}) : null
 					]
 				}) : null,
