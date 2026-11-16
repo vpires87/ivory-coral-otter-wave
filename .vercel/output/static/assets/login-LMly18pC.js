@@ -1,1 +1,0 @@
-import{c as e,l as t}from"./index-Cyd8jEJX.js";var n=t();function r(){return(0,n.jsx)(e,{to:`/`})}export{r as component};

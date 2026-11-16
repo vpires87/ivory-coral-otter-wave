@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toBackup } from "@/lib/ledger/backup";
-import { clampClosingDay, formatPlain, parseAmount } from "@/lib/ledger/money";
+import { clampClosingDay, flamingoOf, formatMoney, formatPlain, parseAmount } from "@/lib/ledger/money";
 import { selectData, useLedger } from "@/lib/ledger/store";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
@@ -445,8 +445,11 @@ function GoalEditor() {
 function FireEditor() {
   const fireGoal = useLedger((state) => state.fireGoal);
   const setFireGoal = useLedger((state) => state.setFireGoal);
+  const currency = useLedger((state) => state.currency);
   const [value, setValue] = useState(fireGoal == null ? "" : formatPlain(fireGoal));
   const [error, setError] = useState("");
+  const typed = parseAmount(value);
+  const preview = typed != null && typed > 0 ? flamingoOf(typed) : null;
 
   function save() {
     if (value.trim() === "") {
@@ -473,8 +476,8 @@ function FireEditor() {
       }}
     >
       <Field
-        label="Objetivo FIRE"
-        hint="O valor que a carteira tem de atingir. O progresso usa o último valor registado de cada ativo."
+        label="FIRE tradicional"
+        hint="O valor que a carteira tem de atingir. O Flamingo é sempre metade."
       >
         <input
           inputMode="decimal"
@@ -484,6 +487,9 @@ function FireEditor() {
           className={cn(inputClassName(), "tabular-nums")}
         />
       </Field>
+      {preview != null ? (
+        <p className="text-sm text-muted">FIRE Flamingo: {formatMoney(preview, currency)}.</p>
+      ) : null}
       {error ? <p className="text-sm text-loss">{error}</p> : null}
       <Button type="submit" variant="soft">
         Guardar objetivo

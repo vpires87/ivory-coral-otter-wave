@@ -3,14 +3,14 @@ import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].
 import { r as signOut, t as authClient } from "./client-CH2mWUg4.mjs";
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
 import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
-import { C as shiftMonth, S as parseBackup, _ as formatShare, a as cents, b as isMonth, c as dueMonth, d as formatCompact, f as formatMoney, g as formatSavedAt, h as formatPlain, l as eachMonth, m as formatPercent, n as INCOME_KINDS, o as clampClosingDay, p as formatMonth, r as PLATFORM_KINDS, s as currentMonth, t as CURRENCIES, u as formatCloseDay, v as formatWhen, w as toBackup, x as parseAmount, y as isClosingToday } from "./backup-CoUVcS4P.mjs";
+import { C as parseBackup, S as parseAmount, T as toBackup, _ as formatSavedAt, a as cents, b as isClosingToday, c as dueMonth, d as formatCloseDay, f as formatCompact, g as formatPlain, h as formatPercent, l as eachMonth, m as formatMonth, n as INCOME_KINDS, o as clampClosingDay, p as formatMoney, r as PLATFORM_KINDS, s as currentMonth, t as CURRENCIES, u as flamingoOf, v as formatShare, w as shiftMonth, x as isMonth, y as formatWhen } from "./backup-C9PyFWEx.mjs";
 import { a as Settings, c as ChevronRight, d as Bitcoin, i as Shapes, l as ChevronLeft, n as Wallet, o as PiggyBank, s as Landmark, t as X, u as ChartLine } from "../_libs/lucide-react.mjs";
-import { a as THEMES, i as saveLedger, n as Route$2, o as readTheme, r as loadLedger, s as storeTheme } from "./router-C7qTESAR.mjs";
+import { a as THEMES, i as saveLedger, n as Route$2, o as readTheme, r as loadLedger, s as storeTheme } from "./router-CCyObWTc.mjs";
 import { t as create } from "../_libs/zustand.mjs";
 import { t as clsx } from "../_libs/clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
 import { a as XAxis, c as CartesianGrid, d as Pie, f as Cell, i as YAxis, l as ReferenceLine, m as Tooltip, n as PieChart, o as Area, p as ResponsiveContainer, r as BarChart, s as Line, t as ComposedChart, u as Bar } from "../_libs/recharts+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-D2KSHvRA.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-DY3Ub_pQ.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function byMonth(a, b) {
@@ -3971,8 +3971,11 @@ function GoalEditor() {
 function FireEditor() {
 	const fireGoal = useLedger((state) => state.fireGoal);
 	const setFireGoal = useLedger((state) => state.setFireGoal);
+	const currency = useLedger((state) => state.currency);
 	const [value, setValue] = (0, import_react.useState)(fireGoal == null ? "" : formatPlain(fireGoal));
 	const [error, setError] = (0, import_react.useState)("");
+	const typed = parseAmount(value);
+	const preview = typed != null && typed > 0 ? flamingoOf(typed) : null;
 	function save() {
 		if (value.trim() === "") {
 			setFireGoal(null);
@@ -3996,8 +3999,8 @@ function FireEditor() {
 		},
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
-				label: "Objetivo FIRE",
-				hint: "O valor que a carteira tem de atingir. O progresso usa o último valor registado de cada ativo.",
+				label: "FIRE tradicional",
+				hint: "O valor que a carteira tem de atingir. O Flamingo é sempre metade.",
 				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
 					inputMode: "decimal",
 					value,
@@ -4006,6 +4009,14 @@ function FireEditor() {
 					className: cn(inputClassName(), "tabular-nums")
 				})
 			}),
+			preview != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+				className: "text-sm text-muted",
+				children: [
+					"FIRE Flamingo: ",
+					formatMoney(preview, currency),
+					"."
+				]
+			}) : null,
 			error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 				className: "text-sm text-loss",
 				children: error
@@ -4618,8 +4629,8 @@ function FireCard({ value, recorded, currency }) {
 		setDraft(fireGoal == null ? "" : formatPlain(fireGoal));
 		setEditing(fireGoal == null);
 	}, [fireGoal]);
-	const width = fireGoal == null || fireGoal <= 0 ? 0 : Math.max(0, Math.min(100, Math.max(value, 0) / fireGoal * 100));
-	const left = fireGoal == null ? 0 : cents(fireGoal - value);
+	const typed = parseAmount(draft);
+	const preview = typed != null && typed > 0 ? flamingoOf(typed) : null;
 	function save() {
 		if (draft.trim() === "") {
 			setFireGoal(null);
@@ -4636,47 +4647,40 @@ function FireCard({ value, recorded, currency }) {
 		setError("");
 		setEditing(false);
 	}
+	const flamingo = fireGoal == null ? null : flamingoOf(fireGoal);
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 		className: "rounded-lg border border-line bg-card p-5 sm:p-6",
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 			className: "text-sm text-muted",
-			children: "Objetivo FIRE"
-		}), fireGoal != null && !editing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)(import_jsx_runtime.Fragment, { children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "mt-2 font-serif text-4xl tabular-nums",
-				children: recorded ? formatShare(Math.max(value, 0) / fireGoal) : formatMoney(fireGoal, currency)
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "mt-3 text-sm leading-relaxed",
-				children: recorded ? value >= fireGoal ? `A carteira vale ${formatMoney(value, currency)} e já passou o objetivo de ${formatMoney(fireGoal, currency)}.` : `Os ativos registados valem ${formatMoney(value, currency)}. Faltam ${formatMoney(left, currency)}.` : `O objetivo é ${formatMoney(fireGoal, currency)}. Ainda não há valores de ativos registados.`
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-				className: "mt-4 h-2 overflow-hidden rounded-full bg-chip",
-				role: "progressbar",
-				"aria-valuemin": 0,
-				"aria-valuemax": 100,
-				"aria-valuenow": Math.round(width),
-				"aria-label": "Progresso do objetivo FIRE",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
-					className: "h-full rounded-full bg-forest",
-					style: { width: `${width}%` }
+			children: "Objetivos FIRE"
+		}), fireGoal != null && flamingo != null && !editing ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "mt-4 space-y-5",
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FireTrack, {
+					label: "FIRE Flamingo",
+					value,
+					goal: flamingo,
+					currency,
+					recorded,
+					tone: "brass",
+					detail: !recorded ? `O Flamingo é ${formatMoney(flamingo, currency)}, metade do FIRE. Ainda não há valores de ativos registados.` : value >= flamingo ? "Já chegaste. A partir daqui podes abrandar: o que está investido pode crescer sozinho até ao FIRE." : `Faltam ${formatMoney(cents(flamingo - value), currency)}. É metade do FIRE, o ponto em que podes trabalhar menos.`
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FireTrack, {
+					label: "FIRE tradicional",
+					value,
+					goal: fireGoal,
+					currency,
+					recorded,
+					tone: "forest",
+					detail: !recorded ? `O FIRE é ${formatMoney(fireGoal, currency)}. Ainda não há valores de ativos registados.` : value >= fireGoal ? `A carteira vale ${formatMoney(value, currency)} e já passou o FIRE de ${formatMoney(fireGoal, currency)}.` : `Faltam ${formatMoney(cents(fireGoal - value), currency)} para a carteira pagar as despesas sem ordenado.`
+				}),
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					variant: "soft",
+					onClick: () => setEditing(true),
+					children: "Alterar objetivo"
 				})
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-				className: "mt-2 text-sm tabular-nums text-muted",
-				children: [
-					formatMoney(Math.max(value, 0), currency),
-					" / ",
-					formatMoney(fireGoal, currency)
-				]
-			}),
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-				className: "mt-4",
-				variant: "soft",
-				onClick: () => setEditing(true),
-				children: "Alterar objetivo"
-			})
-		] }) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			]
+		}) : /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
 			className: "mt-3 space-y-3",
 			onSubmit: (event) => {
 				event.preventDefault();
@@ -4685,15 +4689,29 @@ function FireCard({ value, recorded, currency }) {
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "text-sm leading-relaxed text-muted",
-					children: "O valor que a carteira tem de atingir. Conta o último valor que registares em cada ativo."
+					children: "O FIRE tradicional é o valor que a carteira tem de atingir. O Flamingo é metade: o primeiro sítio onde podes abrandar e deixar o dinheiro crescer."
 				}),
-				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-					inputMode: "decimal",
-					value: draft,
-					onChange: (event) => setDraft(event.target.value),
-					placeholder: "0,00",
-					className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
+				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+					className: "block",
+					children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+						className: "mb-1.5 block text-sm font-medium",
+						children: "FIRE tradicional"
+					}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+						inputMode: "decimal",
+						value: draft,
+						onChange: (event) => setDraft(event.target.value),
+						placeholder: "0,00",
+						className: "h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
+					})]
 				}),
+				preview != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+					className: "text-sm text-muted",
+					children: [
+						"FIRE Flamingo: ",
+						formatMoney(preview, currency),
+						"."
+					]
+				}) : null,
 				error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "text-sm text-loss",
 					children: error
@@ -4712,6 +4730,41 @@ function FireCard({ value, recorded, currency }) {
 			]
 		})]
 	});
+}
+function FireTrack({ label, value, goal, currency, recorded, tone, detail }) {
+	const width = goal <= 0 ? 0 : Math.max(0, Math.min(100, Math.max(value, 0) / goal * 100));
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", { children: [
+		/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+			className: "flex items-baseline justify-between gap-3",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "font-medium",
+				children: label
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "font-serif text-2xl tabular-nums",
+				children: recorded ? formatShare(Math.max(value, 0) / goal) : formatMoney(goal, currency)
+			})]
+		}),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+			className: "mt-2 h-2 overflow-hidden rounded-full bg-chip",
+			role: "progressbar",
+			"aria-valuemin": 0,
+			"aria-valuemax": 100,
+			"aria-valuenow": Math.round(width),
+			"aria-label": label,
+			children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
+				className: tone === "brass" ? "h-full rounded-full bg-brass" : "h-full rounded-full bg-forest",
+				style: { width: `${width}%` }
+			})
+		}),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "mt-2 text-sm tabular-nums text-muted",
+			children: recorded ? `${formatMoney(Math.max(value, 0), currency)} / ${formatMoney(goal, currency)}` : formatMoney(goal, currency)
+		}),
+		/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+			className: "mt-1 text-sm leading-relaxed",
+			children: detail
+		})
+	] });
 }
 function story(snapshot, currency) {
 	if (snapshot.withValue === 0) return "Quando registares o primeiro fim de mês, comparas aqui o que meteste com o que ficou.";

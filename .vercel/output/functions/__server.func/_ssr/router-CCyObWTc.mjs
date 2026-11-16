@@ -5,10 +5,10 @@ import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].
 import { _ as createFileRoute, b as useRouter, d as Scripts, f as HeadContent, g as lazyRouteComponent, h as Outlet, m as createRouter, v as createRootRoute } from "../_libs/@tanstack/react-router+[...].mjs";
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
 import { a as getServerFnById, i as TSS_SERVER_FUNCTION, r as createServerFn } from "./ssr.mjs";
-import { S as parseBackup, i as authMiddleware } from "./backup-CoUVcS4P.mjs";
+import { C as parseBackup, i as authMiddleware } from "./backup-C9PyFWEx.mjs";
 import { t as auth } from "./server-DULnXI5m.mjs";
 import { r as TriangleAlert } from "../_libs/lucide-react.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-C7qTESAR.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-CCyObWTc.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
@@ -341,41 +341,72 @@ var THEMES = [
 		id: "papel",
 		label: "Papel",
 		paper: "#f3eee6",
-		accent: "#1e5c40"
+		accent: "#1e5c40",
+		dark: false
+	},
+	{
+		id: "mar",
+		label: "Mar",
+		paper: "#e6eef0",
+		accent: "#0f5c62",
+		dark: false
+	},
+	{
+		id: "oliva",
+		label: "Oliva",
+		paper: "#e7eadf",
+		accent: "#3b5c28",
+		dark: false
 	},
 	{
 		id: "escuro",
 		label: "Escuro",
 		paper: "#161410",
-		accent: "#8fceb0"
+		accent: "#8fceb0",
+		dark: true
+	},
+	{
+		id: "noite",
+		label: "Noite",
+		paper: "#10161a",
+		accent: "#7ec8c0",
+		dark: true
 	},
 	{
 		id: "sistema",
 		label: "Sistema",
 		paper: "#f3eee6",
-		accent: "#161410"
+		accent: "#161410",
+		dark: false
 	}
 ];
 var KEY = "lastro-theme";
+function isChoice(value) {
+	return THEMES.some((theme) => theme.id === value);
+}
 function readTheme() {
 	if (typeof window === "undefined") return "papel";
 	try {
 		const stored = window.localStorage.getItem(KEY);
-		if (stored === "papel" || stored === "escuro" || stored === "sistema") return stored;
+		if (isChoice(stored)) return stored;
 	} catch {}
 	return "papel";
 }
 function resolvedTheme(choice) {
-	if (choice === "sistema" && typeof window !== "undefined") return window.matchMedia("(prefers-color-scheme: dark)").matches ? "escuro" : "papel";
-	return choice === "escuro" ? "escuro" : "papel";
+	if (choice === "sistema") {
+		if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches) return "escuro";
+		return "papel";
+	}
+	return choice;
 }
 function applyTheme(choice) {
 	if (typeof document === "undefined") return;
 	const resolved = resolvedTheme(choice);
+	const theme = THEMES.find((item) => item.id === resolved) ?? THEMES[0];
 	document.documentElement.dataset.theme = resolved;
-	document.documentElement.style.colorScheme = resolved === "escuro" ? "dark" : "light";
+	document.documentElement.style.colorScheme = theme.dark ? "dark" : "light";
 	const meta = document.querySelector("meta[name=\"theme-color\"]");
-	if (meta) meta.setAttribute("content", resolved === "escuro" ? "#161410" : "#f3eee6");
+	if (meta) meta.setAttribute("content", theme.paper);
 }
 function storeTheme(choice) {
 	try {
@@ -398,7 +429,7 @@ function ThemeBoot() {
 	}, []);
 	return null;
 }
-var styles_default = "/assets/styles-D2pMihQw.css";
+var styles_default = "/assets/styles-DlIP3fKP.css";
 var APP_NAME = "Lastro";
 function shareHost(raw) {
 	const host = String(raw ?? "").split(",")[0].trim().split(":")[0].toLowerCase();
@@ -468,7 +499,7 @@ var Route$3 = createRootRoute({
 		lang: "pt",
 		suppressHydrationWarning: true,
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("head", { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(HeadContent, {}) }), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("body", { children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("script", { dangerouslySetInnerHTML: { __html: "(function(){try{var c=localStorage.getItem(\"lastro-theme\");var d=c===\"escuro\"||(c===\"sistema\"&&matchMedia(\"(prefers-color-scheme: dark)\").matches);if(d){document.documentElement.dataset.theme=\"escuro\";document.documentElement.style.colorScheme=\"dark\";var m=document.querySelector('meta[name=\"theme-color\"]');if(m)m.setAttribute(\"content\",\"#161410\");}}catch(e){}})();" } }),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("script", { dangerouslySetInnerHTML: { __html: "(function(){try{var map={mar:[\"#e6eef0\",\"light\"],oliva:[\"#e7eadf\",\"light\"],escuro:[\"#161410\",\"dark\"],noite:[\"#10161a\",\"dark\"]};var c=localStorage.getItem(\"lastro-theme\");if(c===\"sistema\")c=matchMedia(\"(prefers-color-scheme: dark)\").matches?\"escuro\":\"papel\";var t=map[c];if(!t)return;document.documentElement.dataset.theme=c;document.documentElement.style.colorScheme=t[1];var m=document.querySelector('meta[name=\"theme-color\"]');if(m)m.setAttribute(\"content\",t[0]);}catch(e){}})();" } }),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(ThemeBoot, {}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(PreviewHostBridge, {}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(AuthProvider, { children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Outlet, {}) }),
@@ -510,7 +541,7 @@ var saveLedger = createServerFn({ method: "POST" }).validator((input) => {
 		force: body.force === true
 	};
 }).middleware([authMiddleware]).handler(createSsrRpc("94336ba60ad5fd3d3e26c0a812bda93c8cfff06ef5eb6a9fdc20d41278839862"));
-var $$splitComponentImporter$1 = () => import("./routes-D2KSHvRA.mjs");
+var $$splitComponentImporter$1 = () => import("./routes-DY3Ub_pQ.mjs");
 var Route$2 = createFileRoute("/")({
 	loader: () => ledgerBackend(),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")

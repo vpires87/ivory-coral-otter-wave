@@ -63,7 +63,7 @@ export const Route = createRootRoute({
         <script
           dangerouslySetInnerHTML={{
             __html:
-              '(function(){try{var c=localStorage.getItem("lastro-theme");var d=c==="escuro"||(c==="sistema"&&matchMedia("(prefers-color-scheme: dark)").matches);if(d){document.documentElement.dataset.theme="escuro";document.documentElement.style.colorScheme="dark";var m=document.querySelector(\'meta[name="theme-color"]\');if(m)m.setAttribute("content","#161410");}}catch(e){}})();',
+              '(function(){try{var map={mar:["#e6eef0","light"],oliva:["#e7eadf","light"],escuro:["#161410","dark"],noite:["#10161a","dark"]};var c=localStorage.getItem("lastro-theme");if(c==="sistema")c=matchMedia("(prefers-color-scheme: dark)").matches?"escuro":"papel";var t=map[c];if(!t)return;document.documentElement.dataset.theme=c;document.documentElement.style.colorScheme=t[1];var m=document.querySelector(\'meta[name="theme-color"]\');if(m)m.setAttribute("content",t[0]);}catch(e){}})();',
           }}
         />
         <ThemeBoot />

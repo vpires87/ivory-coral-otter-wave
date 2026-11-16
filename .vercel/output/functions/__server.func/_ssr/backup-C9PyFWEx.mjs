@@ -1,6 +1,6 @@
 import { n as createMiddleware } from "./ssr.mjs";
 import { n as parse, r as format, t as pt } from "../_libs/date-fns.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/backup-CoUVcS4P.js
+//#region node_modules/.nitro/vite/services/ssr/assets/backup-C9PyFWEx.js
 /**
 * Auth middleware for server functions — the standard way to get the caller's
 * verified user id. When deployed the session cookie is same-origin and rides
@@ -37,6 +37,10 @@ var authMiddleware = createMiddleware({ type: "function" }).client(async ({ next
 });
 function cents(n) {
 	return Math.round(n * 100) / 100;
+}
+/** Flamingo FIRE is half the traditional nest egg: the point where compounding can finish the job. */
+function flamingoOf(fireGoal) {
+	return cents(fireGoal / 2);
 }
 function currentMonth(now = /* @__PURE__ */ new Date()) {
 	return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -481,4 +485,4 @@ function toBackup(data) {
 	};
 }
 //#endregion
-export { shiftMonth as C, parseBackup as S, formatShare as _, cents as a, isMonth as b, dueMonth as c, formatCompact as d, formatMoney as f, formatSavedAt as g, formatPlain as h, authMiddleware as i, eachMonth as l, formatPercent as m, INCOME_KINDS as n, clampClosingDay as o, formatMonth as p, PLATFORM_KINDS as r, currentMonth as s, CURRENCIES as t, formatCloseDay as u, formatWhen as v, toBackup as w, parseAmount as x, isClosingToday as y };
+export { parseBackup as C, parseAmount as S, toBackup as T, formatSavedAt as _, cents as a, isClosingToday as b, dueMonth as c, formatCloseDay as d, formatCompact as f, formatPlain as g, formatPercent as h, authMiddleware as i, eachMonth as l, formatMonth as m, INCOME_KINDS as n, clampClosingDay as o, formatMoney as p, PLATFORM_KINDS as r, currentMonth as s, CURRENCIES as t, flamingoOf as u, formatShare as v, shiftMonth as w, isMonth as x, formatWhen as y };

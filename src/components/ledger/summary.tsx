@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { buildSeries, cashbackFor, cashbackRows, cashbackSeries, cashbackTotal, contributedIn, entryFor, expenseFor, expenseSeries, expenseTotal, incomeFor, incomeTotal, kindShares, platformSnapshot, pointFor, productShares, savingsRate, savingsSeries, sumByMonth, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
-import { cents, formatMoney, formatMonth, formatPercent, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
+import { cents, flamingoOf, formatMoney, formatMonth, formatPercent, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { PLATFORM_KINDS, type CurrencyCode } from "@/lib/ledger/types";
 import { AllocationRing, CashbackHistory, CashbackMonthChart, ExpenseChart, SavingsChart, ValueChart, ValueSpark, YearCompareChart } from "@/components/ledger/chart";
@@ -513,9 +513,8 @@ function FireCard({
     setEditing(fireGoal == null);
   }, [fireGoal]);
 
-  const width =
-    fireGoal == null || fireGoal <= 0 ? 0 : Math.max(0, Math.min(100, (Math.max(value, 0) / fireGoal) * 100));
-  const left = fireGoal == null ? 0 : cents(fireGoal - value);
+  const typed = parseAmount(draft);
+  const preview = typed != null && typed > 0 ? flamingoOf(typed) : null;
 
   function save() {
     if (draft.trim() === "") {
@@ -534,38 +533,47 @@ function FireCard({
     setEditing(false);
   }
 
+  const flamingo = fireGoal == null ? null : flamingoOf(fireGoal);
+
   return (
     <section className="rounded-lg border border-line bg-card p-5 sm:p-6">
-      <p className="text-sm text-muted">Objetivo FIRE</p>
-      {fireGoal != null && !editing ? (
-        <>
-          <p className="mt-2 font-serif text-4xl tabular-nums">
-            {recorded ? formatShare(Math.max(value, 0) / fireGoal) : formatMoney(fireGoal, currency)}
-          </p>
-          <p className="mt-3 text-sm leading-relaxed">
-            {recorded
-              ? value >= fireGoal
-                ? `A carteira vale ${formatMoney(value, currency)} e já passou o objetivo de ${formatMoney(fireGoal, currency)}.`
-                : `Os ativos registados valem ${formatMoney(value, currency)}. Faltam ${formatMoney(left, currency)}.`
-              : `O objetivo é ${formatMoney(fireGoal, currency)}. Ainda não há valores de ativos registados.`}
-          </p>
-          <div
-            className="mt-4 h-2 overflow-hidden rounded-full bg-chip"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.round(width)}
-            aria-label="Progresso do objetivo FIRE"
-          >
-            <div className="h-full rounded-full bg-forest" style={{ width: `${width}%` }} />
-          </div>
-          <p className="mt-2 text-sm tabular-nums text-muted">
-            {formatMoney(Math.max(value, 0), currency)} / {formatMoney(fireGoal, currency)}
-          </p>
-          <Button className="mt-4" variant="soft" onClick={() => setEditing(true)}>
+      <p className="text-sm text-muted">Objetivos FIRE</p>
+      {fireGoal != null && flamingo != null && !editing ? (
+        <div className="mt-4 space-y-5">
+          <FireTrack
+            label="FIRE Flamingo"
+            value={value}
+            goal={flamingo}
+            currency={currency}
+            recorded={recorded}
+            tone="brass"
+            detail={
+              !recorded
+                ? `O Flamingo é ${formatMoney(flamingo, currency)}, metade do FIRE. Ainda não há valores de ativos registados.`
+                : value >= flamingo
+                  ? "Já chegaste. A partir daqui podes abrandar: o que está investido pode crescer sozinho até ao FIRE."
+                  : `Faltam ${formatMoney(cents(flamingo - value), currency)}. É metade do FIRE, o ponto em que podes trabalhar menos.`
+            }
+          />
+          <FireTrack
+            label="FIRE tradicional"
+            value={value}
+            goal={fireGoal}
+            currency={currency}
+            recorded={recorded}
+            tone="forest"
+            detail={
+              !recorded
+                ? `O FIRE é ${formatMoney(fireGoal, currency)}. Ainda não há valores de ativos registados.`
+                : value >= fireGoal
+                  ? `A carteira vale ${formatMoney(value, currency)} e já passou o FIRE de ${formatMoney(fireGoal, currency)}.`
+                  : `Faltam ${formatMoney(cents(fireGoal - value), currency)} para a carteira pagar as despesas sem ordenado.`
+            }
+          />
+          <Button variant="soft" onClick={() => setEditing(true)}>
             Alterar objetivo
           </Button>
-        </>
+        </div>
       ) : (
         <form
           className="mt-3 space-y-3"
@@ -575,15 +583,22 @@ function FireCard({
           }}
         >
           <p className="text-sm leading-relaxed text-muted">
-            O valor que a carteira tem de atingir. Conta o último valor que registares em cada ativo.
+            O FIRE tradicional é o valor que a carteira tem de atingir. O Flamingo é metade: o primeiro sítio onde
+            podes abrandar e deixar o dinheiro crescer.
           </p>
-          <input
-            inputMode="decimal"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="0,00"
-            className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
-          />
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-medium">FIRE tradicional</span>
+            <input
+              inputMode="decimal"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder="0,00"
+              className="h-12 w-full rounded-md border border-line bg-paper px-3 text-base tabular-nums text-ink outline-none focus-visible:border-forest"
+            />
+          </label>
+          {preview != null ? (
+            <p className="text-sm text-muted">FIRE Flamingo: {formatMoney(preview, currency)}.</p>
+          ) : null}
           {error ? <p className="text-sm text-loss">{error}</p> : null}
           <div className="flex flex-wrap gap-2">
             <Button type="submit">Guardar objetivo</Button>
@@ -596,6 +611,53 @@ function FireCard({
         </form>
       )}
     </section>
+  );
+}
+
+function FireTrack({
+  label,
+  value,
+  goal,
+  currency,
+  recorded,
+  tone,
+  detail,
+}: {
+  label: string;
+  value: number;
+  goal: number;
+  currency: CurrencyCode;
+  recorded: boolean;
+  tone: "forest" | "brass";
+  detail: string;
+}) {
+  const width = goal <= 0 ? 0 : Math.max(0, Math.min(100, (Math.max(value, 0) / goal) * 100));
+  return (
+    <div>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="font-medium">{label}</p>
+        <p className="font-serif text-2xl tabular-nums">
+          {recorded ? formatShare(Math.max(value, 0) / goal) : formatMoney(goal, currency)}
+        </p>
+      </div>
+      <div
+        className="mt-2 h-2 overflow-hidden rounded-full bg-chip"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(width)}
+        aria-label={label}
+      >
+        <div
+          className={tone === "brass" ? "h-full rounded-full bg-brass" : "h-full rounded-full bg-forest"}
+          style={{ width: `${width}%` }}
+        />
+      </div>
+      <p className="mt-2 text-sm tabular-nums text-muted">
+        {recorded ? `${formatMoney(Math.max(value, 0), currency)} / ${formatMoney(goal, currency)}` : formatMoney(goal, currency)}
+      </p>
+      <p className="mt-1 text-sm leading-relaxed">{detail}</p>
+    </div>
   );
 }
 

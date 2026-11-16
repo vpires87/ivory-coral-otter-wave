@@ -6,6 +6,11 @@ export function cents(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
+/** Flamingo FIRE is half the traditional nest egg: the point where compounding can finish the job. */
+export function flamingoOf(fireGoal: number): number {
+  return cents(fireGoal / 2);
+}
+
 export function currentMonth(now = new Date()): string {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, "0");

@@ -7,8 +7,8 @@
       "status": 200,
       "title": "Lastro",
       "hasCanvas": false,
-      "bodyTextLen": 703,
-      "bodyTextHash": "d71ec35e965b0a0dde80614bc850758f64923b4ce64044540170dfc55f36811c",
+      "bodyTextLen": 778,
+      "bodyTextHash": "f525a594ea486d5f77f33f1237b14dc2502294360e2dd7663d9ef379ad219829",
       "bodyTextPrefix": "L Lastro O que investes, o que fica e o que gastas EUR Resumo Fe",
       "horizontalOverflow": false,
       "consoleErrors": [],
@@ -21,8 +21,8 @@
       "status": 200,
       "title": "Lastro",
       "hasCanvas": false,
-      "bodyTextLen": 703,
-      "bodyTextHash": "d71ec35e965b0a0dde80614bc850758f64923b4ce64044540170dfc55f36811c",
+      "bodyTextLen": 778,
+      "bodyTextHash": "f525a594ea486d5f77f33f1237b14dc2502294360e2dd7663d9ef379ad219829",
       "bodyTextPrefix": "L Lastro O que investes, o que fica e o que gastas EUR Resumo Fe",
       "horizontalOverflow": false,
       "consoleErrors": [],
@@ -33,6 +33,9 @@
   "brandWarnings": [],
   "authWarnings": [],
   "verdictFile": "/workspace/screenshots/app-builder-built.json",
-  "divergesFromBaseline": false,
-  "baselineReasons": []
+  "divergesFromBaseline": true,
+  "baselineReasons": [
+    "desktop: body text changed (641 -> 778 chars, hash mismatch)",
+    "mobile: body text changed (641 -> 778 chars, hash mismatch)"
+  ]
 }
