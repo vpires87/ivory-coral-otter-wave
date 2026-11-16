@@ -103,6 +103,8 @@ export function LastroApp() {
     expenseTypes.every((type) => expenseFor(expenses, type.id, month)) &&
     cashbackCards.every((card) => cashbackFor(cashbacks, card.id, month));
   const saveLabel = conflictAt != null ? "Por guardar" : saving ? "A guardar…" : savedAt != null ? formatSavedAt(savedAt) : "";
+  const due = dueMonth(closingDay);
+  const onDueMonth = month === due;
 
   if (!ready) {
     return (
@@ -223,9 +225,11 @@ export function LastroApp() {
         <p className="mt-3 text-sm text-muted">
           {monthClosed
             ? `${formatMonth(month)} está fechado.`
-            : isClosingToday(closingDay)
+            : onDueMonth && isClosingToday(closingDay)
               ? `Hoje é o dia de atualizar. Este fecho é ${formatCloseDay(month, closingDay)}.`
-              : `Atualizas sempre no dia ${closingDay}. Este fecho é ${formatCloseDay(month, closingDay)}.`}
+              : onDueMonth && tracked
+                ? `O dia ${closingDay} já passou e ${formatMonth(month).toLowerCase()} ainda não está fechado.`
+                : `Atualizas sempre no dia ${closingDay}. Este fecho é ${formatCloseDay(month, closingDay)}.`}
         </p>
         <div className="mt-4">
           {tab === "resumo" ? (

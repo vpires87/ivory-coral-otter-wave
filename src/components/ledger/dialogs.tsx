@@ -2,7 +2,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { toBackup } from "@/lib/ledger/backup";
-import { clampClosingDay, flamingoOf, formatMoney, formatPlain, parseAmount } from "@/lib/ledger/money";
+import { clampClosingDay, closingCalendar, flamingoOf, formatMoney, formatPlain, formatRate, parseAmount } from "@/lib/ledger/money";
 import { selectData, useLedger } from "@/lib/ledger/store";
 import { signOut } from "@/lib/auth/client";
 import { useCurrentUser } from "@/lib/auth/use-current-user";
@@ -10,6 +10,24 @@ import { CURRENCIES, PLATFORM_KINDS, type CurrencyCode, type Platform, type Plat
 import { Button, Field, inputClassName } from "@/components/ledger/ui";
 import { THEMES, readTheme, storeTheme, type ThemeChoice } from "@/lib/theme";
 import { cn } from "@/lib/utils";
+
+function downloadBlob(filename: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+export function downloadLedger() {
+  const payload = toBackup(selectData(useLedger.getState()));
+  downloadBlob("lastro-caderneta.json", new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+}
+
+export function downloadClosingCalendar(day: number) {
+  downloadBlob("lastro-fecho.ics", new Blob([closingCalendar(day)], { type: "text/calendar" }));
+}
 
 function Sheet({
   open,
@@ -197,14 +215,7 @@ export function SettingsDialog({
   }, [open]);
 
   function exportFile() {
-    const payload = toBackup(selectData(useLedger.getState()));
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "lastro-caderneta.json";
-    link.click();
-    URL.revokeObjectURL(url);
+    downloadLedger();
     setMessage("Ficheiro descarregado.");
   }
 
@@ -445,9 +456,13 @@ function GoalEditor() {
 function FireEditor() {
   const fireGoal = useLedger((state) => state.fireGoal);
   const setFireGoal = useLedger((state) => state.setFireGoal);
+  const fireReturn = useLedger((state) => state.fireReturn);
+  const setFireReturn = useLedger((state) => state.setFireReturn);
   const currency = useLedger((state) => state.currency);
   const [value, setValue] = useState(fireGoal == null ? "" : formatPlain(fireGoal));
+  const [rate, setRate] = useState(fireReturn == null ? "" : formatRate(fireReturn));
   const [error, setError] = useState("");
+  const [rateError, setRateError] = useState("");
   const typed = parseAmount(value);
   const preview = typed != null && typed > 0 ? flamingoOf(typed) : null;
 
@@ -467,34 +482,76 @@ function FireEditor() {
     setError("");
   }
 
+  function saveRate() {
+    if (rate.trim() === "") {
+      setFireReturn(null);
+      setRateError("");
+      return;
+    }
+    const parsed = parseAmount(rate);
+    if (parsed == null || parsed <= 0 || parsed > 20) {
+      setRateError("Usa um número entre 0 e 20, ou deixa vazio.");
+      return;
+    }
+    setFireReturn(parsed);
+    setRate(formatRate(parsed));
+    setRateError("");
+  }
+
   return (
-    <form
-      className="space-y-2"
-      onSubmit={(event) => {
-        event.preventDefault();
-        save();
-      }}
-    >
-      <Field
-        label="FIRE tradicional"
-        hint="O valor que a carteira tem de atingir. O Flamingo é sempre metade."
+    <div className="space-y-4">
+      <form
+        className="space-y-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          save();
+        }}
       >
-        <input
-          inputMode="decimal"
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          placeholder="0,00"
-          className={cn(inputClassName(), "tabular-nums")}
-        />
-      </Field>
-      {preview != null ? (
-        <p className="text-sm text-muted">FIRE Flamingo: {formatMoney(preview, currency)}.</p>
-      ) : null}
-      {error ? <p className="text-sm text-loss">{error}</p> : null}
-      <Button type="submit" variant="soft">
-        Guardar objetivo
-      </Button>
-    </form>
+        <Field
+          label="FIRE tradicional"
+          hint="O valor que o dinheiro investido tem de atingir. Banco e poupança não entram. O Flamingo é metade."
+        >
+          <input
+            inputMode="decimal"
+            value={value}
+            onChange={(event) => setValue(event.target.value)}
+            placeholder="0,00"
+            className={cn(inputClassName(), "tabular-nums")}
+          />
+        </Field>
+        {preview != null ? (
+          <p className="text-sm text-muted">FIRE Flamingo: {formatMoney(preview, currency)}.</p>
+        ) : null}
+        {error ? <p className="text-sm text-loss">{error}</p> : null}
+        <Button type="submit" variant="soft">
+          Guardar objetivo
+        </Button>
+      </form>
+      <form
+        className="space-y-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          saveRate();
+        }}
+      >
+        <Field
+          label="Rendimento da estimativa"
+          hint="Por ano, em percentagem. A data no resumo passa a ter uma segunda linha. Não é uma promessa. Vazio para a tirar."
+        >
+          <input
+            inputMode="decimal"
+            value={rate}
+            onChange={(event) => setRate(event.target.value)}
+            placeholder="7"
+            className={cn(inputClassName(), "tabular-nums")}
+          />
+        </Field>
+        {rateError ? <p className="text-sm text-loss">{rateError}</p> : null}
+        <Button type="submit" variant="soft">
+          Guardar estimativa
+        </Button>
+      </form>
+    </div>
   );
 }
 
@@ -535,9 +592,21 @@ function ClosingDayEditor() {
         />
       </Field>
       {error ? <p className="text-sm text-loss">{error}</p> : null}
-      <Button type="submit" variant="soft">
-        Guardar dia
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" variant="soft">
+          Guardar dia
+        </Button>
+        <Button
+          variant="soft"
+          onClick={() => {
+            const parsed = Number(value);
+            const day = Number.isInteger(parsed) && parsed >= 1 && parsed <= 31 ? parsed : closingDay;
+            downloadClosingCalendar(day);
+          }}
+        >
+          Pôr no calendário
+        </Button>
+      </div>
     </form>
   );
 }

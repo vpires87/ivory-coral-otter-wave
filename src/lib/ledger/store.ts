@@ -41,7 +41,9 @@ type Store = LedgerData & {
   setCurrency: (currency: CurrencyCode) => void;
   setMonthlyGoal: (goal: number | null) => void;
   setFireGoal: (goal: number | null) => void;
+  setFireReturn: (rate: number | null) => void;
   setClosingDay: (day: number) => void;
+  setMonthNote: (month: string, text: string) => void;
   addPlatform: (draft: DraftPlatform) => string;
   updatePlatform: (id: string, draft: DraftPlatform) => void;
   deletePlatform: (id: string) => void;
@@ -94,9 +96,11 @@ const empty: LedgerData = {
   cashbacks: [],
   incomeSources: [],
   incomes: [],
+  monthNotes: [],
   currency: "EUR",
   monthlyGoal: null,
   fireGoal: null,
+  fireReturn: null,
   closingDay: 1,
   demo: false,
 };
@@ -115,7 +119,22 @@ export const useLedger = create<Store>()((set) => ({
   setCurrency: (currency) => set({ currency }),
   setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
   setFireGoal: (goal) => set({ fireGoal: goal == null || goal <= 0 ? null : cents(goal) }),
+  setFireReturn: (rate) => {
+    if (rate == null || rate <= 0) {
+      set({ fireReturn: null });
+      return;
+    }
+    const rounded = Math.round(rate * 10) / 10;
+    if (rounded > 20) return;
+    set({ fireReturn: rounded });
+  },
   setClosingDay: (day) => set({ closingDay: clampClosingDay(day) }),
+  setMonthNote: (month, text) =>
+    set((state) => {
+      const note = text.trim().slice(0, 140);
+      const rest = state.monthNotes.filter((item) => item.month !== month);
+      return { monthNotes: note ? [...rest, { month, text: note }] : rest };
+    }),
   addPlatform: (draft) => {
     const id = newId();
     set((state) => ({
@@ -419,9 +438,11 @@ export function selectData(state: Store): LedgerData {
     cashbacks: state.cashbacks,
     incomeSources: state.incomeSources,
     incomes: state.incomes,
+    monthNotes: state.monthNotes,
     currency: state.currency,
     monthlyGoal: state.monthlyGoal,
     fireGoal: state.fireGoal,
+    fireReturn: state.fireReturn,
     closingDay: state.closingDay,
     demo: state.demo,
   };

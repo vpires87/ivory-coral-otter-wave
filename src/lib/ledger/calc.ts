@@ -357,3 +357,39 @@ export function savingsSeries(contributions: MonthEntry[], incomes: IncomeEntry[
     return { month, earned, invested, rate: savingsRate(invested, earned) };
   });
 }
+
+export function isCashKind(kind: Platform["kind"]): boolean {
+  return kind === "banco" || kind === "poupanca";
+}
+
+export function monthlyPace(
+  platforms: Platform[],
+  entries: MonthEntry[],
+  year: string,
+): { average: number; months: number } | null {
+  const ids = new Set(platforms.map((platform) => platform.id));
+  const byMonth = new Map<string, number>();
+  for (const entry of entries) {
+    if (!ids.has(entry.platformId) || !entry.month.startsWith(`${year}-`)) continue;
+    byMonth.set(entry.month, cents((byMonth.get(entry.month) ?? 0) + entry.contributed));
+  }
+  if (byMonth.size === 0) return null;
+  let total = 0;
+  for (const amount of byMonth.values()) total = cents(total + amount);
+  return { average: cents(total / byMonth.size), months: byMonth.size };
+}
+
+export function averageExpense(expenses: ExpenseEntry[]): { average: number; months: number } | null {
+  const byMonth = new Map<string, number>();
+  for (const entry of expenses) {
+    byMonth.set(entry.month, cents((byMonth.get(entry.month) ?? 0) + entry.amount));
+  }
+  if (byMonth.size === 0) return null;
+  let total = 0;
+  for (const amount of byMonth.values()) total = cents(total + amount);
+  return { average: cents(total / byMonth.size), months: byMonth.size };
+}
+
+export function sumInYear(rows: { month: string; amount: number }[], year: string): number {
+  return rows.reduce((sum, row) => (row.month.startsWith(`${year}-`) ? cents(sum + row.amount) : sum), 0);
+}

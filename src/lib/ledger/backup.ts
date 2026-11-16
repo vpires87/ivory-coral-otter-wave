@@ -11,6 +11,7 @@ import {
   type IncomeKind,
   type IncomeSource,
   type LedgerData,
+  type MonthNote,
   type PlatformKind,
   type Product,
   type ProductEntry,
@@ -108,6 +109,16 @@ export function parseBackup(raw: unknown): LedgerData | string {
     const goal = asMoney(data.fireGoal);
     if (goal == null || goal < 0) return "O objetivo FIRE é inválido.";
     fireGoal = goal > 0 ? goal : null;
+  }
+
+  let fireReturn: number | null = null;
+  if (data.fireReturn != null) {
+    if (typeof data.fireReturn !== "number" || !Number.isFinite(data.fireReturn)) {
+      return "O rendimento da estimativa é inválido.";
+    }
+    const rate = Math.round(data.fireReturn * 10) / 10;
+    if (rate < 0 || rate > 20) return "O rendimento da estimativa é inválido.";
+    fireReturn = rate > 0 ? rate : null;
   }
 
   let closingDay = 1;
@@ -299,6 +310,23 @@ export function parseBackup(raw: unknown): LedgerData | string {
     });
   }
 
+  const monthNotes: MonthNote[] = [];
+  const seenNotes = new Set<string>();
+  const noteRows = data.monthNotes == null ? [] : data.monthNotes;
+  if (!Array.isArray(noteRows)) return "As notas dos meses são inválidas.";
+  if (noteRows.length > 600) return "Há notas a mais.";
+  for (const item of noteRows) {
+    const row = asRecord(item);
+    if (!row) return "Há uma nota inválida.";
+    if (typeof row.month !== "string" || !isMonth(row.month)) return "Há uma nota com mês inválido.";
+    if (seenNotes.has(row.month)) return "Há duas notas no mesmo mês.";
+    seenNotes.add(row.month);
+    if (typeof row.text !== "string") return "Há uma nota inválida.";
+    const text = row.text.trim();
+    if (text.length < 1 || text.length > 140) return "Há uma nota inválida.";
+    monthNotes.push({ month: row.month, text });
+  }
+
   return {
     currency: data.currency as CurrencyCode,
     platforms,
@@ -311,8 +339,10 @@ export function parseBackup(raw: unknown): LedgerData | string {
     cashbacks,
     incomeSources,
     incomes,
+    monthNotes,
     monthlyGoal,
     fireGoal,
+    fireReturn,
     closingDay,
     demo: data.demo === true,
   };
@@ -326,7 +356,9 @@ export function toBackup(data: LedgerData) {
     currency: data.currency,
     monthlyGoal: data.monthlyGoal,
     fireGoal: data.fireGoal,
+    fireReturn: data.fireReturn,
     closingDay: data.closingDay,
+    monthNotes: data.monthNotes,
     platforms: data.platforms,
     entries: data.entries,
     products: data.products,

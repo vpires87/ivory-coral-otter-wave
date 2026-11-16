@@ -92,6 +92,11 @@ export type IncomeEntry = {
   amount: number;
 };
 
+export type MonthNote = {
+  month: string;
+  text: string;
+};
+
 export type LedgerData = {
   platforms: Platform[];
   entries: MonthEntry[];
@@ -103,9 +108,11 @@ export type LedgerData = {
   cashbacks: CashbackEntry[];
   incomeSources: IncomeSource[];
   incomes: IncomeEntry[];
+  monthNotes: MonthNote[];
   currency: CurrencyCode;
   monthlyGoal: number | null;
   fireGoal: number | null;
+  fireReturn: number | null;
   closingDay: number;
   demo: boolean;
 };

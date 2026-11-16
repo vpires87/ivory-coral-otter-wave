@@ -1,9 +1,10 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { buildSeries, cashbackFor, cashbackRows, cashbackSeries, cashbackTotal, contributedIn, entryFor, expenseFor, expenseSeries, expenseTotal, incomeFor, incomeTotal, kindShares, platformSnapshot, pointFor, productShares, savingsRate, savingsSeries, sumByMonth, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
-import { cents, flamingoOf, formatMoney, formatMonth, formatPercent, formatPlain, formatShare, parseAmount } from "@/lib/ledger/money";
+import { averageExpense, buildSeries, cashbackFor, cashbackRows, cashbackSeries, cashbackTotal, contributedIn, entryFor, expenseFor, expenseSeries, expenseTotal, incomeFor, incomeTotal, isCashKind, kindShares, monthlyPace, platformSnapshot, pointFor, productShares, savingsRate, savingsSeries, sumByMonth, sumInYear, totals, valueShares, yearlyRollup } from "@/lib/ledger/calc";
+import { cents, flamingoOf, formatMoney, formatMonth, formatMonths, formatPercent, formatPlain, formatRate, formatShare, monthsToGoal, parseAmount, shiftMonth } from "@/lib/ledger/money";
 import { useLedger } from "@/lib/ledger/store";
 import { PLATFORM_KINDS, type CurrencyCode } from "@/lib/ledger/types";
 import { AllocationRing, CashbackHistory, CashbackMonthChart, ExpenseChart, SavingsChart, ValueChart, ValueSpark, YearCompareChart } from "@/components/ledger/chart";
+import { downloadLedger } from "@/components/ledger/dialogs";
 import { Button, CompareBars, GoalMeter, KindMark, MonthSwitcher, ShareList, SignedMoney } from "@/components/ledger/ui";
 
 export function SummaryView({
@@ -35,8 +36,14 @@ export function SummaryView({
   const incomes = useLedger((state) => state.incomes);
   const currency = useLedger((state) => state.currency);
   const monthlyGoal = useLedger((state) => state.monthlyGoal);
+  const monthNotes = useLedger((state) => state.monthNotes);
+  const note = monthNotes.find((item) => item.month === month)?.text ?? "";
+  const investedPlatforms = platforms.filter((platform) => !isCashKind(platform.kind));
+  const cashPlatforms = platforms.filter((platform) => isCashKind(platform.kind));
   const series = buildSeries(platforms, entries);
   const snapshot = totals(platforms, entries);
+  const investedSnapshot = totals(investedPlatforms, entries);
+  const cashSnapshot = totals(cashPlatforms, entries);
   const focus = pointFor(series, month);
   const years = yearlyRollup(series);
   const shares = valueShares(platforms, entries);
@@ -87,6 +94,11 @@ export function SummaryView({
           </div>
           <ValueSpark points={series} />
         </div>
+        {investedSnapshot.withValue > 0 && cashSnapshot.withValue > 0 ? (
+          <p className="mt-3 text-sm text-muted">
+            {formatMoney(investedSnapshot.value, currency)} investido · {formatMoney(cashSnapshot.value, currency)} à mão
+          </p>
+        ) : null}
         <p className="mt-3 max-w-xl text-sm leading-relaxed">{story(snapshot, currency)}</p>
         {snapshot.latestMonth ? (
           <p className="mt-2 text-sm text-muted">
@@ -106,7 +118,16 @@ export function SummaryView({
         ) : null}
       </section>
 
-      <FireCard value={snapshot.value} recorded={snapshot.withValue > 0} currency={currency} />
+      <FireCard
+        value={investedSnapshot.value}
+        recorded={investedSnapshot.withValue > 0}
+        currency={currency}
+        month={month}
+      />
+
+      {cashPlatforms.length > 0 ? (
+        <CashCard value={cashSnapshot.value} recorded={cashSnapshot.withValue > 0} currency={currency} />
+      ) : null}
 
       <section className="rounded-lg border border-line bg-card p-4 sm:p-5">
         <MonthSwitcher month={month} onChange={onMonth} />
@@ -163,6 +184,7 @@ export function SummaryView({
           ].filter((step) => step != null)}
         />
         <p className="mt-4 text-sm leading-relaxed">{monthStory(focus, platforms.length, currency)}</p>
+        {note ? <p className="mt-2 text-sm">Nota: {note}</p> : null}
         <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
           <Mini
             label="Aporte do mês"
@@ -260,6 +282,8 @@ export function SummaryView({
           </Button>
         </section>
       ) : null}
+
+      <YearCard month={month} currency={currency} />
 
       <button
         type="button"
@@ -493,7 +517,7 @@ function CloseSteps({
   );
 }
 
-function FireCard({
+function CashCard({
   value,
   recorded,
   currency,
@@ -502,8 +526,107 @@ function FireCard({
   recorded: boolean;
   currency: CurrencyCode;
 }) {
+  const expenses = useLedger((state) => state.expenses);
+  const average = averageExpense(expenses);
+  const cover = recorded && average != null && average.average > 0 ? value / average.average : null;
+  const detail = !recorded
+    ? "Ainda não há valor registado no banco ou na poupança."
+    : cover == null || average == null
+      ? "Regista as despesas para ver quantos meses isto cobre."
+      : `Cobre ${formatMonths(cover)} de despesa. A média dos meses registados é ${formatMoney(average.average, currency)}.`;
+  return (
+    <section className="rounded-lg border border-line bg-card p-5 sm:p-6">
+      <p className="text-sm text-muted">À mão</p>
+      <p className="mt-2 font-serif text-4xl tabular-nums">{recorded ? formatMoney(value, currency) : "Ainda sem meses"}</p>
+      <p className="mt-3 text-sm leading-relaxed">{detail}</p>
+      <p className="mt-2 text-sm text-muted">Banco e poupança. Não entra no FIRE.</p>
+    </section>
+  );
+}
+
+function YearCard({ month, currency }: { month: string; currency: CurrencyCode }) {
+  const year = month.slice(0, 4);
+  const platforms = useLedger((state) => state.platforms);
+  const entries = useLedger((state) => state.entries);
+  const expenses = useLedger((state) => state.expenses);
+  const incomes = useLedger((state) => state.incomes);
+  const cashbacks = useLedger((state) => state.cashbacks);
+  const roll = yearlyRollup(buildSeries(platforms, entries)).find((item) => item.year === year) ?? null;
+  const spent = sumInYear(
+    expenses.map((entry) => ({ month: entry.month, amount: entry.amount })),
+    year,
+  );
+  const earned = sumInYear(
+    incomes.map((entry) => ({ month: entry.month, amount: entry.amount })),
+    year,
+  );
+  const cash = sumInYear(
+    cashbacks.map((entry) => ({ month: entry.month, amount: entry.amount })),
+    year,
+  );
+  const contributed = roll?.contributed ?? 0;
+  const rate = savingsRate(contributed, earned);
+  if (roll == null && spent <= 0 && earned <= 0 && cash <= 0) return null;
+  return (
+    <section className="rounded-lg border border-line bg-card p-5 sm:p-6">
+      <h2 className="font-serif text-2xl">{year}</h2>
+      <dl className="mt-4 space-y-2 text-sm">
+        <YearRow label="Aportes" value={formatMoney(contributed, currency)} />
+        <YearRow
+          label="Mercado"
+          value={roll ? <SignedMoney value={roll.market} currency={currency} /> : "—"}
+        />
+        <YearRow label="Gastos" value={formatMoney(spent, currency)} />
+        <YearRow label="Cashback" value={formatMoney(cash, currency)} />
+        <YearRow label="Taxa de poupança" value={rate == null ? "—" : formatShare(rate)} />
+        <YearRow label="No fim" value={roll ? formatMoney(roll.endValue, currency) : "—"} />
+      </dl>
+      <Button className="mt-4" variant="soft" onClick={downloadLedger}>
+        Exportar cópia
+      </Button>
+    </section>
+  );
+}
+
+function YearRow({ label, value }: { label: string; value: ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 border-t border-line pt-2">
+      <dt className="text-muted">{label}</dt>
+      <dd className="text-right tabular-nums">{value}</dd>
+    </div>
+  );
+}
+
+function arrivalWhen(
+  value: number,
+  goal: number,
+  monthly: number,
+  rate: number | null,
+  from: string,
+): string | null {
+  if (value >= goal) return null;
+  const months = monthsToGoal(value, goal, monthly, rate);
+  if (months == null) return null;
+  if (months > 600) return "daqui a mais de 50 anos";
+  return formatMonth(shiftMonth(from, months)).toLowerCase();
+}
+
+function FireCard({
+  value,
+  recorded,
+  currency,
+  month,
+}: {
+  value: number;
+  recorded: boolean;
+  currency: CurrencyCode;
+  month: string;
+}) {
   const fireGoal = useLedger((state) => state.fireGoal);
   const setFireGoal = useLedger((state) => state.setFireGoal);
+  const fireReturn = useLedger((state) => state.fireReturn);
+  const platforms = useLedger((state) => state.platforms);
+  const entries = useLedger((state) => state.entries);
   const [editing, setEditing] = useState(fireGoal == null);
   const [draft, setDraft] = useState(fireGoal == null ? "" : formatPlain(fireGoal));
   const [error, setError] = useState("");
@@ -515,6 +638,12 @@ function FireCard({
 
   const typed = parseAmount(draft);
   const preview = typed != null && typed > 0 ? flamingoOf(typed) : null;
+  const year = month.slice(0, 4);
+  const pace = monthlyPace(
+    platforms.filter((platform) => !isCashKind(platform.kind)),
+    entries,
+    year,
+  );
 
   function save() {
     if (draft.trim() === "") {
@@ -534,6 +663,32 @@ function FireCard({
   }
 
   const flamingo = fireGoal == null ? null : flamingoOf(fireGoal);
+  const monthly = pace?.average ?? 0;
+  const flamingoWhen =
+    flamingo == null ? null : arrivalWhen(value, flamingo, monthly, null, month);
+  const fireWhen = fireGoal == null ? null : arrivalWhen(value, fireGoal, monthly, null, month);
+  const flamingoRate =
+    flamingo == null || fireReturn == null ? null : arrivalWhen(value, flamingo, monthly, fireReturn, month);
+  const fireRate = fireGoal == null || fireReturn == null ? null : arrivalWhen(value, fireGoal, monthly, fireReturn, month);
+  const paceHead =
+    pace == null
+      ? null
+      : pace.months === 1
+        ? `Com o aporte de ${formatMoney(pace.average, currency)} em ${year}`
+        : `À média de ${formatMoney(pace.average, currency)} por mês em ${year}`;
+  let paceLine: string | null = null;
+  if (recorded && fireGoal != null && value < fireGoal) {
+    if (pace == null) paceLine = "Ainda não há aportes deste ano para estimar uma data.";
+    else if (pace.average <= 0) paceLine = `Em ${year}, os aportes não encurtam a distância.`;
+    else if (flamingoWhen && fireWhen) paceLine = `${paceHead}, o Flamingo é em ${flamingoWhen} e o FIRE em ${fireWhen}.`;
+    else if (fireWhen) paceLine = `O Flamingo já passou. ${paceHead}, o FIRE é em ${fireWhen}.`;
+  }
+  let rateLine: string | null = null;
+  if (recorded && fireReturn != null && fireGoal != null && value < fireGoal && (monthly > 0 || value > 0)) {
+    const head = `Se render ${formatRate(fireReturn)}% ao ano`;
+    if (flamingoRate && fireRate) rateLine = `${head}, o Flamingo é em ${flamingoRate} e o FIRE em ${fireRate}. É uma estimativa.`;
+    else if (fireRate) rateLine = `${head}, o FIRE é em ${fireRate}. É uma estimativa.`;
+  }
 
   return (
     <section className="rounded-lg border border-line bg-card p-5 sm:p-6">
@@ -549,7 +704,7 @@ function FireCard({
             tone="brass"
             detail={
               !recorded
-                ? `O Flamingo é ${formatMoney(flamingo, currency)}, metade do FIRE. Ainda não há valores de ativos registados.`
+                ? `O Flamingo é ${formatMoney(flamingo, currency)}, metade do FIRE. Ainda não há valores investidos registados.`
                 : value >= flamingo
                   ? "Já chegaste. A partir daqui podes abrandar: o que está investido pode crescer sozinho até ao FIRE."
                   : `Faltam ${formatMoney(cents(flamingo - value), currency)}. É metade do FIRE, o ponto em que podes trabalhar menos.`
@@ -564,12 +719,14 @@ function FireCard({
             tone="forest"
             detail={
               !recorded
-                ? `O FIRE é ${formatMoney(fireGoal, currency)}. Ainda não há valores de ativos registados.`
+                ? `O FIRE é ${formatMoney(fireGoal, currency)}. Ainda não há valores investidos registados.`
                 : value >= fireGoal
-                  ? `A carteira vale ${formatMoney(value, currency)} e já passou o FIRE de ${formatMoney(fireGoal, currency)}.`
-                  : `Faltam ${formatMoney(cents(fireGoal - value), currency)} para a carteira pagar as despesas sem ordenado.`
+                  ? `O que está investido vale ${formatMoney(value, currency)} e já passou o FIRE de ${formatMoney(fireGoal, currency)}.`
+                  : `Faltam ${formatMoney(cents(fireGoal - value), currency)} para o que está investido pagar as despesas sem ordenado.`
             }
           />
+          {paceLine ? <p className="text-sm leading-relaxed">{paceLine}</p> : null}
+          {rateLine ? <p className="text-sm leading-relaxed text-muted">{rateLine}</p> : null}
           <Button variant="soft" onClick={() => setEditing(true)}>
             Alterar objetivo
           </Button>
@@ -583,8 +740,8 @@ function FireCard({
           }}
         >
           <p className="text-sm leading-relaxed text-muted">
-            O FIRE tradicional é o valor que a carteira tem de atingir. O Flamingo é metade: o primeiro sítio onde
-            podes abrandar e deixar o dinheiro crescer.
+            O FIRE tradicional é o valor que o dinheiro investido tem de atingir. Banco e poupança não entram. O
+            Flamingo é metade: o primeiro sítio onde podes abrandar.
           </p>
           <label className="block">
             <span className="mb-1.5 block text-sm font-medium">FIRE tradicional</span>

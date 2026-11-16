@@ -1,6 +1,6 @@
 import { n as createMiddleware } from "./ssr.mjs";
 import { n as parse, r as format, t as pt } from "../_libs/date-fns.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/backup-C9PyFWEx.js
+//#region node_modules/.nitro/vite/services/ssr/assets/backup-0iWdrIVm.js
 /**
 * Auth middleware for server functions — the standard way to get the caller's
 * verified user id. When deployed the session cookie is same-origin and rides
@@ -38,7 +38,71 @@ var authMiddleware = createMiddleware({ type: "function" }).client(async ({ next
 function cents(n) {
 	return Math.round(n * 100) / 100;
 }
-/** Flamingo FIRE is half the traditional nest egg: the point where compounding can finish the job. */
+/** Months of steady saving until a goal. Null when the pace cannot get there. */
+function monthsToGoal(value, goal, monthly, annualPercent) {
+	if (goal <= 0 || value >= goal) return 0;
+	const rate = annualPercent != null && annualPercent > 0 ? annualPercent / 100 : 0;
+	if (rate === 0) {
+		if (monthly <= 0) return null;
+		return Math.ceil((goal - value) / monthly);
+	}
+	const monthlyRate = (1 + rate) ** (1 / 12) - 1;
+	if (monthlyRate <= 0) return null;
+	if (monthly <= 0) {
+		if (value <= 0) return null;
+		const months = Math.log(goal / value) / Math.log(1 + monthlyRate);
+		return Number.isFinite(months) && months > 0 ? Math.ceil(months) : null;
+	}
+	const withContributions = value + monthly / monthlyRate;
+	if (withContributions <= 0) return null;
+	const ratio = (goal + monthly / monthlyRate) / withContributions;
+	if (ratio <= 1) return 0;
+	const months = Math.log(ratio) / Math.log(1 + monthlyRate);
+	return Number.isFinite(months) && months > 0 ? Math.ceil(months) : null;
+}
+function formatMonths(value) {
+	if (value > 0 && value < .05) return "menos de 0,1 meses";
+	const rounded = Math.round(value * 10) / 10;
+	return `${new Intl.NumberFormat("pt-PT", {
+		minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1,
+		maximumFractionDigits: 1
+	}).format(rounded)} ${rounded === 1 ? "mês" : "meses"}`;
+}
+function formatRate(percent) {
+	return new Intl.NumberFormat("pt-PT", { maximumFractionDigits: 1 }).format(percent);
+}
+function closingDates(closingDay, now = /* @__PURE__ */ new Date(), count = 24) {
+	let start = currentMonth(now);
+	const today = Math.min(clampClosingDay(closingDay), daysInMonth(start));
+	if (now.getDate() > today) start = shiftMonth(start, 1);
+	const dates = [];
+	for (let index = 0; index < count; index += 1) {
+		const month = shiftMonth(start, index);
+		const day = Math.min(clampClosingDay(closingDay), daysInMonth(month));
+		dates.push(`${month}-${String(day).padStart(2, "0")}`);
+	}
+	return dates;
+}
+function closingCalendar(closingDay, now = /* @__PURE__ */ new Date()) {
+	return [
+		"BEGIN:VCALENDAR",
+		"VERSION:2.0",
+		"PRODID:-//Lastro//PT",
+		"CALSCALE:GREGORIAN",
+		...closingDates(closingDay, now).map((date) => {
+			const stamp = date.replaceAll("-", "");
+			return [
+				"BEGIN:VEVENT",
+				`UID:lastro-fecho-${stamp}@lastro`,
+				`DTSTART;VALUE=DATE:${stamp}`,
+				"SUMMARY:Fechar o mês no Lastro",
+				"DESCRIPTION:Aportes, ganhos, despesas e cartões.",
+				"END:VEVENT"
+			].join("\r\n");
+		}),
+		"END:VCALENDAR"
+	].join("\r\n");
+}
 function flamingoOf(fireGoal) {
 	return cents(fireGoal / 2);
 }
@@ -271,6 +335,13 @@ function parseBackup(raw) {
 		if (goal == null || goal < 0) return "O objetivo FIRE é inválido.";
 		fireGoal = goal > 0 ? goal : null;
 	}
+	let fireReturn = null;
+	if (data.fireReturn != null) {
+		if (typeof data.fireReturn !== "number" || !Number.isFinite(data.fireReturn)) return "O rendimento da estimativa é inválido.";
+		const rate = Math.round(data.fireReturn * 10) / 10;
+		if (rate < 0 || rate > 20) return "O rendimento da estimativa é inválido.";
+		fireReturn = rate > 0 ? rate : null;
+	}
 	let closingDay = 1;
 	if (data.closingDay != null) {
 		if (typeof data.closingDay !== "number" || !Number.isInteger(data.closingDay)) return "O dia de fecho é inválido.";
@@ -444,6 +515,25 @@ function parseBackup(raw) {
 			endValue
 		});
 	}
+	const monthNotes = [];
+	const seenNotes = /* @__PURE__ */ new Set();
+	const noteRows = data.monthNotes == null ? [] : data.monthNotes;
+	if (!Array.isArray(noteRows)) return "As notas dos meses são inválidas.";
+	if (noteRows.length > 600) return "Há notas a mais.";
+	for (const item of noteRows) {
+		const row = asRecord(item);
+		if (!row) return "Há uma nota inválida.";
+		if (typeof row.month !== "string" || !isMonth(row.month)) return "Há uma nota com mês inválido.";
+		if (seenNotes.has(row.month)) return "Há duas notas no mesmo mês.";
+		seenNotes.add(row.month);
+		if (typeof row.text !== "string") return "Há uma nota inválida.";
+		const text = row.text.trim();
+		if (text.length < 1 || text.length > 140) return "Há uma nota inválida.";
+		monthNotes.push({
+			month: row.month,
+			text
+		});
+	}
 	return {
 		currency: data.currency,
 		platforms,
@@ -456,8 +546,10 @@ function parseBackup(raw) {
 		cashbacks,
 		incomeSources,
 		incomes,
+		monthNotes,
 		monthlyGoal,
 		fireGoal,
+		fireReturn,
 		closingDay,
 		demo: data.demo === true
 	};
@@ -470,7 +562,9 @@ function toBackup(data) {
 		currency: data.currency,
 		monthlyGoal: data.monthlyGoal,
 		fireGoal: data.fireGoal,
+		fireReturn: data.fireReturn,
 		closingDay: data.closingDay,
+		monthNotes: data.monthNotes,
 		platforms: data.platforms,
 		entries: data.entries,
 		products: data.products,
@@ -485,4 +579,4 @@ function toBackup(data) {
 	};
 }
 //#endregion
-export { parseBackup as C, parseAmount as S, toBackup as T, formatSavedAt as _, cents as a, isClosingToday as b, dueMonth as c, formatCloseDay as d, formatCompact as f, formatPlain as g, formatPercent as h, authMiddleware as i, eachMonth as l, formatMonth as m, INCOME_KINDS as n, clampClosingDay as o, formatMoney as p, PLATFORM_KINDS as r, currentMonth as s, CURRENCIES as t, flamingoOf as u, formatShare as v, shiftMonth as w, isMonth as x, formatWhen as y };
+export { isClosingToday as C, parseBackup as D, parseAmount as E, shiftMonth as O, formatWhen as S, monthsToGoal as T, formatPercent as _, cents as a, formatSavedAt as b, currentMonth as c, flamingoOf as d, formatCloseDay as f, formatMonths as g, formatMonth as h, authMiddleware as i, toBackup as k, dueMonth as l, formatMoney as m, INCOME_KINDS as n, clampClosingDay as o, formatCompact as p, PLATFORM_KINDS as r, closingCalendar as s, CURRENCIES as t, eachMonth as u, formatPlain as v, isMonth as w, formatShare as x, formatRate as y };

@@ -33,6 +33,8 @@ function readLegacyEnvelope(): { data: LedgerData; savedAt: number | null } | nu
       cashbacks: state.cashbacks ?? [],
       incomeSources: state.incomeSources ?? [],
       incomes: state.incomes ?? [],
+      monthNotes: state.monthNotes ?? [],
+      fireReturn: state.fireReturn ?? null,
       demo: state.demo === true,
     });
     if (typeof result === "string") return null;

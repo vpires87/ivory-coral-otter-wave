@@ -6,7 +6,77 @@ export function cents(n: number): number {
   return Math.round(n * 100) / 100;
 }
 
-/** Flamingo FIRE is half the traditional nest egg: the point where compounding can finish the job. */
+/** Months of steady saving until a goal. Null when the pace cannot get there. */
+export function monthsToGoal(
+  value: number,
+  goal: number,
+  monthly: number,
+  annualPercent: number | null,
+): number | null {
+  if (goal <= 0 || value >= goal) return 0;
+  const rate = annualPercent != null && annualPercent > 0 ? annualPercent / 100 : 0;
+  if (rate === 0) {
+    if (monthly <= 0) return null;
+    return Math.ceil((goal - value) / monthly);
+  }
+  const monthlyRate = (1 + rate) ** (1 / 12) - 1;
+  if (monthlyRate <= 0) return null;
+  if (monthly <= 0) {
+    if (value <= 0) return null;
+    const months = Math.log(goal / value) / Math.log(1 + monthlyRate);
+    return Number.isFinite(months) && months > 0 ? Math.ceil(months) : null;
+  }
+  const withContributions = value + monthly / monthlyRate;
+  if (withContributions <= 0) return null;
+  const ratio = (goal + monthly / monthlyRate) / withContributions;
+  if (ratio <= 1) return 0;
+  const months = Math.log(ratio) / Math.log(1 + monthlyRate);
+  return Number.isFinite(months) && months > 0 ? Math.ceil(months) : null;
+}
+
+export function formatMonths(value: number): string {
+  if (value > 0 && value < 0.05) return "menos de 0,1 meses";
+  const rounded = Math.round(value * 10) / 10;
+  const text = new Intl.NumberFormat("pt-PT", {
+    minimumFractionDigits: Number.isInteger(rounded) ? 0 : 1,
+    maximumFractionDigits: 1,
+  }).format(rounded);
+  return `${text} ${rounded === 1 ? "mês" : "meses"}`;
+}
+
+export function formatRate(percent: number): string {
+  return new Intl.NumberFormat("pt-PT", { maximumFractionDigits: 1 }).format(percent);
+}
+
+export function closingDates(closingDay: number, now = new Date(), count = 24): string[] {
+  let start = currentMonth(now);
+  const today = Math.min(clampClosingDay(closingDay), daysInMonth(start));
+  if (now.getDate() > today) start = shiftMonth(start, 1);
+  const dates: string[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const month = shiftMonth(start, index);
+    const day = Math.min(clampClosingDay(closingDay), daysInMonth(month));
+    dates.push(`${month}-${String(day).padStart(2, "0")}`);
+  }
+  return dates;
+}
+
+export function closingCalendar(closingDay: number, now = new Date()): string {
+  const events = closingDates(closingDay, now).map((date) => {
+    const stamp = date.replaceAll("-", "");
+    return [
+      "BEGIN:VEVENT",
+      `UID:lastro-fecho-${stamp}@lastro`,
+      `DTSTART;VALUE=DATE:${stamp}`,
+      "SUMMARY:Fechar o mês no Lastro",
+      "DESCRIPTION:Aportes, ganhos, despesas e cartões.",
+      "END:VEVENT",
+    ].join("\r\n");
+  });
+  return ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Lastro//PT", "CALSCALE:GREGORIAN", ...events, "END:VCALENDAR"].join(
+    "\r\n",
+  );
+}
 export function flamingoOf(fireGoal: number): number {
   return cents(fireGoal / 2);
 }

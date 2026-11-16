@@ -5,10 +5,10 @@ import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].
 import { _ as createFileRoute, b as useRouter, d as Scripts, f as HeadContent, g as lazyRouteComponent, h as Outlet, m as createRouter, v as createRootRoute } from "../_libs/@tanstack/react-router+[...].mjs";
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
 import { a as getServerFnById, i as TSS_SERVER_FUNCTION, r as createServerFn } from "./ssr.mjs";
-import { C as parseBackup, i as authMiddleware } from "./backup-C9PyFWEx.mjs";
+import { D as parseBackup, i as authMiddleware } from "./backup-0iWdrIVm.mjs";
 import { t as auth } from "./server-DULnXI5m.mjs";
 import { r as TriangleAlert } from "../_libs/lucide-react.mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/router-CCyObWTc.js
+//#region node_modules/.nitro/vite/services/ssr/assets/router-D__jgidm.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 var FALLBACK_MESSAGE = "An unexpected error occurred. Try reloading the page.";
@@ -429,7 +429,7 @@ function ThemeBoot() {
 	}, []);
 	return null;
 }
-var styles_default = "/assets/styles-DlIP3fKP.css";
+var styles_default = "/assets/styles-Df1_ErFP.css";
 var APP_NAME = "Lastro";
 function shareHost(raw) {
 	const host = String(raw ?? "").split(",")[0].trim().split(":")[0].toLowerCase();
@@ -541,7 +541,7 @@ var saveLedger = createServerFn({ method: "POST" }).validator((input) => {
 		force: body.force === true
 	};
 }).middleware([authMiddleware]).handler(createSsrRpc("94336ba60ad5fd3d3e26c0a812bda93c8cfff06ef5eb6a9fdc20d41278839862"));
-var $$splitComponentImporter$1 = () => import("./routes-DY3Ub_pQ.mjs");
+var $$splitComponentImporter$1 = () => import("./routes-DL_iP863.mjs");
 var Route$2 = createFileRoute("/")({
 	loader: () => ledgerBackend(),
 	component: lazyRouteComponent($$splitComponentImporter$1, "component")

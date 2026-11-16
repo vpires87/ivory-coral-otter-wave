@@ -3,14 +3,14 @@ import { n as require_react } from "../_libs/@radix-ui/react-compose-refs+[...].
 import { r as signOut, t as authClient } from "./client-CH2mWUg4.mjs";
 import { n as require_jsx_runtime } from "../_libs/radix-ui__react-context+react.mjs";
 import { a as DialogOverlay, i as DialogDescription, n as DialogClose, o as DialogPortal, r as DialogContent, s as DialogTitle, t as Dialog } from "../_libs/@radix-ui/react-dialog+[...].mjs";
-import { C as parseBackup, S as parseAmount, T as toBackup, _ as formatSavedAt, a as cents, b as isClosingToday, c as dueMonth, d as formatCloseDay, f as formatCompact, g as formatPlain, h as formatPercent, l as eachMonth, m as formatMonth, n as INCOME_KINDS, o as clampClosingDay, p as formatMoney, r as PLATFORM_KINDS, s as currentMonth, t as CURRENCIES, u as flamingoOf, v as formatShare, w as shiftMonth, x as isMonth, y as formatWhen } from "./backup-C9PyFWEx.mjs";
+import { C as isClosingToday, D as parseBackup, E as parseAmount, O as shiftMonth, S as formatWhen, T as monthsToGoal, _ as formatPercent, a as cents, b as formatSavedAt, c as currentMonth, d as flamingoOf, f as formatCloseDay, g as formatMonths, h as formatMonth, k as toBackup, l as dueMonth, m as formatMoney, n as INCOME_KINDS, o as clampClosingDay, p as formatCompact, r as PLATFORM_KINDS, s as closingCalendar, t as CURRENCIES, u as eachMonth, v as formatPlain, w as isMonth, x as formatShare, y as formatRate } from "./backup-0iWdrIVm.mjs";
 import { a as Settings, c as ChevronRight, d as Bitcoin, i as Shapes, l as ChevronLeft, n as Wallet, o as PiggyBank, s as Landmark, t as X, u as ChartLine } from "../_libs/lucide-react.mjs";
-import { a as THEMES, i as saveLedger, n as Route$2, o as readTheme, r as loadLedger, s as storeTheme } from "./router-CCyObWTc.mjs";
+import { a as THEMES, i as saveLedger, n as Route$2, o as readTheme, r as loadLedger, s as storeTheme } from "./router-D__jgidm.mjs";
 import { t as create } from "../_libs/zustand.mjs";
 import { t as clsx } from "../_libs/clsx.mjs";
 import { t as twMerge } from "../_libs/tailwind-merge.mjs";
 import { a as XAxis, c as CartesianGrid, d as Pie, f as Cell, i as YAxis, l as ReferenceLine, m as Tooltip, n as PieChart, o as Area, p as ResponsiveContainer, r as BarChart, s as Line, t as ComposedChart, u as Bar } from "../_libs/recharts+[...].mjs";
-//#region node_modules/.nitro/vite/services/ssr/assets/routes-DY3Ub_pQ.js
+//#region node_modules/.nitro/vite/services/ssr/assets/routes-DL_iP863.js
 var import_react = /* @__PURE__ */ __toESM(require_react());
 var import_jsx_runtime = require_jsx_runtime();
 function byMonth(a, b) {
@@ -349,6 +349,38 @@ function savingsSeries(contributions, incomes) {
 		};
 	});
 }
+function isCashKind(kind) {
+	return kind === "banco" || kind === "poupanca";
+}
+function monthlyPace(platforms, entries, year) {
+	const ids = new Set(platforms.map((platform) => platform.id));
+	const byMonth = /* @__PURE__ */ new Map();
+	for (const entry of entries) {
+		if (!ids.has(entry.platformId) || !entry.month.startsWith(`${year}-`)) continue;
+		byMonth.set(entry.month, cents((byMonth.get(entry.month) ?? 0) + entry.contributed));
+	}
+	if (byMonth.size === 0) return null;
+	let total = 0;
+	for (const amount of byMonth.values()) total = cents(total + amount);
+	return {
+		average: cents(total / byMonth.size),
+		months: byMonth.size
+	};
+}
+function averageExpense(expenses) {
+	const byMonth = /* @__PURE__ */ new Map();
+	for (const entry of expenses) byMonth.set(entry.month, cents((byMonth.get(entry.month) ?? 0) + entry.amount));
+	if (byMonth.size === 0) return null;
+	let total = 0;
+	for (const amount of byMonth.values()) total = cents(total + amount);
+	return {
+		average: cents(total / byMonth.size),
+		months: byMonth.size
+	};
+}
+function sumInYear(rows, year) {
+	return rows.reduce((sum, row) => row.month.startsWith(`${year}-`) ? cents(sum + row.amount) : sum, 0);
+}
 var platforms = [
 	{
 		id: "demo-xtb",
@@ -605,9 +637,14 @@ function demoLedger() {
 		cashbacks: cashbacks.map((entry) => ({ ...entry })),
 		incomeSources: incomeSources.map((source) => ({ ...source })),
 		incomes: incomes.map((entry) => ({ ...entry })),
+		monthNotes: [{
+			month: "2026-08",
+			text: "Férias."
+		}],
 		currency: "EUR",
 		monthlyGoal: 650,
 		fireGoal: 5e4,
+		fireReturn: null,
 		closingDay: 25,
 		demo: true
 	};
@@ -634,9 +671,11 @@ var empty = {
 	cashbacks: [],
 	incomeSources: [],
 	incomes: [],
+	monthNotes: [],
 	currency: "EUR",
 	monthlyGoal: null,
 	fireGoal: null,
+	fireReturn: null,
 	closingDay: 1,
 	demo: false
 };
@@ -654,7 +693,24 @@ var useLedger = create()((set) => ({
 	setCurrency: (currency) => set({ currency }),
 	setMonthlyGoal: (goal) => set({ monthlyGoal: goal == null || goal <= 0 ? null : cents(goal) }),
 	setFireGoal: (goal) => set({ fireGoal: goal == null || goal <= 0 ? null : cents(goal) }),
+	setFireReturn: (rate) => {
+		if (rate == null || rate <= 0) {
+			set({ fireReturn: null });
+			return;
+		}
+		const rounded = Math.round(rate * 10) / 10;
+		if (rounded > 20) return;
+		set({ fireReturn: rounded });
+	},
 	setClosingDay: (day) => set({ closingDay: clampClosingDay(day) }),
+	setMonthNote: (month, text) => set((state) => {
+		const note = text.trim().slice(0, 140);
+		const rest = state.monthNotes.filter((item) => item.month !== month);
+		return { monthNotes: note ? [...rest, {
+			month,
+			text: note
+		}] : rest };
+	}),
 	addPlatform: (draft) => {
 		const id = newId();
 		set((state) => ({ platforms: [...state.platforms, {
@@ -952,9 +1008,11 @@ function selectData(state) {
 		cashbacks: state.cashbacks,
 		incomeSources: state.incomeSources,
 		incomes: state.incomes,
+		monthNotes: state.monthNotes,
 		currency: state.currency,
 		monthlyGoal: state.monthlyGoal,
 		fireGoal: state.fireGoal,
+		fireReturn: state.fireReturn,
 		closingDay: state.closingDay,
 		demo: state.demo
 	};
@@ -3473,13 +3531,17 @@ function CloseView({ month, onMonth, onSetup }) {
 		children: [
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
-				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthSwitcher, {
-					month,
-					onChange: onMonth
-				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-					className: "mt-3 text-sm text-muted",
-					children: "Aponta o mês de uma vez: investimentos, ganhos, despesas e cartões."
-				})]
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthSwitcher, {
+						month,
+						onChange: onMonth
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+						className: "mt-3 text-sm text-muted",
+						children: "Aponta o mês de uma vez: investimentos, ganhos, despesas e cartões."
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(MonthNote, { month })
+				]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				id: "fecho-investimentos",
@@ -3536,6 +3598,44 @@ function CloseView({ month, onMonth, onSetup }) {
 		]
 	});
 }
+function MonthNote({ month }) {
+	const monthNotes = useLedger((state) => state.monthNotes);
+	const setMonthNote = useLedger((state) => state.setMonthNote);
+	const saved = monthNotes.find((item) => item.month === month)?.text ?? "";
+	const [draft, setDraft] = (0, import_react.useState)(saved);
+	(0, import_react.useEffect)(() => {
+		setDraft(saved);
+	}, [saved, month]);
+	function save() {
+		if (draft.trim() !== saved) setMonthNote(month, draft);
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+		className: "mt-4",
+		onSubmit: (event) => {
+			event.preventDefault();
+			save();
+		},
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
+			className: "block",
+			children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("span", {
+				className: "text-sm font-medium",
+				children: "Nota deste mês"
+			}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+				value: draft,
+				maxLength: 140,
+				placeholder: "Uma linha para daqui a um ano. Prémio, férias, carro.",
+				onChange: (event) => setDraft(event.target.value),
+				onBlur: save,
+				className: "mt-2 h-12 w-full rounded-md border border-line bg-paper px-3 text-base text-ink outline-none focus-visible:border-forest"
+			})]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+			className: "mt-2",
+			type: "submit",
+			variant: "soft",
+			children: "Guardar nota"
+		})]
+	});
+}
 /**
 * Current user + loading state. Same behavior in live preview and when deployed:
 *   - Auth enabled -> the real signed-in user; `user` is `null` while
@@ -3590,6 +3690,21 @@ function useSessionUserState() {
 */
 function useCurrentUser() {
 	return useCurrentUserState().user;
+}
+function downloadBlob(filename, blob) {
+	const url = URL.createObjectURL(blob);
+	const link = document.createElement("a");
+	link.href = url;
+	link.download = filename;
+	link.click();
+	URL.revokeObjectURL(url);
+}
+function downloadLedger() {
+	const payload = toBackup(selectData(useLedger.getState()));
+	downloadBlob("lastro-caderneta.json", new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }));
+}
+function downloadClosingCalendar(day) {
+	downloadBlob("lastro-fecho.ics", new Blob([closingCalendar(day)], { type: "text/calendar" }));
 }
 function Sheet({ open, onOpenChange, title, description, children }) {
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Dialog, {
@@ -3729,14 +3844,7 @@ function SettingsDialog({ open, onOpenChange }) {
 		if (open) setTheme(readTheme());
 	}, [open]);
 	function exportFile() {
-		const payload = toBackup(selectData(useLedger.getState()));
-		const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-		const url = URL.createObjectURL(blob);
-		const link = document.createElement("a");
-		link.href = url;
-		link.download = "lastro-caderneta.json";
-		link.click();
-		URL.revokeObjectURL(url);
+		downloadLedger();
 		setMessage("Ficheiro descarregado.");
 	}
 	async function onFile(file) {
@@ -3971,9 +4079,13 @@ function GoalEditor() {
 function FireEditor() {
 	const fireGoal = useLedger((state) => state.fireGoal);
 	const setFireGoal = useLedger((state) => state.setFireGoal);
+	const fireReturn = useLedger((state) => state.fireReturn);
+	const setFireReturn = useLedger((state) => state.setFireReturn);
 	const currency = useLedger((state) => state.currency);
 	const [value, setValue] = (0, import_react.useState)(fireGoal == null ? "" : formatPlain(fireGoal));
+	const [rate, setRate] = (0, import_react.useState)(fireReturn == null ? "" : formatRate(fireReturn));
 	const [error, setError] = (0, import_react.useState)("");
+	const [rateError, setRateError] = (0, import_react.useState)("");
 	const typed = parseAmount(value);
 	const preview = typed != null && typed > 0 ? flamingoOf(typed) : null;
 	function save() {
@@ -3991,42 +4103,88 @@ function FireEditor() {
 		setValue(formatPlain(parsed));
 		setError("");
 	}
-	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
-		className: "space-y-2",
-		onSubmit: (event) => {
-			event.preventDefault();
-			save();
-		},
-		children: [
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
-				label: "FIRE tradicional",
-				hint: "O valor que a carteira tem de atingir. O Flamingo é sempre metade.",
-				children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
-					inputMode: "decimal",
-					value,
-					onChange: (event) => setValue(event.target.value),
-					placeholder: "0,00",
-					className: cn(inputClassName(), "tabular-nums")
+	function saveRate() {
+		if (rate.trim() === "") {
+			setFireReturn(null);
+			setRateError("");
+			return;
+		}
+		const parsed = parseAmount(rate);
+		if (parsed == null || parsed <= 0 || parsed > 20) {
+			setRateError("Usa um número entre 0 e 20, ou deixa vazio.");
+			return;
+		}
+		setFireReturn(parsed);
+		setRate(formatRate(parsed));
+		setRateError("");
+	}
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "space-y-4",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			className: "space-y-2",
+			onSubmit: (event) => {
+				event.preventDefault();
+				save();
+			},
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+					label: "FIRE tradicional",
+					hint: "O valor que o dinheiro investido tem de atingir. Banco e poupança não entram. O Flamingo é metade.",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+						inputMode: "decimal",
+						value,
+						onChange: (event) => setValue(event.target.value),
+						placeholder: "0,00",
+						className: cn(inputClassName(), "tabular-nums")
+					})
+				}),
+				preview != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+					className: "text-sm text-muted",
+					children: [
+						"FIRE Flamingo: ",
+						formatMoney(preview, currency),
+						"."
+					]
+				}) : null,
+				error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-sm text-loss",
+					children: error
+				}) : null,
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					variant: "soft",
+					children: "Guardar objetivo"
 				})
-			}),
-			preview != null ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
-				className: "text-sm text-muted",
-				children: [
-					"FIRE Flamingo: ",
-					formatMoney(preview, currency),
-					"."
-				]
-			}) : null,
-			error ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
-				className: "text-sm text-loss",
-				children: error
-			}) : null,
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-				type: "submit",
-				variant: "soft",
-				children: "Guardar objetivo"
-			})
-		]
+			]
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("form", {
+			className: "space-y-2",
+			onSubmit: (event) => {
+				event.preventDefault();
+				saveRate();
+			},
+			children: [
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Field, {
+					label: "Rendimento da estimativa",
+					hint: "Por ano, em percentagem. A data no resumo passa a ter uma segunda linha. Não é uma promessa. Vazio para a tirar.",
+					children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("input", {
+						inputMode: "decimal",
+						value: rate,
+						onChange: (event) => setRate(event.target.value),
+						placeholder: "7",
+						className: cn(inputClassName(), "tabular-nums")
+					})
+				}),
+				rateError ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-sm text-loss",
+					children: rateError
+				}) : null,
+				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					variant: "soft",
+					children: "Guardar estimativa"
+				})
+			]
+		})]
 	});
 }
 function ClosingDayEditor() {
@@ -4065,10 +4223,20 @@ function ClosingDayEditor() {
 				className: "text-sm text-loss",
 				children: error
 			}) : null,
-			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
-				type: "submit",
-				variant: "soft",
-				children: "Guardar dia"
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+				className: "flex flex-wrap gap-2",
+				children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					type: "submit",
+					variant: "soft",
+					children: "Guardar dia"
+				}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+					variant: "soft",
+					onClick: () => {
+						const parsed = Number(value);
+						downloadClosingCalendar(Number.isInteger(parsed) && parsed >= 1 && parsed <= 31 ? parsed : closingDay);
+					},
+					children: "Pôr no calendário"
+				})]
 			})
 		]
 	});
@@ -4086,8 +4254,13 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 	const incomes = useLedger((state) => state.incomes);
 	const currency = useLedger((state) => state.currency);
 	const monthlyGoal = useLedger((state) => state.monthlyGoal);
+	const note = useLedger((state) => state.monthNotes).find((item) => item.month === month)?.text ?? "";
+	const investedPlatforms = platforms.filter((platform) => !isCashKind(platform.kind));
+	const cashPlatforms = platforms.filter((platform) => isCashKind(platform.kind));
 	const series = buildSeries(platforms, entries);
 	const snapshot = totals(platforms, entries);
+	const investedSnapshot = totals(investedPlatforms, entries);
+	const cashSnapshot = totals(cashPlatforms, entries);
 	const focus = pointFor(series, month);
 	const years = yearlyRollup(series);
 	const shares = valueShares(platforms, entries);
@@ -4138,6 +4311,15 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 							})]
 						}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)(ValueSpark, { points: series })]
 					}),
+					investedSnapshot.withValue > 0 && cashSnapshot.withValue > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "mt-3 text-sm text-muted",
+						children: [
+							formatMoney(investedSnapshot.value, currency),
+							" investido · ",
+							formatMoney(cashSnapshot.value, currency),
+							" à mão"
+						]
+					}) : null,
 					/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 						className: "mt-3 max-w-xl text-sm leading-relaxed",
 						children: story(snapshot, currency)
@@ -4161,10 +4343,16 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 				]
 			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FireCard, {
-				value: snapshot.value,
-				recorded: snapshot.withValue > 0,
-				currency
+				value: investedSnapshot.value,
+				recorded: investedSnapshot.withValue > 0,
+				currency,
+				month
 			}),
+			cashPlatforms.length > 0 ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(CashCard, {
+				value: cashSnapshot.value,
+				recorded: cashSnapshot.withValue > 0,
+				currency
+			}) : null,
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 				className: "rounded-lg border border-line bg-card p-4 sm:p-5",
 				children: [
@@ -4218,6 +4406,10 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 						className: "mt-4 text-sm leading-relaxed",
 						children: monthStory(focus, platforms.length, currency)
 					}),
+					note ? /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("p", {
+						className: "mt-2 text-sm",
+						children: ["Nota: ", note]
+					}) : null,
 					/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 						className: "mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3",
 						children: [
@@ -4361,6 +4553,10 @@ function SummaryView({ month, onMonth, onRegister, onExpenses, onCashback, onInc
 					})
 				]
 			}) : null,
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YearCard, {
+				month,
+				currency
+			}),
 			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("button", {
 				type: "button",
 				"aria-expanded": evolution,
@@ -4619,9 +4815,128 @@ function CloseSteps({ steps }) {
 		})]
 	});
 }
-function FireCard({ value, recorded, currency }) {
+function CashCard({ value, recorded, currency }) {
+	const average = averageExpense(useLedger((state) => state.expenses));
+	const cover = recorded && average != null && average.average > 0 ? value / average.average : null;
+	const detail = !recorded ? "Ainda não há valor registado no banco ou na poupança." : cover == null || average == null ? "Regista as despesas para ver quantos meses isto cobre." : `Cobre ${formatMonths(cover)} de despesa. A média dos meses registados é ${formatMoney(average.average, currency)}.`;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-5 sm:p-6",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "text-sm text-muted",
+				children: "À mão"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-2 font-serif text-4xl tabular-nums",
+				children: recorded ? formatMoney(value, currency) : "Ainda sem meses"
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-3 text-sm leading-relaxed",
+				children: detail
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+				className: "mt-2 text-sm text-muted",
+				children: "Banco e poupança. Não entra no FIRE."
+			})
+		]
+	});
+}
+function YearCard({ month, currency }) {
+	const year = month.slice(0, 4);
+	const platforms = useLedger((state) => state.platforms);
+	const entries = useLedger((state) => state.entries);
+	const expenses = useLedger((state) => state.expenses);
+	const incomes = useLedger((state) => state.incomes);
+	const cashbacks = useLedger((state) => state.cashbacks);
+	const roll = yearlyRollup(buildSeries(platforms, entries)).find((item) => item.year === year) ?? null;
+	const spent = sumInYear(expenses.map((entry) => ({
+		month: entry.month,
+		amount: entry.amount
+	})), year);
+	const earned = sumInYear(incomes.map((entry) => ({
+		month: entry.month,
+		amount: entry.amount
+	})), year);
+	const cash = sumInYear(cashbacks.map((entry) => ({
+		month: entry.month,
+		amount: entry.amount
+	})), year);
+	const contributed = roll?.contributed ?? 0;
+	const rate = savingsRate(contributed, earned);
+	if (roll == null && spent <= 0 && earned <= 0 && cash <= 0) return null;
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
+		className: "rounded-lg border border-line bg-card p-5 sm:p-6",
+		children: [
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)("h2", {
+				className: "font-serif text-2xl",
+				children: year
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("dl", {
+				className: "mt-4 space-y-2 text-sm",
+				children: [
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YearRow, {
+						label: "Aportes",
+						value: formatMoney(contributed, currency)
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YearRow, {
+						label: "Mercado",
+						value: roll ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)(SignedMoney, {
+							value: roll.market,
+							currency
+						}) : "—"
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YearRow, {
+						label: "Gastos",
+						value: formatMoney(spent, currency)
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YearRow, {
+						label: "Cashback",
+						value: formatMoney(cash, currency)
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YearRow, {
+						label: "Taxa de poupança",
+						value: rate == null ? "—" : formatShare(rate)
+					}),
+					/* @__PURE__ */ (0, import_jsx_runtime.jsx)(YearRow, {
+						label: "No fim",
+						value: roll ? formatMoney(roll.endValue, currency) : "—"
+					})
+				]
+			}),
+			/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
+				className: "mt-4",
+				variant: "soft",
+				onClick: downloadLedger,
+				children: "Exportar cópia"
+			})
+		]
+	});
+}
+function YearRow({ label, value }) {
+	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
+		className: "flex items-baseline justify-between gap-4 border-t border-line pt-2",
+		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("dt", {
+			className: "text-muted",
+			children: label
+		}), /* @__PURE__ */ (0, import_jsx_runtime.jsx)("dd", {
+			className: "text-right tabular-nums",
+			children: value
+		})]
+	});
+}
+function arrivalWhen(value, goal, monthly, rate, from) {
+	if (value >= goal) return null;
+	const months = monthsToGoal(value, goal, monthly, rate);
+	if (months == null) return null;
+	if (months > 600) return "daqui a mais de 50 anos";
+	return formatMonth(shiftMonth(from, months)).toLowerCase();
+}
+function FireCard({ value, recorded, currency, month }) {
 	const fireGoal = useLedger((state) => state.fireGoal);
 	const setFireGoal = useLedger((state) => state.setFireGoal);
+	const fireReturn = useLedger((state) => state.fireReturn);
+	const platforms = useLedger((state) => state.platforms);
+	const entries = useLedger((state) => state.entries);
 	const [editing, setEditing] = (0, import_react.useState)(fireGoal == null);
 	const [draft, setDraft] = (0, import_react.useState)(fireGoal == null ? "" : formatPlain(fireGoal));
 	const [error, setError] = (0, import_react.useState)("");
@@ -4631,6 +4946,8 @@ function FireCard({ value, recorded, currency }) {
 	}, [fireGoal]);
 	const typed = parseAmount(draft);
 	const preview = typed != null && typed > 0 ? flamingoOf(typed) : null;
+	const year = month.slice(0, 4);
+	const pace = monthlyPace(platforms.filter((platform) => !isCashKind(platform.kind)), entries, year);
 	function save() {
 		if (draft.trim() === "") {
 			setFireGoal(null);
@@ -4648,6 +4965,25 @@ function FireCard({ value, recorded, currency }) {
 		setEditing(false);
 	}
 	const flamingo = fireGoal == null ? null : flamingoOf(fireGoal);
+	const monthly = pace?.average ?? 0;
+	const flamingoWhen = flamingo == null ? null : arrivalWhen(value, flamingo, monthly, null, month);
+	const fireWhen = fireGoal == null ? null : arrivalWhen(value, fireGoal, monthly, null, month);
+	const flamingoRate = flamingo == null || fireReturn == null ? null : arrivalWhen(value, flamingo, monthly, fireReturn, month);
+	const fireRate = fireGoal == null || fireReturn == null ? null : arrivalWhen(value, fireGoal, monthly, fireReturn, month);
+	const paceHead = pace == null ? null : pace.months === 1 ? `Com o aporte de ${formatMoney(pace.average, currency)} em ${year}` : `À média de ${formatMoney(pace.average, currency)} por mês em ${year}`;
+	let paceLine = null;
+	if (recorded && fireGoal != null && value < fireGoal) {
+		if (pace == null) paceLine = "Ainda não há aportes deste ano para estimar uma data.";
+		else if (pace.average <= 0) paceLine = `Em ${year}, os aportes não encurtam a distância.`;
+		else if (flamingoWhen && fireWhen) paceLine = `${paceHead}, o Flamingo é em ${flamingoWhen} e o FIRE em ${fireWhen}.`;
+		else if (fireWhen) paceLine = `O Flamingo já passou. ${paceHead}, o FIRE é em ${fireWhen}.`;
+	}
+	let rateLine = null;
+	if (recorded && fireReturn != null && fireGoal != null && value < fireGoal && (monthly > 0 || value > 0)) {
+		const head = `Se render ${formatRate(fireReturn)}% ao ano`;
+		if (flamingoRate && fireRate) rateLine = `${head}, o Flamingo é em ${flamingoRate} e o FIRE em ${fireRate}. É uma estimativa.`;
+		else if (fireRate) rateLine = `${head}, o FIRE é em ${fireRate}. É uma estimativa.`;
+	}
 	return /* @__PURE__ */ (0, import_jsx_runtime.jsxs)("section", {
 		className: "rounded-lg border border-line bg-card p-5 sm:p-6",
 		children: [/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
@@ -4663,7 +4999,7 @@ function FireCard({ value, recorded, currency }) {
 					currency,
 					recorded,
 					tone: "brass",
-					detail: !recorded ? `O Flamingo é ${formatMoney(flamingo, currency)}, metade do FIRE. Ainda não há valores de ativos registados.` : value >= flamingo ? "Já chegaste. A partir daqui podes abrandar: o que está investido pode crescer sozinho até ao FIRE." : `Faltam ${formatMoney(cents(flamingo - value), currency)}. É metade do FIRE, o ponto em que podes trabalhar menos.`
+					detail: !recorded ? `O Flamingo é ${formatMoney(flamingo, currency)}, metade do FIRE. Ainda não há valores investidos registados.` : value >= flamingo ? "Já chegaste. A partir daqui podes abrandar: o que está investido pode crescer sozinho até ao FIRE." : `Faltam ${formatMoney(cents(flamingo - value), currency)}. É metade do FIRE, o ponto em que podes trabalhar menos.`
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(FireTrack, {
 					label: "FIRE tradicional",
@@ -4672,8 +5008,16 @@ function FireCard({ value, recorded, currency }) {
 					currency,
 					recorded,
 					tone: "forest",
-					detail: !recorded ? `O FIRE é ${formatMoney(fireGoal, currency)}. Ainda não há valores de ativos registados.` : value >= fireGoal ? `A carteira vale ${formatMoney(value, currency)} e já passou o FIRE de ${formatMoney(fireGoal, currency)}.` : `Faltam ${formatMoney(cents(fireGoal - value), currency)} para a carteira pagar as despesas sem ordenado.`
+					detail: !recorded ? `O FIRE é ${formatMoney(fireGoal, currency)}. Ainda não há valores investidos registados.` : value >= fireGoal ? `O que está investido vale ${formatMoney(value, currency)} e já passou o FIRE de ${formatMoney(fireGoal, currency)}.` : `Faltam ${formatMoney(cents(fireGoal - value), currency)} para o que está investido pagar as despesas sem ordenado.`
 				}),
+				paceLine ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-sm leading-relaxed",
+					children: paceLine
+				}) : null,
+				rateLine ? /* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
+					className: "text-sm leading-relaxed text-muted",
+					children: rateLine
+				}) : null,
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)(Button, {
 					variant: "soft",
 					onClick: () => setEditing(true),
@@ -4689,7 +5033,7 @@ function FireCard({ value, recorded, currency }) {
 			children: [
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "text-sm leading-relaxed text-muted",
-					children: "O FIRE tradicional é o valor que a carteira tem de atingir. O Flamingo é metade: o primeiro sítio onde podes abrandar e deixar o dinheiro crescer."
+					children: "O FIRE tradicional é o valor que o dinheiro investido tem de atingir. Banco e poupança não entram. O Flamingo é metade: o primeiro sítio onde podes abrandar."
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("label", {
 					className: "block",
@@ -5675,8 +6019,10 @@ function LastroApp() {
 		scrollTo.current = anchor;
 		setTab("fecho");
 	}
-	const monthClosed = platforms.length + incomeSources.length + expenseTypes.length + cashbackCards.length > 0 && platforms.every((platform) => entryFor(entries, platform.id, month)) && incomeSources.every((source) => incomeFor(incomes, source.id, month)) && expenseTypes.every((type) => expenseFor(expenses, type.id, month)) && cashbackCards.every((card) => cashbackFor(cashbacks, card.id, month));
+	const tracked = platforms.length + incomeSources.length + expenseTypes.length + cashbackCards.length > 0;
+	const monthClosed = tracked && platforms.every((platform) => entryFor(entries, platform.id, month)) && incomeSources.every((source) => incomeFor(incomes, source.id, month)) && expenseTypes.every((type) => expenseFor(expenses, type.id, month)) && cashbackCards.every((card) => cashbackFor(cashbacks, card.id, month));
 	const saveLabel = conflictAt != null ? "Por guardar" : saving ? "A guardar…" : savedAt != null ? formatSavedAt(savedAt) : "";
+	const onDueMonth = month === dueMonth(closingDay);
 	if (!ready) return /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
 		className: "min-h-dvh",
 		children: /* @__PURE__ */ (0, import_jsx_runtime.jsx)("div", {
@@ -5815,7 +6161,7 @@ function LastroApp() {
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsx)("p", {
 					className: "mt-3 text-sm text-muted",
-					children: monthClosed ? `${formatMonth(month)} está fechado.` : isClosingToday(closingDay) ? `Hoje é o dia de atualizar. Este fecho é ${formatCloseDay(month, closingDay)}.` : `Atualizas sempre no dia ${closingDay}. Este fecho é ${formatCloseDay(month, closingDay)}.`
+					children: monthClosed ? `${formatMonth(month)} está fechado.` : onDueMonth && isClosingToday(closingDay) ? `Hoje é o dia de atualizar. Este fecho é ${formatCloseDay(month, closingDay)}.` : onDueMonth && tracked ? `O dia ${closingDay} já passou e ${formatMonth(month).toLowerCase()} ainda não está fechado.` : `Atualizas sempre no dia ${closingDay}. Este fecho é ${formatCloseDay(month, closingDay)}.`
 				}),
 				/* @__PURE__ */ (0, import_jsx_runtime.jsxs)("div", {
 					className: "mt-4",
@@ -6033,6 +6379,8 @@ function readLegacyEnvelope() {
 			cashbacks: state.cashbacks ?? [],
 			incomeSources: state.incomeSources ?? [],
 			incomes: state.incomes ?? [],
+			monthNotes: state.monthNotes ?? [],
+			fireReturn: state.fireReturn ?? null,
 			demo: state.demo === true
 		});
 		if (typeof result === "string") return null;

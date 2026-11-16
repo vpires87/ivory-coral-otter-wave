@@ -169,9 +169,11 @@ export function demoLedger(): LedgerData {
     cashbacks: cashbacks.map((entry) => ({ ...entry })),
     incomeSources: incomeSources.map((source) => ({ ...source })),
     incomes: incomes.map((entry) => ({ ...entry })),
+    monthNotes: [{ month: "2026-08", text: "Férias." }],
     currency: "EUR",
     monthlyGoal: 650,
     fireGoal: 50000,
+    fireReturn: null,
     closingDay: 25,
     demo: true,
   };
